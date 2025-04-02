@@ -27,9 +27,8 @@ app.use(cookieParser());
 app.use(cors({
     origin: [
         "http://localhost:3000",
-        
         "https://academix-w1rw.onrender.com",
-        "https://academix-sigma.vercel.app"  // Add your frontend URL
+        "https://academix-sigma.vercel.app"
     ],
     methods: "GET,POST,PUT,DELETE",
     credentials: true,
