@@ -1,5 +1,7 @@
 // const BASE_URL = process.env.REACT_APP_BACKEND_URL || "http://localhost:4000/api/v1";
-const BASE_URL = process.env.REACT_APP_BACKEND_URL || "https://study-notion-ka7t.onrender.com"
+// const BASE_URL = process.env.REACT_APP_BACKEND_URL || "https://study-notion-ka7t.onrender.com"\
+
+const BASE_URL ="https://academix-w1rw.onrender.com"
 
 // AUTH ENDPOINTS
 export const endpoints = {
