@@ -1,21 +1,21 @@
 import React from 'react';
-import standing_lady_with_book from '../../../assets/Images/standing_lady_with_book.jpg';
+import standing_lady_with_book from '../../../assets/Images/standing_lady_with_book.png';
 import HiglightedText from './HiglightedText';
 import CTAButton from './Button';
 import { FaArrowRight } from 'react-icons/fa';
 
 const BecomeInstructor = () => {
   return (
-    <div className="w-full flex p-20 h-[90vh] gap-10">
+    <div className="w-full flex p-20 h-[90vh] gap-10 justify-center items-center">
       {/* Left Side - Image Section */}
-      <div className="w-1/2 flex justify-center items-center">
+      <div className="w-1/3 flex justify-center items-center">
         <img
           src={standing_lady_with_book}
           alt="Standing Lady with Book"
           className="object-contain w-full"
-          style={{
-            boxShadow: "20px 20px 0px white",
-          }}
+          // style={{
+          //   boxShadow: "20px 20px 0px white",
+          // }}
         />
       </div>
 

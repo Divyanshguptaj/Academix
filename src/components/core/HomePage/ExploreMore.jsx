@@ -26,10 +26,10 @@ const ExploreMore = () => {
     <div className='relative flex flex-col justify-center items-center p-20 w-full pb-48'>
 
       <div className='text-4xl font-semibold flex text-gray-300'>
-        <p>Unlock the </p><HiglightedText text="Power of Coding"/>
+        <p>Unlock the&nbsp;</p><HiglightedText text="Power of Coding"/>
       </div>
       
-      <p className='text-sm mt-5'>Learn to build anything You can imagine</p>
+      <p className='text-sm mt-5'>Learn to build anything you can imagine</p>
 
       <div className='flex bg-gray-700 rounded-full py-1 mt-5 '>
         {

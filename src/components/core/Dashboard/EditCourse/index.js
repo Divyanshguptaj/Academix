@@ -44,7 +44,7 @@ export default function EditCourse() {
       </h1>
       <div className="mx-auto max-w-[600px]">
         {course ? (
-          <RenderSteps />
+          <RenderSteps /> 
         ) : (
           <p className="mt-14 text-center text-3xl font-semibold text-richblack-300">
             Course not found

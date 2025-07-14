@@ -4,7 +4,6 @@ import { toast } from "react-hot-toast"
 import { HiOutlineCurrencyRupee } from "react-icons/hi"
 import { MdNavigateNext } from "react-icons/md"
 import { useDispatch, useSelector } from "react-redux"
-
 import {
   addCourseDetails,
   editCourseDetails,
@@ -37,24 +36,25 @@ export default function CourseInformationForm() {
     const getCategories = async () => {
       setLoading(true)
       const categories = await fetchCourseCategories()
-      console.log(categories)
       if (categories.length > 0) {
-        // console.log("categories", categories)
         setCourseCategories(categories)
       }
       setLoading(false)
     }
+    
     // if form is in edit mode
     if (editCourse) {
-      // console.log("data populated", editCourse)
-      setValue("courseTitle", course.courseName)
-      setValue("courseShortDesc", course.courseDescription)
-      setValue("coursePrice", course.price)
-      setValue("courseTags", course.tag)
-      setValue("courseBenefits", course.whatYouWillLearn)
-      setValue("courseCategory", course.category)
-      setValue("courseRequirements", course.instructions)
-      setValue("courseImage", course.thumbnail)
+      // Extract course data from either _doc property or direct properties
+      const courseData = course._doc || course;
+      
+      setValue("courseTitle", courseData.courseName)
+      setValue("courseShortDesc", courseData.courseDescription)
+      setValue("coursePrice", courseData.price)
+      setValue("courseTags", courseData.tag)
+      setValue("courseBenefits", courseData.whatYouWillLearn)
+      setValue("courseCategory", courseData.category)
+      setValue("courseRequirements", courseData.instructions)
+      setValue("courseImage", courseData.thumbnail)
     }
     getCategories()
 
@@ -63,17 +63,19 @@ export default function CourseInformationForm() {
 
   const isFormUpdated = () => {
     const currentValues = getValues()
-    // console.log("changes after editing form values:", currentValues)
+    // Extract course data from either _doc property or direct properties
+    const courseData = course._doc || course;
+    
     if (
-      currentValues.courseTitle !== course.courseName ||
-      currentValues.courseShortDesc !== course.courseDescription ||
-      currentValues.coursePrice !== course.price ||
-      currentValues.courseTags.toString() !== course.tag.toString() ||
-      currentValues.courseBenefits !== course.whatYouWillLearn ||
-      currentValues.courseCategory._id !== course.category._id ||
+      currentValues.courseTitle !== courseData.courseName ||
+      currentValues.courseShortDesc !== courseData.courseDescription ||
+      currentValues.coursePrice !== courseData.price ||
+      currentValues.courseTags.toString() !== courseData.tag.toString() ||
+      currentValues.courseBenefits !== courseData.whatYouWillLearn ||
+      currentValues.courseCategory._id !== courseData.category._id ||
       currentValues.courseRequirements.toString() !==
-        course.instructions.toString() ||
-      currentValues.courseImage !== course.thumbnail
+        courseData.instructions.toString() ||
+      currentValues.courseImage !== courseData.thumbnail
     ) {
       return true
     }
@@ -82,54 +84,47 @@ export default function CourseInformationForm() {
 
   //   handle next button click
   const onSubmit = async (data) => {
-    // console.log(data)
 
     if (editCourse) {
-      // const currentValues = getValues()
-      // console.log("changes after editing form values:", currentValues)
-      // console.log("now course:", course)
-      // console.log("Has Form Changed:", isFormUpdated())
       if (isFormUpdated()) {
         const currentValues = getValues()
+        // Extract course data from either _doc property or direct properties
+        const courseData = course._doc || course;
+        
         const formData = new FormData()
-        // console.log(data)
-        formData.append("courseId", course._id)
-        if (currentValues.courseTitle !== course.courseName) {
+        formData.append("courseId", courseData._id)
+        if (currentValues.courseTitle !== courseData.courseName) {
           formData.append("courseName", data.courseTitle)
         }
-        if (currentValues.courseShortDesc !== course.courseDescription) {
+        if (currentValues.courseShortDesc !== courseData.courseDescription) {
           formData.append("courseDescription", data.courseShortDesc)
         }
-        if (currentValues.coursePrice !== course.price) {
+        if (currentValues.coursePrice !== courseData.price) {
           formData.append("price", data.coursePrice)
         }
-        if (currentValues.courseTags.toString() !== course.tag.toString()) {
+        if (currentValues.courseTags.toString() !== courseData.tag.toString()) {
           formData.append("tag", JSON.stringify(data.courseTags))
         }
-        if (currentValues.courseBenefits !== course.whatYouWillLearn) {
+        if (currentValues.courseBenefits !== courseData.whatYouWillLearn) {
           formData.append("whatYouWillLearn", data.courseBenefits)
         }
-        if (currentValues.courseCategory._id !== course.category._id) {
+        if (currentValues.courseCategory._id !== courseData.category._id) {
           formData.append("category", data.courseCategory)
         }
         if (
           currentValues.courseRequirements.toString() !==
-          course.instructions.toString()
+          courseData.instructions.toString()
         ) {
           formData.append(
             "instructions",
             JSON.stringify(data.courseRequirements)
           )
         }
-        if (currentValues.courseImage !== course.thumbnail) {
+        if (currentValues.courseImage !== courseData.thumbnail) {
           formData.append("thumbnailImage", data.courseImage)
         }
         formData.append("email", user.email);
-        // console.log("Edit Form data: ", formData)
         setLoading(true)
-        // console.log("object10")
-        // console.log(formData.get(""))
-        // console.log("object5")
         const result = await editCourseDetails(formData)
         setLoading(false)
         if (result) {
@@ -154,12 +149,7 @@ export default function CourseInformationForm() {
     formData.append("thumbnailImage", data.courseImage)
     formData.append("email", user.email);
     setLoading(true)
-    // console.log("object1")
-    // console.log(data.courseTitle)
-    // console.log(formData.get("email"));
-    // console.log("object5")
     const result = await addCourseDetails(formData)
-    // console.log(result)
     if (result) {
       dispatch(setStep(2))
       dispatch(setCourse(result))
@@ -169,8 +159,8 @@ export default function CourseInformationForm() {
 
   return (
     <form
-      onSubmit={handleSubmit(onSubmit)}
-      className="space-y-8 rounded-md border-[1px] border-richblack-700 bg-richblack-800 p-6"
+    onSubmit={handleSubmit(onSubmit)}
+    className="space-y-8 rounded-md border-[1px] border-richblack-700 bg-richblack-800 p-6"
     >
       {/* Course Title */}
       <div className="flex flex-col space-y-2">
@@ -277,7 +267,7 @@ export default function CourseInformationForm() {
         register={register}
         setValue={setValue}
         errors={errors}
-        editData={editCourse ? course?.thumbnail : null}
+        editData={editCourse ? (course._doc || course)?.thumbnail : null}
       />
       {/* Benefits of the course */}
       <div className="flex flex-col space-y-2">

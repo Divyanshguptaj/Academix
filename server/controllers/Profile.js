@@ -1,87 +1,119 @@
-const Profile = require('../models/Profile');
-const User = require('../models/User');
-const jwt = require("jsonwebtoken");
+import { uploadImagetoCloudinary } from "../utils/imageUploader.js";
+import Profile from "../models/Profile.js";
+import mongoose from "mongoose";
+import User from "../models/User.js";
+import jwt from "jsonwebtoken";
 
-exports.getUserDetails = async (req, res) => {
-    try {
-        
-        const { email } = req.query;
+export const getUserDetails = async (req, res) => {
+  try {
+    const { email } = req.query;
 
-        if (!email) {
-            return res.status(400).json({
-                success: false,
-                message: "Email is required",
-            });
-        }
-
-        const userDetails = await User.findOne({ email }).populate("additionalDetails");
-
-        if (!userDetails) {
-            return res.status(404).json({
-                success: false,
-                message: "User not found",
-            });
-        }
-
-        return res.status(200).json({
-            success: true,  // Fixed typo
-            userDetails,
-            message: "User found",
-        });
-    } catch (error) {
-        console.error("Error fetching user details:", error);
-        return res.status(500).json({
-            success: false,
-            message: "Internal server error",
-        });
+    if (!email) {
+      return res.status(400).json({
+        success: false,
+        message: "Email is required",
+      });
     }
+
+    const userDetails = await User.findOne({ email }).populate(
+      "additionalDetails"
+    );
+
+    if (!userDetails) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    return res.status(200).json({
+      success: true, // Fixed typo
+      userDetails,
+      message: "User found",
+    });
+  } catch (error) {
+    console.error("Error fetching user details:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
+    });
+  }
 };
 
-exports.updateProfile = async (req, res) => {
-    try {
-        const { email, dateOfBirth, about, contactNumber, gender, firstName, lastName } = req.body;
-        console.log(email, dateOfBirth, about, contactNumber, gender, firstName, lastName); 
-        if (!email) {
-            return res.status(400).json({ success: false, message: "Email is required" });
-        }
-
-        // Fetch user details along with additional profile details
-        const userDetails = await User.findOne({ email }).populate("additionalDetails");
-        console.log(userDetails)
-        if (!userDetails) {
-          return res.status(404).json({ success: false, message: "User not found" });
-        }
-        await User.findOneAndUpdate(
-          { email }, 
-          { $set: { firstName, lastName } },
-          { new: true} 
-        );
-        
-        // Get profile ID from user's additional details
-        const profileId = userDetails.additionalDetails;
-        if (!profileId) {
-            return res.status(404).json({ success: false, message: "Profile not found" });
-        }
-
-        // Create an update object and add only provided fields
-        const updateFields = {};
-        if (dateOfBirth) updateFields.dateOfBirth = new Date(dateOfBirth); 
-        if (about) updateFields.about = about;
-        if (contactNumber) updateFields.contactNumber = contactNumber;
-        if (gender) updateFields.gender = gender;
-        // Update the profile only if there are fields to update
-        if (Object.keys(updateFields).length > 0) {
-            await Profile.findByIdAndUpdate(profileId, updateFields, { new: true });
-        }
-
-        return res.status(200).json({ success: true, message: "everything for profile updated successfully" });
-    } catch (error) {
-        console.error("Error updating profile:", error);
-        return res.status(500).json({ success: false, message: "Server error" });
+export const updateProfile = async (req, res) => {
+  try {
+    const {
+      email,
+      dateOfBirth,
+      about,
+      contactNumber,
+      gender,
+      firstName,
+      lastName,
+    } = req.body;
+    console.log(
+      email,
+      dateOfBirth,
+      about,
+      contactNumber,
+      gender,
+      firstName,
+      lastName
+    );
+    if (!email) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Email is required" });
     }
+
+    // Fetch user details along with additional profile details
+    const userDetails = await User.findOne({ email }).populate(
+      "additionalDetails"
+    );
+    console.log(userDetails);
+    if (!userDetails) {
+      return res
+        .status(404)
+        .json({ success: false, message: "User not found" });
+    }
+    await User.findOneAndUpdate(
+      { email },
+      { $set: { firstName, lastName } },
+      { new: true }
+    );
+
+    // Get profile ID from user's additional details
+    const profileId = userDetails.additionalDetails;
+    if (!profileId) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Profile not found" });
+    }
+
+    // Create an update object and add only provided fields
+    const updateFields = {};
+    if (dateOfBirth) updateFields.dateOfBirth = new Date(dateOfBirth);
+    if (about) updateFields.about = about;
+    if (contactNumber) updateFields.contactNumber = contactNumber;
+    if (gender) updateFields.gender = gender;
+    // Update the profile only if there are fields to update
+    if (Object.keys(updateFields).length > 0) {
+      await Profile.findByIdAndUpdate(profileId, updateFields, { new: true });
+    }
+
+    return res
+      .status(200)
+      .json({
+        success: true,
+        message: "everything for profile updated successfully",
+      });
+  } catch (error) {
+    console.error("Error updating profile:", error);
+    return res.status(500).json({ success: false, message: "Server error" });
+  }
 };
 
-exports.deleteAccount = async (req, res) => {
+export const deleteAccount = async (req, res) => {
   try {
     const token = req.headers.authorization?.split(" ")[1];
     if (!token) {
@@ -126,96 +158,179 @@ exports.deleteAccount = async (req, res) => {
   }
 };
 
-exports.getAllUsers = async (req, res)=>{
-    try {
-        const userId = req.user.id;
-        const users = await User.findById(userId).populate("additionalDetails").exec();
-        return res.status(200).json({
-            success: true,
-            message: "All Users...",
-            data: users,
-        })
-    } catch (error) {
-        return res.status(400).json({
-            success: false,
-            message: "Can't get all users, some error occured ..."
-        })
-    }
-}
-
-exports.getEnrolledCourses = async (req, res) => {
-    try {
-      // const userId = req.user.id; // Assuming authentication middleware adds `req.user`
-      const { userId }= req.query
-    //   console.log(userId);
-      // Fetch user and populate enrolled courses
-      const user = await User.findById(userId)
-      .populate({
-        path: "courses", // Populate the courses array
-        populate: {
-          path: "courseContent", // Inside courses, populate courseContent (sections)
-          populate: {
-            path: "subSection", // Inside courseContent, populate subsections
-          },
-        },
-      });
-      // console.log(user)
-      if (!user) {
-        return res.status(404).json({
-          success: false,
-          message: "User not found",
-        });
-      }
-  
-      return res.status(200).json({
-        success: true,
-        data: user.courses,
-      });
-  
-    } catch (error) {
-      console.error("Error fetching enrolled courses:", error);
-      return res.status(500).json({
-        success: false,
-        message: "Can't fetch the enrolled courses",
-        error: error.message,
-      });
-    }
+export const getAllUsers = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const users = await User.findById(userId)
+      .populate("additionalDetails")
+      .exec();
+    return res.status(200).json({
+      success: true,
+      message: "All Users...",
+      data: users,
+    });
+  } catch (error) {
+    return res.status(400).json({
+      success: false,
+      message: "Can't get all users, some error occured ...",
+    });
+  }
 };
 
-exports.instructorDetails = async (req, res) => {
-    try {
-        const { userId } = req.query; // Get instructor ID from request params
-        const instructorId = userId
-        console.log(userId)
-        // Find instructor, populate `additionalDetails` & `courses`
-        const instructor = await User.findOne({
-            _id: instructorId,
-            accountType: "Instructor",
-        })
-        .populate("additionalDetails") // Fetch profile details
-        .populate({
-            path: "courses",
-            select: "courseName courseDescription price studentsEnrolled",
-        });
-
-        // If instructor not found
-        if (!instructor) {
-            return res.status(404).json({
-                success: false,
-                message: "Instructor not found",
-            });
-        }
-
-        return res.status(200).json({
-            success: true,
-            instructor,
-        });
-
-    } catch (error) {
-        console.error("Error fetching instructor details:", error);
-        return res.status(500).json({
-            success: false,
-            message: "Internal Server Error",
-        });
+export const getEnrolledCourses = async (req, res) => {
+  try {
+    const { userId } = req.query;
+    // Fetch user and populate enrolled courses
+    const user = await User.findById(userId).populate({
+      path: "courses", // Populate the courses array
+      populate: {
+        path: "courseContent", // Inside courses, populate courseContent (sections)
+        populate: {
+          path: "subSection", // Inside courseContent, populate subsections
+        },
+      },
+    });
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
     }
+
+    const coursesWithDuration = user.courses.map((course) => {
+      let totalDuration = 0;
+
+      course.courseContent.forEach((section) => {
+        section.subSection.forEach((sub) => {
+          const duration = parseFloat(sub.timeDuration) || 0;
+          totalDuration += duration;
+        });
+      });
+
+      return {
+        ...course._doc,
+        totalDurationInMinutes: totalDuration,
+      };
+    });
+
+    return res.status(200).json({
+      success: true,
+      data: coursesWithDuration,
+    });
+  } catch (error) {
+    console.error("Error fetching enrolled courses:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Can't fetch the enrolled courses",
+      error: error.message,
+    });
+  }
+};
+
+export const instructorDetails = async (req, res) => {
+  try {
+    const { userId } = req.query;
+    // Validate presence
+    if (!userId || typeof userId !== "string" || userId.trim() === "") {
+      return res.status(400).json({
+        success: false,
+        message: "Missing or invalid userId in request.",
+      });
+    }
+
+    // Validate ObjectId format
+    if (!mongoose.Types.ObjectId.isValid(userId)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid userId format.",
+      });
+    }
+
+    // Fetch instructor with populated fields
+    const instructor = await User.findOne({
+      _id: userId.trim(),
+      accountType: "Instructor",
+    })
+      .populate("additionalDetails")
+      .populate({
+        path: "courses",
+        select: "courseName courseDescription price studentsEnrolled thumbnail",
+      });
+
+    if (!instructor) {
+      return res.status(404).json({
+        success: false,
+        message: "Instructor not found",
+      });
+    }
+
+    // If instructor exists but has no courses
+    if (!instructor.courses || instructor.courses.length === 0) {
+      return res.status(200).json({
+        success: true,
+        message: "Instructor found, but no courses available yet.",
+        instructor: {
+          ...instructor.toObject(),
+          courses: [],
+        },
+      });
+    }
+
+    // If instructor and courses found
+    return res.status(200).json({
+      success: true,
+      message: "Instructor data fetched successfully.",
+      instructor,
+    });
+  } catch (error) {
+    console.error("Error fetching instructor details:", error.message);
+    return res.status(500).json({
+      success: false,
+      message: "Internal Server Error while fetching instructor details",
+    });
+  }
+};
+
+export const updateDisplayPicture = async (req, res) => {
+  try {
+    const { email } = req.body;
+    const imageFile = req.files?.displayPicture;
+    if (!email) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Email is required" });
+    }
+
+    if (!imageFile) {
+      return res
+        .status(400)
+        .json({ success: false, message: "No image file uploaded" });
+    }
+
+    const uploadedImage = await uploadImagetoCloudinary(
+      imageFile,
+      process.env.FOLDER_NAME
+    );
+
+    const updatedUser = await User.findOneAndUpdate(
+      { email },
+      { image: uploadedImage.secure_url },
+      { new: true }
+    ).populate("additionalDetails");
+
+    if (!updatedUser) {
+      return res
+        .status(404)
+        .json({ success: false, message: "User not found" });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Display picture updated successfully",
+      data: updatedUser,
+    });
+  } catch (error) {
+    console.error("updateDisplayPicture error:", error);
+    return res.status(500).json({ success: false, message: "Server error" });
+  }
 };

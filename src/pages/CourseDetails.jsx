@@ -1,93 +1,85 @@
-import React, { useEffect, useState } from "react"
-import { BiInfoCircle } from "react-icons/bi"
-import { HiOutlineGlobeAlt } from "react-icons/hi"
-import ReactMarkdown from "react-markdown"
-import { useDispatch, useSelector } from "react-redux"
-import { useNavigate, useParams } from "react-router-dom"
-
-import ConfirmationModal from "../components/common/ConfirmationModal"
-import Footer from "../components/common/Footer"
-import RatingStars from "../components/common/RatingStars"
-import CourseAccordionBar from "../components/core/Course/CourseAccordionBar"
-import CourseDetailsCard from "../components/core/Course/CourseDetailsCard"
-import { formatDate } from "../services/formatDate"
-import { fetchCourseDetails } from "../services/operations/courseDetailsAPI"
-import { buyCourse } from "../services/operations/studentFeatureAPI"
-import GetAvgRating from "../utils/avgRating"
-import Error from "./Error"
+import React, { useEffect, useState } from "react";
+import { BiInfoCircle } from "react-icons/bi";
+import { HiOutlineGlobeAlt } from "react-icons/hi";
+import ReactMarkdown from "react-markdown";
+import { useDispatch, useSelector } from "react-redux";
+import { useNavigate, useParams } from "react-router-dom";
+import { CiClock1 } from "react-icons/ci";
+import ConfirmationModal from "../components/common/ConfirmationModal";
+import Footer from "../components/common/Footer";
+import RatingStars from "../components/common/RatingStars";
+import CourseAccordionBar from "../components/core/Course/CourseAccordionBar";
+import CourseDetailsCard from "../components/core/Course/CourseDetailsCard";
+import { formatDate } from "../services/formatDate";
+import { fetchCourseDetails } from "../services/operations/courseDetailsAPI";
+import { buyCourse } from "../services/operations/studentFeatureAPI";
+import GetAvgRating from "../utils/avgRating";
+import Error from "./Error";
 
 function CourseDetails() {
-  const { user } = useSelector((state) => state.profile)
-  const { token } = useSelector((state) => state.auth)
-  const { loading } = useSelector((state) => state.profile)
-  const { paymentLoading } = useSelector((state) => state.course)
-  const dispatch = useDispatch()
-  const navigate = useNavigate()
+  const { user } = useSelector((state) => state.profile);
+  const { token } = useSelector((state) => state.auth);
+  const { loading } = useSelector((state) => state.profile);
+  const { paymentLoading } = useSelector((state) => state.course);
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
 
   // Getting courseId from url parameter
-  const { courseId } = useParams()
-  // console.log(`course id: ${courseId}`)
+  const { courseId } = useParams();
+  const [response, setResponse] = useState(null);
+  const [confirmationModal, setConfirmationModal] = useState(null);
 
-  // Declear a state to save the course details
-  const [response, setResponse] = useState(null)
-  const [confirmationModal, setConfirmationModal] = useState(null)
   useEffect(() => {
     // Calling fetchCourseDetails fucntion to fetch the details
-    ;(async () => {
+    (async () => {
       try {
-        const res = await fetchCourseDetails(courseId)
-        console.log("course details res: ", res)
-        setResponse(res)
+        const res = await fetchCourseDetails(courseId);
+        // console.log("course details res: ", res)
+        setResponse(res);
       } catch (error) {
-        console.log("Could not fetch Course Details")
+        console.log("Could not fetch Course Details");
       }
-    })()
-  }, [courseId])
-
-  // console.log("response: ", response)
+    })();
+  }, [courseId]);
 
   // Calculating Avg Review count
-  const [avgReviewCount, setAvgReviewCount] = useState(0)
+  const [avgReviewCount, setAvgReviewCount] = useState(0);
   useEffect(() => {
-    console.log("response1", response)
-    const count = GetAvgRating(response?.data?.courseDetails.ratingAndReviews)
-    setAvgReviewCount(count)
-  }, [response])
-  // console.log("avgReviewCount: ", avgReviewCount)
+    const count = GetAvgRating(response?._doc?.ratingAndReviews);
+    setAvgReviewCount(count);
+  }, [response]);
 
-    // Total number of lectures
-    const [totalNoOfLectures, setTotalNoOfLectures] = useState(0)
-    useEffect(() => {
-      console.log("response2", response)
-      let lectures = 0
-      response?._doc?.courseContent?.forEach((sec) => {
-        lectures += sec.subSection.length || 0
-      })
-      setTotalNoOfLectures(lectures)
-    }, [response])
+  const [totalNoOfLectures, setTotalNoOfLectures] = useState(0);
+  useEffect(() => {
+    let lectures = 0;
+    response?._doc?.courseContent?.forEach((sec) => {
+      lectures += sec.subSection.length || 0;
+    });
+    setTotalNoOfLectures(lectures);
+  }, [response]);
 
   // // Collapse all
   // const [collapse, setCollapse] = useState("")
 
-  const [isActive, setIsActive] = useState(Array(0))
+  const [isActive, setIsActive] = useState(Array(0));
   const handleActive = (id) => {
     // console.log("called", id)
     setIsActive(
       !isActive.includes(id)
         ? isActive.concat([id])
-        : isActive.filter((e) => e != id)
-    )
-  }
+        : isActive.filter((e) => e !== id)
+    );
+  };
 
   if (loading || !response) {
     return (
       <div className="grid min-h-[calc(100vh-3.5rem)] place-items-center">
         <div className="spinner"></div>
       </div>
-    )
+    );
   }
   if (!response.success) {
-    return <Error />
+    return <Error />;
   }
 
   const {
@@ -102,12 +94,12 @@ function CourseDetails() {
     instructor,
     studentsEnrolled,
     createdAt,
-  } = response._doc
+  } = response._doc;
 
   const handleBuyCourse = () => {
     if (token) {
-      buyCourse(token, [courseId], user, navigate, dispatch)
-      return
+      buyCourse(token, [courseId], user, navigate, dispatch);
+      return;
     }
     setConfirmationModal({
       text1: "You are not logged in!",
@@ -116,16 +108,15 @@ function CourseDetails() {
       btn2Text: "Cancel",
       btn1Handler: () => navigate("/login"),
       btn2Handler: () => setConfirmationModal(null),
-    })
-  }
+    });
+  };
 
   if (paymentLoading) {
-    // console.log("payment loading")
     return (
       <div className="grid min-h-[calc(100vh-3.5rem)] place-items-center">
         <div className="spinner"></div>
       </div>
-    )
+    );
   }
 
   return (
@@ -165,12 +156,12 @@ function CourseDetails() {
               <div className="flex flex-wrap gap-5 text-lg">
                 <p className="flex items-center gap-2 text-white">
                   {" "}
-                  <BiInfoCircle /> Created at {formatDate(createdAt)}
+                  <CiClock1 /> Created at {formatDate(createdAt)}
                 </p>
-                <p className="flex items-center gap-2 text-white">
+                {/* <p className="flex items-center gap-2 text-white">
                   {" "}
                   <HiOutlineGlobeAlt /> English
-                </p>
+                </p> */}
               </div>
             </div>
 
@@ -179,12 +170,16 @@ function CourseDetails() {
               <p className="space-x-3 pb-4 text-3xl font-semibold text-richblack-300">
                 Rs. {price}
               </p>
-              <button className="yellowButton bg-yellow-400 rounded-md text-black" onClick={handleBuyCourse}>
+              <button
+                className="yellowButton bg-yellow-400 rounded-md text-black"
+                onClick={handleBuyCourse}
+              >
                 Buy Now
               </button>
-              <button className="blackButton bg-slate-800 rounded-md text-white">Add to Cart</button>
+              <button className="blackButton bg-slate-800 rounded-md text-white">
+                Add to Cart
+              </button>
             </div>
-
           </div>
           {/* Courses Card */}
           <div className="right-[1rem] top-[60px] mx-auto hidden min-h-[600px] w-1/3 max-w-[410px] translate-y-24 md:translate-y-0 lg:absolute  lg:block">
@@ -270,7 +265,7 @@ function CourseDetails() {
       <Footer />
       {confirmationModal && <ConfirmationModal modalData={confirmationModal} />}
     </>
-  )
+  );
 }
 
-export default CourseDetails
+export default CourseDetails;

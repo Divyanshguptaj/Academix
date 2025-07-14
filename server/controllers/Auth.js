@@ -1,16 +1,17 @@
-const User = require('../models/User');
-const OTP = require('../models/OTP');
-const otpgenerator = require("otp-generator");
-const bcrypt = require("bcryptjs");
-const jwt = require("jsonwebtoken");
-const Profile = require('../models/Profile');
-require('dotenv').config();
+import User from '../models/User.js'
+import OTP from '../models/OTP.js'
+import otpgenerator from "otp-generator"
+import bcrypt from "bcryptjs"
+import jwt from "jsonwebtoken"
+import Profile from '../models/Profile.js'
+import dotenv from 'dotenv';
+dotenv.config();
 
 //Send OTP -
-exports.sendOTP = async (req, res)=>{
+export const sendOTP = async (req, res)=>{
     try{
         const {email} = req.body;
-        // console.log(email);
+        console.log(email);
         const checkUserPresent = await User.findOne({email})
         if(checkUserPresent){
             return res.status(401).json({
@@ -18,12 +19,15 @@ exports.sendOTP = async (req, res)=>{
                 message: "User already exists! , Please go and try for login ...", 
             })
         }
+        console.log("check present" , checkUserPresent)
         var otp = otpgenerator.generate(6,{
             upperCaseAlphabets: false,
             lowerCaseAlphabets: false,
             specialChars: false,    
         })
+        console.log(otp)
         let result = await OTP.findOne({otp: otp})
+        console.log(result)
         while(result){
             var otp = otpgenerator.generate(6,{
                 upperCaseAlphabets: false,
@@ -32,11 +36,11 @@ exports.sendOTP = async (req, res)=>{
             })
             result = await OTP.findOne({otp: otp})
         }
-
+        console.log(result)
         // console.log("OTP generated succesfully",otp);
         const otpPayload = {email, otp};
         await OTP.create(otpPayload);
-        
+        console.log(otpPayload)
         return res.status(200).json({
             success: true,
             message: "OTP sent successfully",
@@ -51,12 +55,12 @@ exports.sendOTP = async (req, res)=>{
 }
 
 //sign Up -
-exports.signUp = async (req,res) =>{
+export const signUp = async (req,res) =>{
     try{
         const {firstName, lastName, email, password, confirmPassword, accountType, contactNumber, otp} = req.body; 
 
         //validation
-        if(!firstName || !lastName || !password || !confirmPassword || !otp || !contactNumber){
+        if(!firstName || !lastName || !password || !confirmPassword || !otp){
             return res.status(403).json({ 
                 success: false,
                 message: "All fields are mandatory...",
@@ -86,7 +90,7 @@ exports.signUp = async (req,res) =>{
                 message: "Can't fetch otp",
             })
         }
-        if (otp !== recentOTP[0].otp) {
+        if(otp !== recentOTP[0].otp) {
             console.log(recentOTP[0].otp);        
             console.log(recentOTP[0]);        
             console.log(otp);        
@@ -127,21 +131,22 @@ exports.signUp = async (req,res) =>{
 }
 
 //login
-exports.login = async (req,res)=>{
+export const login = async (req,res)=>{
     try{
-        const {email, password} = req.body;
-        if(!email || !password){
+        const {email, password, role } = req.body;
+
+        if(!email || !password || !role){
             return res.status(400).json({
                 success: false,
                 message: "Feilds can't be empty",
             })
         }
 
-        const user = await User.findOne({email: email});
+        const user = await User.findOne({email: email, accountType: role});
         if(!user){ 
             return res.status(400).json({
                 success: false,
-                message: "User doesn't exists , SignUp first then login...",
+                message: "User doesn't exists",
             })
         }
         //jwt token generation -
@@ -182,7 +187,7 @@ exports.login = async (req,res)=>{
 }
 
 //ye bacha hua hai 
-exports.changePassword = async (req, res) => {
+export const changePassword = async (req, res) => {
     try {
         const { oldPassword, newPassword, mail } = req.body;
 

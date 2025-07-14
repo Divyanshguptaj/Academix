@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useDispatch } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
-import { FaRegEye } from 'react-icons/fa';
+import { FaRegEye, FaRegEyeSlash } from 'react-icons/fa';
 import signupImage from '../assets/Images/signupImage.png';
 import loginBackground from '../assets/Images/loginBackground.png';
 import countryCode from '../data/countrycode.json';
@@ -24,8 +24,6 @@ const Signup = () => {
     email: "",
     password: "",
     confirmPassword: "",
-    contactNumber: "",
-    countryCode: countryCode[0].dial_code,
   });
 
   const [showPassword, setShowPassword] = useState(false);
@@ -46,9 +44,24 @@ const Signup = () => {
       return;
     }
 
+    if (formData.password.length<8) {
+      toast.error("Minimum length of password should be 8");
+      return;
+    }
+
+    if (!/\d/.test(formData.password)) {
+      toast.error("Password must include at least one number");
+      return;
+    }
+
+    if (!/[!@#$%^&*(),.?":{}|<>]/.test(formData.password)) {
+      toast.error("Password must include at least one special character");
+      return;
+    }
+    
     const signupData = { ...formData, accountType };
 
-    await dispatch(sendOtp(formData.email, signupData, navigate));
+    dispatch(sendOtp(formData.email, signupData, navigate));
 
     setFormData({
       firstName: "",
@@ -56,8 +69,6 @@ const Signup = () => {
       email: "",
       password: "",
       confirmPassword: "",
-      contactNumber: "",
-      countryCode: countryCode[0].dial_code,
     });
     setAccountType(ACCOUNT_TYPE.STUDENT);
   };
@@ -100,7 +111,7 @@ const Signup = () => {
               placeholder="Email Address" className="w-full px-4 py-3 mt-4 rounded-md bg-gray-900 text-white" required />
 
             {/* Contact Number */}
-            <div className='flex gap-4 mt-4'>
+            {/* <div className='flex gap-4 mt-4'>
               <select name="countryCode" value={formData.countryCode} onChange={handleOnChange}
                 className='w-1/3 px-4 py-3 rounded-md bg-gray-900 text-white' required>
                 {countryCode.map((country) => (
@@ -109,7 +120,7 @@ const Signup = () => {
               </select>
               <input type="tel" name="contactNumber" value={formData.contactNumber} onChange={handleOnChange}
                 placeholder="12345 67890" className='w-2/3 px-4 py-3 rounded-md bg-gray-900 text-white' required />
-            </div>
+            </div> */}
 
             {/* Passwords */}
             <div className='flex gap-4 mt-4'>
@@ -117,14 +128,14 @@ const Signup = () => {
                 <input type={showPassword ? "text" : "password"} name="password" value={formData.password} onChange={handleOnChange}
                   placeholder="Password" className="w-full px-4 py-3 rounded-md bg-gray-900 text-white" required />
                 <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute inset-y-0 right-3">
-                  <FaRegEye className='text-gray-400 hover:text-yellow-500' />
+                  {showPassword ? <FaRegEyeSlash className='text-gray-400 hover:text-yellow-500'/> : <FaRegEye className='text-gray-400 hover:text-yellow-500' />}
                 </button>
               </div>
               <div className='relative w-1/2'>
                 <input type={showConfirmPassword ? "text" : "password"} name="confirmPassword" value={formData.confirmPassword} onChange={handleOnChange}
                   placeholder="Confirm Password" className="w-full px-4 py-3 rounded-md bg-gray-900 text-white" required />
                 <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)} className="absolute inset-y-0 right-3">
-                  <FaRegEye className='text-gray-400 hover:text-yellow-500' />
+                  {showConfirmPassword ? <FaRegEyeSlash className='text-gray-400 hover:text-yellow-500'/> : <FaRegEye className='text-gray-400 hover:text-yellow-500' />}
                 </button>
               </div>
             </div>

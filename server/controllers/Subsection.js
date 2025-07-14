@@ -1,11 +1,11 @@
-const subSection = require('../models/SubSection')
-const Section = require('../models/Section')
-const {uploadImagetoCloudinary} = require('../utils/imageUploader');
-const Course = require('../models/Course')
+import subSection from '../models/SubSection.js'
+import Section from '../models/Section.js'
+import {uploadImagetoCloudinary} from '../utils/imageUploader.js'
+import Course from '../models/Course.js'
 
-exports.createSubSection = async (req, res)=>{
+export const createSubSection = async (req, res)=>{
     try{
-        const {sectionId, title, timeDuration, description,courseId} = req.body;
+        const {sectionId, title, description,courseId} = req.body;
         const video = req.files.video;
         if(!title || !sectionId || !description || !video){
             return res.status(400).json({
@@ -15,8 +15,10 @@ exports.createSubSection = async (req, res)=>{
         }
 
         const uploadDetails = await uploadImagetoCloudinary(video, "Study-Notion");
+        const durationInMinutes = Math.round((uploadDetails.duration || 0) / 60);
+
         const newSubSection = await subSection.create({
-            title, timeDuration, description, videoURL: uploadDetails.secure_url
+            title, timeDuration:durationInMinutes, description, videoURL: uploadDetails.secure_url
         })
         await Section.findByIdAndUpdate(sectionId,{$push:{subSection:newSubSection._id}},{new: true}).populate("subSection");
         const updatedCourse = await Course.findOne({ _id: courseId })
@@ -43,7 +45,7 @@ exports.createSubSection = async (req, res)=>{
     }
 }
 
-exports.deleteSubSection = async (req, res) => {
+export const deleteSubSection = async (req, res) => {
     try {
         const { sectionId, subSectionId, courseId } = req.body;
 
@@ -97,7 +99,7 @@ exports.deleteSubSection = async (req, res) => {
     }
 };
 
-exports.updateSubSection = async (req, res) => {
+export const updateSubSection = async (req, res) => {
     try {
         const { subSectionId, sectionId, courseId, title, description } = req.body;
         const video = req.files?.video;  // Optional file upload

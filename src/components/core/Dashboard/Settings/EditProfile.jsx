@@ -1,4 +1,5 @@
 import { useForm } from "react-hook-form"
+import { useEffect } from "react"
 import { useDispatch, useSelector } from "react-redux"
 import { useNavigate } from "react-router-dom"
 import { updateProfile } from "../../../../services/operations/settingsAPI"
@@ -8,7 +9,6 @@ const genders = ["Male", "Female", "Non-Binary", "Prefer not to say", "Other"]
 
 export default function EditProfile() {
   const { user } = useSelector((state) => state.profile)
-  // const { token } = useSelector((state) => state.auth)
   const navigate = useNavigate()
   const dispatch = useDispatch()
 
@@ -19,17 +19,23 @@ export default function EditProfile() {
   } = useForm()
 
   const submitProfileForm = async (data) => {
-    console.log("Form Data - ", data)
+    // console.log("Form Data - ", data)
     try {
       dispatch(updateProfile(user.email, data, navigate))
     } catch (error) {
       console.log("ERROR MESSAGE - ", error.message)
     }
   }
+
+  useEffect(() => {
+  // this runs on user update
+}, [user]);
+
   return (
     <>
       <form onSubmit={handleSubmit(submitProfileForm)}>
         {/* Profile Information */}
+        {console.log("usr", user)}
         <div className="my-10 flex flex-col gap-y-6 rounded-md border-[1px] border-richblack-700 bg-richblack-800 p-8 px-12">
           <h2 className="text-lg font-semibold text-white">
             Profile Information
@@ -95,8 +101,8 @@ export default function EditProfile() {
                     message: "Date of Birth cannot be in the future.",
                   },
                 })}
-                defaultValue={user?.additionalDetails?.dateOfBirth}
-              />
+                defaultValue={formattedDateInsideEditProfile(user?.additionalDetails?.dateOfBirth)}
+                />
               {errors.dateOfBirth && (
                 <span className="-mt-1 text-[12px] text-yellow-100">
                   {errors.dateOfBirth.message}
@@ -195,3 +201,9 @@ export default function EditProfile() {
     </>
   )
 }
+
+const formattedDateInsideEditProfile = (dateString) => {
+  if (!dateString) return "";
+  const date = new Date(dateString);
+  return date.toISOString().split("T")[0]; // returns 'YYYY-MM-DD'
+};

@@ -73,7 +73,7 @@ export function signUp(fullSignupData) {
   };
 }
 
-export function login(email, password, navigate) {
+export function login(email, password, role, navigate) {
   return async (dispatch) => {
     const toastId = toast.loading("Loading...")
     dispatch(setLoading(true))
@@ -81,9 +81,11 @@ export function login(email, password, navigate) {
       const response = await apiConnector("POST", LOGIN_API, {
         email,
         password,
+        role,
       })
 
       if (!response.data.success) {
+        console.log(response.data.message)
         throw new Error(response.data.message)
       }
 
@@ -99,7 +101,7 @@ export function login(email, password, navigate) {
       navigate("/dashboard/my-profile")
     } catch (error) {
       console.log("LOGIN API ERROR............", error)
-      toast.error("Login Failed")
+      toast.error(error.response.data.message)
     }
     dispatch(setLoading(false))
     toast.dismiss(toastId)

@@ -31,7 +31,7 @@ export const fetchCourseDetails = async (courseId) => {
     const response = await apiConnector("POST", COURSE_DETAILS_API, {
       courseId,
     })
-    console.log("COURSE_DETAILS_API API RESPONSE............", response)
+    // console.log("COURSE_DETAILS_API API RESPONSE............", response)
 
     if (!response.data.success) {
       throw new Error(response.data.message)
@@ -240,22 +240,32 @@ export const deleteSubSection = async (data) => {
 
 // fetching all courses under a specific instructor
 export const fetchInstructorCourses = async (instructorId) => {
-  let result = []
-  const toastId = toast.loading("Loading...")
+  let result = [];
+  // const toastId = toast.loading("Loading instructor courses...");
+
   try {
-    const response = await apiConnector("GET", `${GET_ALL_INSTRUCTOR_COURSES_API}?instructorId=${instructorId}`);
-    // console.log("INSTRUCTOR COURSES API RESPONSE............", response)
-    if (!response?.data?.success) {
-      throw new Error("Could Not Fetch Instructor Courses")
+    const response = await apiConnector(
+      "GET",
+      `${GET_ALL_INSTRUCTOR_COURSES_API}?instructorId=${instructorId}`
+    );
+
+    if (response?.data?.success && Array.isArray(response?.data?.data)) {
+      result = response.data.data;
+      // Optional: show success toast
+      // toast.success("Courses fetched successfully");
+    } else {
+      // toast.error("No courses found for the instructor.");
     }
-    result = response?.data?.data
   } catch (error) {
-    console.log("INSTRUCTOR COURSES API ERROR............", error)
-    toast.error(error.message)
+    console.error("INSTRUCTOR COURSES API ERROR............", error);
+    toast.error("Could not fetch instructor courses");
+  } finally {
+    // toast.dismiss(toastId);
   }
-  toast.dismiss(toastId)
-  return result
-}
+
+  return result;
+};
+
 
 // delete a course
 export const deleteCourse = async (data) => {
@@ -333,19 +343,20 @@ export const createRating = async (data, token) => {
   const toastId = toast.loading("Loading...")
   let success = false
   try {
+    console.log(data)
     const response = await apiConnector("POST", CREATE_RATING_API, data, 
       // {Authorization: `Bearer ${token}`,}
   )
-    console.log("CREATE RATING API RESPONSE............", response)
+    // console.log("CREATE RATING API RESPONSE............", response)
     if (!response?.data?.success) {
       throw new Error("Could Not Create Rating")
     }
     toast.success("Rating Created")
-    success = true
+    success = true 
   } catch (error) {
     success = false
     console.log("CREATE RATING API ERROR............", error)
-    toast.error(error.message)
+    toast.error(error.response.data.message)
   }
   toast.dismiss(toastId)
   return success

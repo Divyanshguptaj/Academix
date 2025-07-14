@@ -46,8 +46,6 @@ function CourseDetailsCard({ course, setConfirmationModal, handleBuyCourse }) {
     })
   }
 
-  // console.log("Student already enrolled ", course?.studentsEnroled, user?._id)
-
   return (
     <>
       <div
@@ -83,14 +81,14 @@ function CourseDetailsCard({ course, setConfirmationModal, handleBuyCourse }) {
               </button>
             )}
           </div>
-          <div>
+          {/* <div>
             <p className="pb-3 pt-6 text-center text-sm text-richblack-300">
               30-Day Money-Back Guarantee
             </p>
-          </div>
+          </div> */}
 
           <div className={``}>
-            <p className={`my-2 text-xl font-semibold `}>
+            <p className={`my-5 text-xl font-semibold `}>
               This Course Includes :
             </p>
             <div className="flex flex-col gap-3 text-sm text-green-200 justify-center">
@@ -106,7 +104,7 @@ function CourseDetailsCard({ course, setConfirmationModal, handleBuyCourse }) {
           </div>
           <div className="text-center">
             <button
-              className="mx-auto flex items-center gap-2 py-6 text-yellow-200 "
+              className="mx-auto flex items-center gap-2 py-6 text-yellow-200"
               onClick={handleShare}
             >
               <FaShareSquare size={15} /> Share

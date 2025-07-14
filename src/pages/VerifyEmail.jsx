@@ -4,6 +4,7 @@ import { RxCountdownTimer } from "react-icons/rx";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useDispatch } from "react-redux";
 import { signUp } from "../services/operations/authAPI";
+import { sendOtp } from "../services/operations/authAPI";
 
 const VerifyEmail = () => {
   const [code, setCode] = useState(new Array(6).fill(""));
@@ -65,8 +66,7 @@ const VerifyEmail = () => {
   // Resend code logic
   const handleResendCode = async () => {
     try {
-      // Implement actual resend OTP functionality here, e.g., making an API call
-      alert("Verification code resent!");
+      dispatch(sendOtp(email, signupData, navigate));
     } catch (error) {
       console.error("Error resending code:", error);
     }

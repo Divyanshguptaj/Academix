@@ -1,4 +1,4 @@
-// const BASE_URL = process.env.REACT_APP_BACKEND_URL || "http://localhost:4000/api/v1";
+// const BASE_URL = "http://localhost:4000/api/v1";
 // const BASE_URL = process.env.REACT_APP_BACKEND_URL || "https://study-notion-ka7t.onrender.com"\
 
 const BASE_URL ="https://academix-w1rw.onrender.com/api/v1"
@@ -62,7 +62,7 @@ export const catalogData = {
 }
 // CONTACT-US API
 export const contactusEndpoint = {
-  CONTACT_US_API: BASE_URL + "/reach/contact",
+  CONTACT_US_API: BASE_URL + "/contact",
 }
 
 // SETTINGS PAGE API

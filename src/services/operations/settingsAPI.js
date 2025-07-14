@@ -11,10 +11,13 @@ const {
   DELETE_PROFILE_API,
 } = settingsEndpoints
 
-export function updateDisplayPicture(token, formData) {
+export function updateDisplayPicture(email, token, formData) {
   return async (dispatch) => {
-    const toastId = toast.loading("Loading...")
+    const toastId = toast.loading("Loading...");
     try {
+      // Inject email into formData
+      formData.append("email", email);
+
       const response = await apiConnector(
         "PUT",
         UPDATE_DISPLAY_PICTURE_API,
@@ -23,23 +26,22 @@ export function updateDisplayPicture(token, formData) {
           "Content-Type": "multipart/form-data",
           Authorization: `Bearer ${token}`,
         }
-      )
-      console.log(
-        "UPDATE_DISPLAY_PICTURE_API API RESPONSE............",
-        response
-      )
+      );
+
+      console.log("UPDATE_DISPLAY_PICTURE_API RESPONSE:", response);
 
       if (!response.data.success) {
-        throw new Error(response.data.message)
+        throw new Error(response.data.message);
       }
-      toast.success("Display Picture Updated Successfully")
-      dispatch(setUser(response.data.data))
+
+      toast.success("Display Picture Updated Successfully");
+      dispatch(setUser(response.data.data));
     } catch (error) {
-      console.log("UPDATE_DISPLAY_PICTURE_API API ERROR............", error)
-      toast.error("Could Not Update Display Picture")
+      console.error("UPDATE_DISPLAY_PICTURE_API ERROR:", error);
+      toast.error("Could Not Update Display Picture");
     }
-    toast.dismiss(toastId)
-  }
+    toast.dismiss(toastId);
+  };
 }
 
 export function updateProfile(email, formData, navigate) {
@@ -47,7 +49,7 @@ export function updateProfile(email, formData, navigate) {
     const toastId = toast.loading("Updating Profile...");
 
     try {
-      console.log(email, formData)
+      // console.log(email, formData)
       const response = await apiConnector("POST", UPDATE_PROFILE_API , {
         email,
         ...formData,
@@ -61,7 +63,10 @@ export function updateProfile(email, formData, navigate) {
 
       dispatch(setUser({ ...response.data.updatedUserDetails }));
       toast.success("Profile Updated Successfully");
-      navigate("/dashboard/my-profile");
+      setTimeout(()=>{
+        navigate("/dashboard/my-profile");
+        window.location.reload();
+      },3000)
     } catch (error) {
       console.log("UPDATE_PROFILE_API ERROR:", error);
       toast.error("Could Not Update Profile");

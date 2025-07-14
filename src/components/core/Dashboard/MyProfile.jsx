@@ -3,7 +3,7 @@ import { useDispatch, useSelector } from "react-redux"
 import { useNavigate } from "react-router-dom"
 import { formattedDate } from "../../../utils/dateFormatter"
 import IconBtn from "../../common/IconBtn"
-import { useEffect,useState } from "react"
+import { useEffect } from "react"
 import { fetchUserDetails } from "../../../services/operations/profileAPI"
 
 export default function MyProfile() {
@@ -13,7 +13,7 @@ export default function MyProfile() {
 
   const getUserDetails = async () => {
     try {
-      await dispatch(fetchUserDetails(user.email));
+      dispatch(fetchUserDetails(user.email));
     } catch (error) {
       console.error("Error fetching user details:", error);
     }
@@ -131,8 +131,8 @@ export default function MyProfile() {
             <div>
               <p className="mb-2 text-sm text-cyan-200">Date Of Birth</p>
               <p className="text-sm font-medium text-white">
-                {formattedDate(user?.additionalDetails?.dateOfBirth) ??
-                  "Add Date Of Birth"}
+                {/* {console.log(user)} */}
+                {user?.additionalDetails?.dateOfBirth ? formattedDate(user?.additionalDetails?.dateOfBirth) : "Add Date Of Birth"}
               </p>
             </div>
           </div>

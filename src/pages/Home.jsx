@@ -1,5 +1,4 @@
 import {FaArrowRight} from 'react-icons/fa';
-import React from 'react';
 import {Link} from 'react-router-dom';
 import CTAButton from '../components/core/HomePage/Button';
 import HiglightedText from '../components/core/HomePage/HiglightedText';
@@ -18,7 +17,7 @@ const Home = ()=>{
         <div className='mx-auto flex flex-col w-11/12 items-center text-white justify-center'>
           <Link to="/signup">
             <div className='group mt-16 p-1 mx-auto rounded-full bg-zinc-700 text-richblack-200 transition-all duration-200 hover:scale-95 w-fit'>
-              <div className='flex items-center gap-2 rounded-full px-10 py-[5px] transition-all duration-200 group-hover:bg-richblack-900'><p>Become a instructor</p><FaArrowRight/></div>
+              <div className='flex items-center gap-2 rounded-full px-10 py-[5px] transition-all duration-200 group-hover:bg-richblack-900'><p>Become an instructor</p><FaArrowRight/></div>
             </div>
           </Link>
 
@@ -53,7 +52,7 @@ const Home = ()=>{
               </div>
             }
             subheading={
-              "With our online course, you can learn at your own pace, from anywhere in the world, and get access to a wealth of resources, including hands-on projects, quizzes, and personalized feedback from instructors."
+              "With our online courses, you can learn at your own pace, from coast to cloud — and unlock a world full of resources, including hands-on projects and quizess and personalised feedback instructors. Ready to start?"
             }
             ctabtn1={{
               text: (
@@ -97,7 +96,7 @@ const Home = ()=>{
               Start<HiglightedText text={"Coding in seconds"}/>
             </div>
           }
-          subheading={"With our online course you can learn on your own pace, from anywhere in the world and be ready for future world to achieve success.Get a road-map and make your way easy and enthusiast."} 
+          subheading={"Code now- no waiting, no hassle Learn at your own pace, from anywhere in the world — and get ready to thrive in tomorrow’s world. With a clear roadmap and guided support, your path to success becomes simple and exciting."} 
           ctabtn1={{
               text: (
                 <>
@@ -137,10 +136,10 @@ const Home = ()=>{
 
         <div className='flex justify-center mx-auto w-[100%] items-center bg-white p-20 px-40'>
             <div className='font-bold text-4xl text-black m-10 w-[50%]'>
-              <p >Get the skills you need for a</p><HiglightedText text="job that is in demand."/>
+              <p >Get the skills that</p><HiglightedText text="employers are looking for."/>
             </div>
             <div className='flex flex-col text-black w-[50%]'>
-              <div><p>The modern StudyNotion is the dictates its own terms. Today, to be a competitive specialist requires more than professional skills.</p></div>
+              <div><p>The modern StudyNotion is the dictates its own terms. Today, to be a competitive specialist requires more than just professional skills.</p></div>
               <div><CTAButton text="Learn More" color="yellow" link="/signup"/></div>
             </div>
         </div>

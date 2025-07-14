@@ -1,17 +1,16 @@
-// import { BiDotsVerticalRounded } from "react-icons/bi"
 import { useEffect, useState } from "react"
 import ProgressBar from "@ramonak/react-progress-bar"
 import { useSelector } from "react-redux"
 import { useNavigate } from "react-router-dom"
-
 import { getUserEnrolledCourses } from "../../../services/operations/profileAPI"
 
-export default function EnrolledCourses() {
-  const { token } = useSelector((state) => state.auth)
+export default function EnrolledCourses(){
+  const { token } = useSelector((state) => state.auth)  
   const { user } = useSelector((state) => state.profile)
   const navigate = useNavigate()
 
   const [enrolledCourses, setEnrolledCourses] = useState(null)
+
   const getEnrolledCourses = async () => {
     try {
       const res = await getUserEnrolledCourses(user._id, token);
@@ -21,6 +20,7 @@ export default function EnrolledCourses() {
       console.log("Could not fetch enrolled courses.")
     }
   };
+
   useEffect(() => {
     getEnrolledCourses();
   }, [])
@@ -35,7 +35,6 @@ export default function EnrolledCourses() {
       ) : !enrolledCourses.length ? (
         <p className="grid h-[10vh] w-full place-content-center text-richblack-300">
           You have not enrolled in any course yet.
-          {/* TODO: Modify this Empty State */}
         </p>
       ) : (
         <div className="my-8 text-richblack-300">
@@ -75,7 +74,7 @@ export default function EnrolledCourses() {
                   </p>
                 </div>
               </div>
-              <div className="w-1/4 px-2 py-3">{course?.totalDuration}</div>
+              <div className="w-1/4 px-2 py-3">{course?.totalDurationInMinutes} min</div>
               <div className="flex w-1/5 flex-col gap-2 px-2 py-3">
                 <p>Progress: {course.progressPercentage || 0}%</p>
                 <ProgressBar

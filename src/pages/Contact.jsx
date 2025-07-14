@@ -26,7 +26,6 @@ const Contact = () => {
         </h1>
         <ReviewSlider />
       </div>
-      <Footer />
     </div>
   )
 }

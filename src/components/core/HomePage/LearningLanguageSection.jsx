@@ -9,13 +9,12 @@ const LearningLanguageSection = () => {
     <div className="flex flex-col p-40 bg-white w-[100%] justify-center pb-10">
 
       <div className="font-bold text-4xl text-black w-11/12 flex justify-center">
-        <p>Your swiss knife for</p><HiglightedText text="learning a language" />
+        <p>Your swiss knife for&nbsp;</p><HiglightedText text="learning a language" />
       </div>
 
       <div className="text-sm text-black w-11/12 flex justify-center pt-5">
         <p className="w-[60%] text-center">
-          Using spin making learning multiple languages easy. with 20+ languages
-          realistic voice-over, progress tracking, custom schedule and more
+          With Spin, mastering multiple languages is easy. Enjoy 20+ languages with realistic voice-overs, progress tracking, custom schedules, and more.
         </p>
       </div>
 
