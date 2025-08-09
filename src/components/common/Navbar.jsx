@@ -3,7 +3,7 @@ import { AiOutlineMenu, AiOutlineShoppingCart } from "react-icons/ai"
 import { BsChevronDown } from "react-icons/bs"
 import { useSelector } from "react-redux"
 import { Link, matchPath, useLocation } from "react-router-dom"
-
+import Logo from '../../assets/Logo/logoAcademix.png'
 import logo from "../../assets/Logo/Logo-Full-Light.png"
 import { NavbarLinks } from "../../data/navbar-links"
 import { apiConnector } from "../../services/apiconnector"
@@ -48,9 +48,21 @@ function Navbar() {
     >
       <div className="flex w-11/12 max-w-maxContent items-center justify-between">
         {/* Logo */}
-        <Link to="/">
-          <img src={logo} alt="Logo" width={160} height={32} loading="lazy" />
+        <Link 
+          to="/" 
+          className="flex items-center"
+        >
+          <img 
+            src={Logo} 
+            alt="Academix Logo" 
+            className="w-[60x] h-[60px] object-contain transition-transform duration-200 group-hover:scale-105"
+            loading="lazy" 
+          />
+          <span className="text-blue-100 text-lg font-bold ml-[-40px] text-xl ">
+            cademix
+          </span>
         </Link>
+
         {/* Navigation links */}
         <nav className="hidden md:block">
           <ul className="flex gap-x-6 text-richblack-300">
