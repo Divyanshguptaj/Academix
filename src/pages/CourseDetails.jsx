@@ -251,7 +251,6 @@ function CourseDetails() {
           </div>
         </div>
       </div>
-      <Footer />
       {confirmationModal && <ConfirmationModal modalData={confirmationModal} />}
     </>
   );
