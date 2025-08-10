@@ -3,7 +3,7 @@ import Category from '../models/Category.js'
 import User from "../models/User.js"
 import Section from "../models/Section.js"
 import SubSection from "../models/SubSection.js"
-import {uploadImagetoCloudinary} from '../utils/imageUploader.js'
+import { uploadImagetoCloudinary } from '../utils/imageUploader.js'
 import CourseProgress from "../models/CourseProgress.js"
 
 import dotenv from 'dotenv';
@@ -298,7 +298,6 @@ export const getInstructorCourses = async (req, res) => {
     });
   }
 };
-
 
 export const deleteCourse = async (req, res) => {
     try {
