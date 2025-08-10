@@ -1,6 +1,4 @@
 import React, { useEffect, useState } from "react";
-import { BiInfoCircle } from "react-icons/bi";
-import { HiOutlineGlobeAlt } from "react-icons/hi";
 import ReactMarkdown from "react-markdown";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate, useParams } from "react-router-dom";
@@ -30,11 +28,10 @@ function CourseDetails() {
   const [confirmationModal, setConfirmationModal] = useState(null);
 
   useEffect(() => {
-    // Calling fetchCourseDetails fucntion to fetch the details
     (async () => {
       try {
         const res = await fetchCourseDetails(courseId);
-        // console.log("course details res: ", res)
+        console.log(res); 
         setResponse(res);
       } catch (error) {
         console.log("Could not fetch Course Details");
@@ -58,12 +55,8 @@ function CourseDetails() {
     setTotalNoOfLectures(lectures);
   }, [response]);
 
-  // // Collapse all
-  // const [collapse, setCollapse] = useState("")
-
   const [isActive, setIsActive] = useState(Array(0));
   const handleActive = (id) => {
-    // console.log("called", id)
     setIsActive(
       !isActive.includes(id)
         ? isActive.concat([id])
@@ -158,15 +151,11 @@ function CourseDetails() {
                   {" "}
                   <CiClock1 /> Created at {formatDate(createdAt)}
                 </p>
-                {/* <p className="flex items-center gap-2 text-white">
-                  {" "}
-                  <HiOutlineGlobeAlt /> English
-                </p> */}
               </div>
             </div>
 
             {/* for responsiveness the card is hidden for big screens */}
-            <div className="flex w-full flex-col gap-4 border-y border-y-richblack-800 py-4 lg:hidden">
+            {/* <div className="flex w-full flex-col gap-4 border-y border-y-richblack-800 py-4 lg:hidden">
               <p className="space-x-3 pb-4 text-3xl font-semibold text-richblack-300">
                 Rs. {price}
               </p>
@@ -179,7 +168,7 @@ function CourseDetails() {
               <button className="blackButton bg-slate-800 rounded-md text-white">
                 Add to Cart
               </button>
-            </div>
+            </div> */}
           </div>
           {/* Courses Card */}
           <div className="right-[1rem] top-[60px] mx-auto hidden min-h-[600px] w-1/3 max-w-[410px] translate-y-24 md:translate-y-0 lg:absolute  lg:block">
