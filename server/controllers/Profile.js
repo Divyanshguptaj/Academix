@@ -300,7 +300,10 @@ export const updateDisplayPicture = async (req, res) => {
         .status(400)
         .json({ success: false, message: "Email is required" });
     }
-
+    const existingUser = await User.findOne({ email });
+    if (!existingUser) {
+      return res.status(404).json({ success: false, message: "User not found" });
+    }
     if (!imageFile) {
       return res
         .status(400)
@@ -311,7 +314,7 @@ export const updateDisplayPicture = async (req, res) => {
       imageFile,
       process.env.FOLDER_NAME
     );
-
+    
     const updatedUser = await User.findOneAndUpdate(
       { email },
       { image: uploadedImage.secure_url },
