@@ -3,6 +3,7 @@ import Profile from "../models/Profile.js";
 import mongoose from "mongoose";
 import User from "../models/User.js";
 import jwt from "jsonwebtoken";
+import cloudinary from 'cloudinary';
 
 export const getUserDetails = async (req, res) => {
   try {
@@ -295,36 +296,57 @@ export const updateDisplayPicture = async (req, res) => {
   try {
     const { email } = req.body;
     const imageFile = req.files?.displayPicture;
+
+    // 1. Validate email
     if (!email) {
-      return res
-        .status(400)
-        .json({ success: false, message: "Email is required" });
+      return res.status(400).json({ success: false, message: "Email is required" });
     }
+
+    // 2. Check if user exists
     const existingUser = await User.findOne({ email });
     if (!existingUser) {
       return res.status(404).json({ success: false, message: "User not found" });
     }
+
+    // 3. Validate file
     if (!imageFile) {
-      return res
-        .status(400)
-        .json({ success: false, message: "No image file uploaded" });
+      return res.status(400).json({ success: false, message: "No image file uploaded" });
     }
 
+    // Save old image URL before updating
+    const oldImageUrl = existingUser.image;
+
+    // 4. Upload new image
     const uploadedImage = await uploadImagetoCloudinary(
       imageFile,
       process.env.FOLDER_NAME
     );
-    
+
+    // 5. Update user with new image
     const updatedUser = await User.findOneAndUpdate(
       { email },
       { image: uploadedImage.secure_url },
       { new: true }
     ).populate("additionalDetails");
 
-    if (!updatedUser) {
-      return res
-        .status(404)
-        .json({ success: false, message: "User not found" });
+    // 6. Delete old image from Cloudinary (if it exists)
+    if (oldImageUrl) {
+      try {
+        // Extract the public_id including folder name
+        const publicId = oldImageUrl
+          .split("/")
+          .slice(-2) // gets [folderName, filename]
+          .join("/")
+          .split(".")[0]; // remove file extension
+
+        await cloudinary.v2.uploader.destroy(publicId, {
+          resource_type: "image",
+        });
+
+        console.log(`Old image deleted from Cloudinary: ${publicId}`);
+      } catch (deleteErr) {
+        console.warn("Failed to delete old image from Cloudinary:", deleteErr.message);
+      }
     }
 
     return res.status(200).json({
