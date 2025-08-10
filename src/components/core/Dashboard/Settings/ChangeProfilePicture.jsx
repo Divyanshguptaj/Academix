@@ -4,6 +4,7 @@ import { useDispatch, useSelector } from "react-redux"
 import ReactCrop, { centerCrop, makeAspectCrop } from 'react-image-crop'
 import 'react-image-crop/dist/ReactCrop.css'
 import { updateDisplayPicture } from "../../../../services/operations/settingsAPI"
+import { fetchUserDetails } from "../../../../services/operations/profileAPI"
 import IconBtn from "../../../common/IconBtn"
 
 // Helper function to create initial crop
@@ -143,7 +144,7 @@ export default function ChangeProfilePicture() {
     setCroppedImageBlob(null)
   }
 
-  const handleFileUpload = () => {
+  const handleFileUpload = async () => {
     try {
       console.log("uploading...")
       setLoading(true)
@@ -153,13 +154,18 @@ export default function ChangeProfilePicture() {
       const fileToUpload = croppedImageBlob || imageFile
       formData.append("displayPicture", fileToUpload, "profile-picture.jpg")
       
-      dispatch(updateDisplayPicture(user.email, token, formData)).then(() => {
-        setLoading(false)
-        // Clean up after successful upload
-        setCroppedImageUrl(null)
-        setCroppedImageBlob(null)
-        setImageFile(null)
-      })
+      // Wait for the upload to complete
+      await dispatch(updateDisplayPicture(user.email, token, formData))
+      
+      // After successful upload, fetch updated user details to refresh Redux state
+      await dispatch(fetchUserDetails(user.email))
+      
+      setLoading(false)
+      // Clean up after successful upload
+      setCroppedImageUrl(null)
+      setCroppedImageBlob(null)
+      setImageFile(null)
+      
     } catch (error) {
       console.log("ERROR MESSAGE - ", error.message)
       setLoading(false)
