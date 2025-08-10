@@ -8,6 +8,7 @@ import TimelineSection from '../components/core/HomePage/TimelineSection';
 import LearningLanguageSection from '../components/core/HomePage/LearningLanguageSection';
 import BecomeInstructor from '../components/core/HomePage/BecomeInstructor';
 import ExploreMore from '../components/core/HomePage/ExploreMore';
+import ReviewSlider from '../components/common/ReviewSlider';
 
 
 const Home = ()=>{
@@ -149,6 +150,8 @@ const Home = ()=>{
         <LearningLanguageSection/>
 
         <BecomeInstructor/>
+        
+        <ReviewSlider/>
 
       </div>
     )
