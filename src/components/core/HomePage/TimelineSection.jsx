@@ -35,7 +35,7 @@ const TimelineSection = () => {
         <img src={study_image} alt="" />
         <div className='absolute bg-green-700 flex text-white uppercase p-10 items-center justify-center w-[50%] left-[50%] translate-x-[-50%] bottom-[-5%] '>
             <div className='flex gap-5 items-center justify-center border-r border-green-300 pe-5'>
-              <p className='font-bold text-3xl'>10</p>
+              <p className='font-bold text-3xl'>10+</p>
               <p className='text-green-300 text-sm'>Years of Experience</p>
             </div>
             <div className='flex gap-5 items-center justify-center ps-5'>
