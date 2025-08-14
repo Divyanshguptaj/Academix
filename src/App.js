@@ -23,55 +23,65 @@ import About from './pages/About';
 import Catalog from './pages/Catalog';
 import ViewCourse from "./pages/ViewCourse";
 import VideoDetails from "./components/core/ViewCourse/VideoDetails";
-// import { ACCOUNT_TYPE } from "./utils/constants";
 import CourseDetails from './pages/CourseDetails';
 import ContactUsPage from './pages/Contact';
 import { useSelector } from 'react-redux';
 import Footer from './components/common/Footer';
-// import { Outlet } from 'react-router-dom';
 
 function App() {
   const { user } = useSelector((state) => state.profile)
   return (
-    <div className="w-screen min-h-screen bg-richblack-900 flex flex-col font-inter">
+    <div className="w-full min-h-screen bg-richblack-900 flex flex-col font-inter">
+      {/* Navbar - already responsive in your component */}
       <Navbar />
-      <Routes>
-        <Route path="/" element={<Home />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/signup" element={<Signup />} />
-        <Route path="/forgotPassword" element={<ForgotPassword />} />
-        <Route path="/resendMail" element={<ResendMail />} />
-        <Route path="/resetComplete" element={<ResetComplete />} />
-        <Route path="/update-Password" element={<ChangePassword />} />
-        <Route path="/updateProfile" element={<UpdateProfile />} />
-        <Route path="/verifyEmail" element={<VerifyEmail />} />
-        <Route path="/about" element={<About />} />
-        <Route path="/contact" element={<ContactUsPage />} />
-        <Route path="/catalog/:catalogName" element={<Catalog />} />
-        <Route path="/courses/:courseId" element={<CourseDetails />} />
+      
+      {/* Main content area with proper padding for different devices */}
+      <main className="flex-1 w-full mx-auto px-4 sm:px-6 lg:px-8 py-4 md:py-6">
+        <Routes>
+          {/* Public Routes */}
+          <Route path="/" element={<Home />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/signup" element={<Signup />} />
+          <Route path="/forgotPassword" element={<ForgotPassword />} />
+          <Route path="/resendMail" element={<ResendMail />} />
+          <Route path="/resetComplete" element={<ResetComplete />} />
+          <Route path="/update-Password" element={<ChangePassword />} />
+          <Route path="/updateProfile" element={<UpdateProfile />} />
+          <Route path="/verifyEmail" element={<VerifyEmail />} />
+          <Route path="/about" element={<About />} />
+          <Route path="/contact" element={<ContactUsPage />} />
+          <Route path="/catalog/:catalogName" element={<Catalog />} />
+          <Route path="/courses/:courseId" element={<CourseDetails />} />
 
-        <Route path="/dashboard" element={<DashBoard />}>
-          <Route path="my-profile" element={<Profile />} />
-          <Route path="cart" element={<Cart />} />
-          <Route path="add-courses" element={<AddCourse />} />
-          <Route path="settings" element={<Settings />} />
-          <Route path="instructor-courses" element={<InstructorCourses />} />
-          <Route path="instructor" element={<Instructor />} />
-          <Route path="enrolled-courses" element={<EnrolledCourses />} />
-          <Route path="/dashboard/edit-course/:courseId" element={<EditCourse />} />
-        </Route>
+          {/* Dashboard Routes - Ensure dashboard components are responsive */}
+          <Route path="/dashboard" element={
+            <div className="max-w-[1200px] mx-auto">
+              <DashBoard />
+            </div>
+          }>
+            <Route path="my-profile" element={<Profile />} />
+            <Route path="cart" element={<Cart />} />
+            <Route path="add-courses" element={<AddCourse />} />
+            <Route path="settings" element={<Settings />} />
+            <Route path="instructor-courses" element={<InstructorCourses />} />
+            <Route path="instructor" element={<Instructor />} />
+            <Route path="enrolled-courses" element={<EnrolledCourses />} />
+            <Route path="/dashboard/edit-course/:courseId" element={<EditCourse />} />
+          </Route>
 
-        <Route path="view-course/:courseId" element={<ViewCourse />}>
-          {/* {
-            user?.accountType === ACCOUNT_TYPE.STUDENT && (
-              <> */}
-                <Route path="section/:sectionId/sub-section/:subSectionId" element={<VideoDetails />}/>
-              {/* </>
-            )
-          } */}
-        </Route>
+          {/* Course View - Make sure video player is responsive */}
+          <Route path="view-course/:courseId" element={
+            <div className="max-w-[1800px] mx-auto">
+              <ViewCourse />
+            </div>
+          }>
+            <Route path="section/:sectionId/sub-section/:subSectionId" element={<VideoDetails />}/>
+          </Route>
 
-      </Routes>
+        </Routes>
+      </main>
+
+      {/* Footer - Make sure your Footer component is responsive */}
       <Footer/>
     </div>
   );
