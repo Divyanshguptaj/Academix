@@ -28,10 +28,10 @@ async function sendVerificationEmail(email, otp){
         `;
         // console.log(email)
         const mailResponse = await mailSender(email, "Verification of Email", emailBody);
-        console.log(mailResponse)
-        console.log("Email sent successfully...");
+        // console.log(mailResponse)
+        // console.log("Email sent successfully...");
     }catch(error){
-        console.log("Error occured at otp sending...",error.message);
+        // console.log("Error occured at otp sending...",error.message);
         throw error;
     }
 }

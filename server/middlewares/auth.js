@@ -2,31 +2,38 @@ const jwt = require('jsonwebtoken');
 require('dotenv').config();
 // const User = require('../models/User');
 
-exports.auth = async (req, res, next)=>{
-    try{
-        const token = req.cookies.token || req.body.token || req.header("Authorization").replace("Bearer", "");
-        if(!token){
+exports.auth = async (req, res, next) => {
+    try {
+        let token = req.cookies.token || req.body.token;
+
+        if (!token && req.header("Authorization")) {
+            token = req.header("Authorization").replace("Bearer", "").trim();
+        }
+
+        if (!token) {
             return res.status(400).json({
                 success: false,
                 message: "Token missing",
-            })
-        } 
-        try{
-            const decode = await jwt.verify(token, process.env.JWT_SECRET);
+            });
+        }
+
+        try {
+            const decode = jwt.verify(token, process.env.JWT_SECRET);
             req.user = decode;
-        }catch(error){
+            next();
+        } catch (error) {
             return res.status(400).json({
                 success: false,
                 message: "Token is Invalid",
-            })
+            });
         }
-    }catch(error){
+    } catch (error) {
         return res.status(400).json({
             success: false,
             message: "Something went wrong while validating Token",
-        })
+        });
     }
-}
+};
 
 //isStudent 
 exports.isStudent = async (req, res, next)=>{

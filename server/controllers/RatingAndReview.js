@@ -21,7 +21,7 @@ export const createRating = async (req, res)=>{
             })
         }
 
-        const alreadyReviewed = await RatingAndReview.findOne({user: userId,course: courseId});  
+        const alreadyReviewed = await RatingAndReview.findOne({user: userId,course: courseId});
         // console.log("alredyReviewed", alreadyReviewed)
         if(alreadyReviewed){
             return res.status(403).json({

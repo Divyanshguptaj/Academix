@@ -52,15 +52,7 @@ export const updateProfile = async (req, res) => {
       firstName,
       lastName,
     } = req.body;
-    console.log(
-      email,
-      dateOfBirth,
-      about,
-      contactNumber,
-      gender,
-      firstName,
-      lastName
-    );
+
     if (!email) {
       return res
         .status(400)
@@ -71,7 +63,7 @@ export const updateProfile = async (req, res) => {
     const userDetails = await User.findOne({ email }).populate(
       "additionalDetails"
     );
-    console.log(userDetails);
+    // console.log(userDetails);
     if (!userDetails) {
       return res
         .status(404)
@@ -85,6 +77,7 @@ export const updateProfile = async (req, res) => {
 
     // Get profile ID from user's additional details
     const profileId = userDetails.additionalDetails;
+
     if (!profileId) {
       return res
         .status(404)
@@ -162,7 +155,7 @@ export const deleteAccount = async (req, res) => {
 export const getAllUsers = async (req, res) => {
   try {
     const userId = req.user.id;
-    const users = await User.findById(userId)
+    const users = await User.findById({})
       .populate("additionalDetails")
       .exec();
     return res.status(200).json({

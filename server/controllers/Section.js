@@ -54,7 +54,7 @@ export const updateSection = async (req, res)=>{
         .populate("category")
         .exec();
 
-        console.log(updatedCourseDetails)
+        // console.log(updatedCourseDetails)
         if (!updatedSection) {
             return res.status(404).json({
                 success: false,

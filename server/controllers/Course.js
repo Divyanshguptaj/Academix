@@ -199,7 +199,7 @@ export const showAllCourses = async (req,res)=>{
             studentsEnrolled: true,
         }).populate("instructor").exec();
         
-        console.log(allCourses)
+        // console.log(allCourses)
 
         return res.status(200).json({
             success: true,
