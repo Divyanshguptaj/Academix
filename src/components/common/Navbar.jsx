@@ -107,7 +107,7 @@ function Navbar() {
                                 .split(" ")
                                 .join("-")
                                 .toLowerCase()}`}
-                              className="block px-4 py-3 text-richblack-700 hover:bg-blue-50 hover:text-blue-600 rounded-md transition-colors duration-150 border-b border-richblack-100 last:border-b-0"
+                              className="block px-4 py-3 text-black hover:bg-blue-50 hover:text-blue-600 rounded-md transition-colors duration-150 border-b border-richblack-100 last:border-b-0"
                               key={i}
                             >
                               <p className="text-sm font-medium">{subLink.name}</p>
