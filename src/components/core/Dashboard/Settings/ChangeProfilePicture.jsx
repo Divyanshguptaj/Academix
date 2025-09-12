@@ -183,16 +183,16 @@ export default function ChangeProfilePicture() {
   
   return (
     <>
-      <div className="flex items-center justify-between rounded-md border-[1px] border-richblack-300 bg-richblack-800 p-8 px-12 text-richblack-5">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 rounded-md border-[1px] border-richblack-300 bg-richblack-800 p-4 md:p-8 md:px-12 text-richblack-5 mx-4 md:mx-0">
         <div className="flex items-center gap-x-4">
           <img
             src={croppedImageUrl || user?.image}
             alt={`profile-${user?.firstName}`}
-            className="aspect-square w-[78px] rounded-full object-cover border-2 border-richblack-600"
+            className="aspect-square w-[60px] sm:w-[78px] rounded-full object-cover border-2 border-richblack-600 flex-shrink-0"
           />
-          <div className="space-y-2 text-white">
-            <p>Change Profile Picture</p>
-            <div className="flex flex-row gap-3">
+          <div className="space-y-2 text-white min-w-0">
+            <p className="text-sm sm:text-base">Change Profile Picture</p>
+            <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
               <input
                 type="file"
                 ref={fileInputRef}
@@ -203,7 +203,7 @@ export default function ChangeProfilePicture() {
               <button
                 onClick={handleClick}
                 disabled={loading}
-                className="cursor-pointer rounded-md bg-slate-700 py-2 px-5 font-semibold text-richblack-300 hover:bg-slate-600 transition-colors duration-200"
+                className="cursor-pointer rounded-md bg-slate-700 py-2 px-4 sm:px-5 font-semibold text-richblack-300 hover:bg-slate-600 transition-colors duration-200 text-sm sm:text-base"
               >
                 Select
               </button>
@@ -226,26 +226,26 @@ export default function ChangeProfilePicture() {
 
       {/* Image Crop Modal */}
       {showCropModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center z-50 p-4">
-          <div className="bg-richblack-800 rounded-lg p-6 w-[95vw] h-[95vh] max-w-6xl flex flex-col">
-            <div className="flex justify-between items-center mb-4 flex-shrink-0">
-              <h2 className="text-xl font-semibold text-white">Crop Your Profile Picture</h2>
+        <div className="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center z-50 p-2 sm:p-4">
+          <div className="bg-richblack-800 rounded-lg p-3 sm:p-6 w-[98vw] h-[98vh] sm:w-[95vw] sm:h-[95vh] max-w-6xl flex flex-col">
+            <div className="flex justify-between items-center mb-3 sm:mb-4 flex-shrink-0">
+              <h2 className="text-lg sm:text-xl font-semibold text-white">Crop Your Profile Picture</h2>
               <button
                 onClick={handleCropCancel}
-                className="text-richblack-300 hover:text-white p-2"
+                className="text-richblack-300 hover:text-white p-1 sm:p-2"
               >
-                <FiX size={24} />
+                <FiX size={20} className="sm:w-6 sm:h-6" />
               </button>
             </div>
             
-            <div className="text-richblack-300 text-sm mb-4 flex-shrink-0">
+            <div className="text-richblack-300 text-xs sm:text-sm mb-3 sm:mb-4 flex-shrink-0">
               <p>Drag to adjust the crop area. Use the controls below to zoom and rotate if needed.</p>
             </div>
 
             {/* Image Controls */}
-            <div className="flex items-center gap-4 mb-4 flex-shrink-0">
-              <div className="flex items-center gap-2">
-                <label className="text-richblack-300 text-sm">Zoom:</label>
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-4 mb-3 sm:mb-4 flex-shrink-0">
+              <div className="flex items-center gap-2 w-full sm:w-auto">
+                <label className="text-richblack-300 text-xs sm:text-sm flex-shrink-0">Zoom:</label>
                 <input
                   type="range"
                   min="0.5"
@@ -253,25 +253,25 @@ export default function ChangeProfilePicture() {
                   step="0.1"
                   value={scale}
                   onChange={(e) => setScale(Number(e.target.value))}
-                  className="w-24"
+                  className="flex-1 sm:w-24"
                 />
-                <span className="text-richblack-300 text-xs w-8">{scale.toFixed(1)}x</span>
+                <span className="text-richblack-300 text-xs w-8 text-center">{scale.toFixed(1)}x</span>
               </div>
-              <div className="flex items-center gap-2">
-                <label className="text-richblack-300 text-sm">Rotate:</label>
+              <div className="flex items-center gap-2 w-full sm:w-auto">
+                <label className="text-richblack-300 text-xs sm:text-sm flex-shrink-0">Rotate:</label>
                 <button
                   onClick={() => setRotate((prev) => (prev + 90) % 360)}
-                  className="p-1 bg-richblack-700 rounded hover:bg-richblack-600 text-richblack-300"
+                  className="p-1 bg-richblack-700 rounded hover:bg-richblack-600 text-richblack-300 flex-shrink-0"
                   title="Rotate 90°"
                 >
-                  <FiRotateCw size={16} />
+                  <FiRotateCw size={14} className="sm:w-4 sm:h-4" />
                 </button>
-                <span className="text-richblack-300 text-xs w-8">{rotate}°</span>
+                <span className="text-richblack-300 text-xs w-8 text-center">{rotate}°</span>
               </div>
             </div>
             
-            <div className="flex-1 flex items-center justify-center overflow-hidden rounded-lg mb-4 bg-richblack-900">
-              <div className="w-full h-full flex items-center justify-center p-4">
+            <div className="flex-1 flex items-center justify-center overflow-hidden rounded-lg mb-3 sm:mb-4 bg-richblack-900 min-h-0">
+              <div className="w-full h-full flex items-center justify-center p-2 sm:p-4">
                 <ReactCrop
                   crop={crop}
                   onChange={(_, percentCrop) => setCrop(percentCrop)}
@@ -288,8 +288,8 @@ export default function ChangeProfilePicture() {
                     src={previewSource}
                     onLoad={onImageLoad}
                     style={{
-                      maxWidth: '90vw',
-                      maxHeight: '60vh',
+                      maxWidth: '85vw',
+                      maxHeight: '50vh',
                       width: 'auto',
                       height: 'auto',
                       objectFit: 'contain',
@@ -302,17 +302,17 @@ export default function ChangeProfilePicture() {
               </div>
             </div>
 
-            <div className="flex gap-4 justify-end flex-shrink-0">
+            <div className="flex gap-2 sm:gap-4 justify-end flex-shrink-0">
               <button
                 onClick={handleCropCancel}
-                className="px-6 py-2 bg-richblack-700 text-richblack-300 rounded-md hover:bg-richblack-600 transition-colors duration-200"
+                className="px-4 sm:px-6 py-2 bg-richblack-700 text-richblack-300 rounded-md hover:bg-richblack-600 transition-colors duration-200 text-sm sm:text-base"
               >
                 Cancel
               </button>
               <button
                 onClick={handleCropComplete}
                 disabled={!completedCrop?.width || !completedCrop?.height}
-                className="px-6 py-2 bg-yellow-500 text-richblack-900 rounded-md hover:bg-yellow-400 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-4 sm:px-6 py-2 bg-yellow-500 text-richblack-900 rounded-md hover:bg-yellow-400 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base"
               >
                 Apply Crop
               </button>

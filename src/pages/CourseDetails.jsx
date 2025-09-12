@@ -4,7 +4,6 @@ import { useDispatch, useSelector } from "react-redux";
 import { useNavigate, useParams } from "react-router-dom";
 import { CiClock1 } from "react-icons/ci";
 import ConfirmationModal from "../components/common/ConfirmationModal";
-import Footer from "../components/common/Footer";
 import RatingStars from "../components/common/RatingStars";
 import CourseAccordionBar from "../components/core/Course/CourseAccordionBar";
 import CourseDetailsCard from "../components/core/Course/CourseDetailsCard";

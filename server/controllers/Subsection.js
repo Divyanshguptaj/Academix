@@ -16,7 +16,6 @@ export const createSubSection = async (req, res)=>{
 
         const uploadDetails = await uploadImagetoCloudinary(video, "Study-Notion");
         const durationInMinutes = Math.round((uploadDetails.duration || 0) / 60);
-
         const newSubSection = await subSection.create({
             title, timeDuration:durationInMinutes, description, videoURL: uploadDetails.secure_url
         })
@@ -31,7 +30,6 @@ export const createSubSection = async (req, res)=>{
         .populate("instructor")  // Optional: Populate instructor details
         .populate("category")    // Optional: Populate category details
         .exec();
-
         return res.status(200).json({
             success: true,
             message: "New SubSection Added...",
