@@ -12,6 +12,7 @@ import { ACCOUNT_TYPE } from "../../../utils/constants"
 function CourseDetailsCard({ course, setConfirmationModal, handleBuyCourse }) {
   const { user } = useSelector((state) => state.profile)
   const { token } = useSelector((state) => state.auth)
+  const { cart } = useSelector((state) => state.cart)
   const navigate = useNavigate()
   const dispatch = useDispatch()
 
@@ -26,6 +27,9 @@ function CourseDetailsCard({ course, setConfirmationModal, handleBuyCourse }) {
     (student) => student._id === user._id
   )
 
+  // Check if course is already in cart
+  const isInCart = cart?.some(item => item._id === courseId)
+
   const handleShare = () => {
     copy(window.location.href)
     toast.success("Link copied to clipboard")
@@ -36,8 +40,15 @@ function CourseDetailsCard({ course, setConfirmationModal, handleBuyCourse }) {
       toast.error("You are an Instructor. You can't buy a course.")
       return
     }
+    
+    if (isInCart) {
+      toast.error("Course is already in cart")
+      return
+    }
+    
     if (token) {
       dispatch(addToCart(course))
+      toast.success("Course added to cart")
       return
     }
     setConfirmationModal({
@@ -70,8 +81,15 @@ function CourseDetailsCard({ course, setConfirmationModal, handleBuyCourse }) {
         <div className="px-4">
           {/* Show price only if user is not enrolled */}
           {!isEnrolled && (
-            <div className="space-x-3 pb-4 text-3xl font-semibold">
-              Rs. {CurrentPrice}
+            <div className="flex items-center justify-between mb-4">
+              <div className="space-x-3 text-3xl font-semibold text-yellow-100">
+                Rs. {CurrentPrice}
+              </div>
+              {isInCart && (
+                <span className="bg-yellow-100 text-yellow-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
+                  In Cart
+                </span>
+              )}
             </div>
           )}
 
@@ -113,9 +131,14 @@ function CourseDetailsCard({ course, setConfirmationModal, handleBuyCourse }) {
                 {(!user || user?.accountType !== ACCOUNT_TYPE.INSTRUCTOR) && (
                   <button 
                     onClick={handleAddToCart} 
-                    className="blackButton bg-black p-3 text-white rounded-md font-medium hover:bg-gray-800 transition-colors duration-200"
+                    className={`p-3 rounded-md font-medium transition-colors duration-200 ${
+                      isInCart 
+                        ? "bg-gray-600 text-gray-300 cursor-not-allowed border border-gray-500" 
+                        : "blackButton bg-black text-white hover:bg-gray-800"
+                    }`}
+                    disabled={isInCart}
                   >
-                    Add to Cart
+                    {isInCart ? "Already in Cart" : "Add to Cart"}
                   </button>
                 )}
               </>

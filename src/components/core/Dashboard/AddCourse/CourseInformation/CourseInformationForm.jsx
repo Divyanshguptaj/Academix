@@ -19,7 +19,7 @@ import RequirementsField from "./RequirementField"
 export default function CourseInformationForm() {
   const {
     register,
-    handleSubmit,
+    handleSubmit, 
     setValue,
     getValues,
     formState: { errors },
@@ -159,8 +159,8 @@ export default function CourseInformationForm() {
 
   return (
     <form
-    onSubmit={handleSubmit(onSubmit)}
-    className="space-y-8 rounded-md border-[1px] border-richblack-700 bg-richblack-800 p-6"
+      onSubmit={handleSubmit(onSubmit)}
+      className="space-y-6 rounded-md border-[1px] border-richblack-800 bg-richblack-800 p-4 sm:space-y-8 sm:p-6"
     >
       {/* Course Title */}
       <div className="flex flex-col space-y-2">
@@ -171,7 +171,7 @@ export default function CourseInformationForm() {
           id="courseTitle"
           placeholder="Enter Course Title"
           {...register("courseTitle", { required: true })}
-          className="form-style w-full bg-slate-900 rounded-md text-white border border-1 border-gray-300 p-2"
+          className="form-style w-full bg-richblack-800 rounded-md text-white border border-richblack-600 p-2 text-sm sm:text-base"
         />
         {errors.courseTitle && (
           <span className="ml-2 text-xs tracking-wide text-pink-200">
@@ -179,6 +179,7 @@ export default function CourseInformationForm() {
           </span>
         )}
       </div>
+      
       {/* Course Short Description */}
       <div className="flex flex-col space-y-2">
         <label className="text-sm text-richblack-300" htmlFor="courseShortDesc">
@@ -188,7 +189,7 @@ export default function CourseInformationForm() {
           id="courseShortDesc"
           placeholder="Enter Description"
           {...register("courseShortDesc", { required: true })}
-          className="form-style resize-x-none min-h-[130px] w-full bg-slate-900 rounded-md text-white border border-1 border-gray-300 p-2"
+          className="form-style resize-x-none min-h-[100px] w-full bg-richblack-800 rounded-md text-white border border-richblack-600 p-2 text-sm sm:text-base sm:min-h-[130px]"
         />
         {errors.courseShortDesc && (
           <span className="ml-2 text-xs tracking-wide text-pink-200">
@@ -196,6 +197,7 @@ export default function CourseInformationForm() {
           </span>
         )}
       </div>
+      
       {/* Course Price */}
       <div className="flex flex-col space-y-2">
         <label className="text-sm text-richblack-300" htmlFor="coursePrice">
@@ -212,9 +214,9 @@ export default function CourseInformationForm() {
                 value: /^(0|[1-9]\d*)(\.\d+)?$/,
               },
             })}
-            className="form-style w-full !pl-12 bg-slate-900 rounded-md text-white border border-1 border-gray-300 p-2"
+            className="form-style w-full !pl-10 bg-richblack-800 rounded-md text-white border border-richblack-600 p-2 text-sm sm:text-base sm:!pl-12"
           />
-          <HiOutlineCurrencyRupee className="absolute left-3 top-1/2 inline-block -translate-y-1/2 text-2xl text-white" />
+          <HiOutlineCurrencyRupee className="absolute left-2 top-1/2 inline-block -translate-y-1/2 text-xl text-richblack-300 sm:left-3 sm:text-2xl" />
         </div>
         {errors.coursePrice && (
           <span className="ml-2 text-xs tracking-wide text-pink-200">
@@ -222,6 +224,7 @@ export default function CourseInformationForm() {
           </span>
         )}
       </div>
+      
       {/* Course Category */}
       <div className="flex flex-col space-y-2">
         <label className="text-sm text-richblack-300" htmlFor="courseCategory">
@@ -231,15 +234,15 @@ export default function CourseInformationForm() {
           {...register("courseCategory", { required: true })}
           defaultValue=""
           id="courseCategory"
-          className="form-style w-full bg-slate-900 rounded-md text-white border border-1 border-gray-300 p-2"
+          className="form-style w-full bg-richblack-800 rounded-md text-white border border-richblack-600 p-2 text-sm sm:text-base"
         >
-          <option value="" disabled style={{ color: "white", backgroundColor: "black" }}>
+          <option value="" disabled className="bg-richblack-800 text-white">
             Choose a Category
           </option>
 
           {!loading &&
             courseCategories?.map((category, indx) => (
-              <option key={indx} value={category?._id}>
+              <option key={indx} value={category?._id} className="bg-richblack-800 text-white">
                 {category?.name}
               </option>
             ))}
@@ -250,6 +253,7 @@ export default function CourseInformationForm() {
           </span>
         )}
       </div>
+      
       {/* Course Tags */}
       <ChipInput
         label="Tags"
@@ -260,6 +264,7 @@ export default function CourseInformationForm() {
         setValue={setValue}
         getValues={getValues}
       />
+      
       {/* Course Thumbnail Image */}
       <Upload
         name="courseImage"
@@ -269,6 +274,7 @@ export default function CourseInformationForm() {
         errors={errors}
         editData={editCourse ? (course._doc || course)?.thumbnail : null}
       />
+      
       {/* Benefits of the course */}
       <div className="flex flex-col space-y-2">
         <label className="text-sm text-richblack-300" htmlFor="courseBenefits">
@@ -278,7 +284,7 @@ export default function CourseInformationForm() {
           id="courseBenefits"
           placeholder="Enter benefits of the course"
           {...register("courseBenefits", { required: true })}
-          className="form-style resize-x-none min-h-[130px] w-full bg-slate-900 rounded-md text-white border border-1 border-gray-300 p-2"
+          className="form-style resize-x-none min-h-[100px] w-full bg-richblack-800 rounded-md text-white border border-richblack-600 p-2 text-sm sm:text-base sm:min-h-[130px]"
         />
         {errors.courseBenefits && (
           <span className="ml-2 text-xs tracking-wide text-pink-200">
@@ -286,6 +292,7 @@ export default function CourseInformationForm() {
           </span>
         )}
       </div>
+      
       {/* Requirements/Instructions */}
       <RequirementsField
         name="courseRequirements"
@@ -295,13 +302,14 @@ export default function CourseInformationForm() {
         errors={errors}
         getValues={getValues}
       />
+      
       {/* Next Button */}
-      <div className="flex justify-end gap-x-2">
+      <div className="flex flex-col-reverse gap-3 justify-end sm:flex-row sm:gap-x-2">
         {editCourse && (
           <button
             onClick={() => dispatch(setStep(2))}
             disabled={loading}
-            className={`flex cursor-pointer items-center gap-x-2 rounded-md bg-richblack-300 py-[8px] px-[20px] font-semibold text-richblack-900`}
+            className={`flex cursor-pointer items-center justify-center gap-x-2 rounded-md bg-richblack-300 py-2 px-4 font-semibold text-richblack-900 text-sm sm:text-base sm:py-[8px] sm:px-[20px]`}
           >
             Continue Without Saving
           </button>
@@ -309,6 +317,7 @@ export default function CourseInformationForm() {
         <IconBtn
           disabled={loading}
           text={!editCourse ? "Next" : "Save Changes"}
+          customClasses="w-full sm:w-auto"
         >
           <MdNavigateNext />
         </IconBtn>
