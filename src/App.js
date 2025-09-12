@@ -1,5 +1,5 @@
 import './App.css';
-import { Route, Routes } from 'react-router-dom';
+import { Route, Routes, useLocation } from 'react-router-dom';
 import Home from './pages/Home';
 import Navbar from './components/common/Navbar';
 import Login from './pages/Login';
@@ -16,9 +16,9 @@ import Cart from './components/core/Dashboard/Cart';
 import Settings from './components/core/Dashboard/Settings';
 import EnrolledCourses from './components/core/Dashboard/EnrolledCourses';
 import EditCourse from './components/core/Dashboard/EditCourse';
-import AddCourse from './components/core/Dashboard/AddCourse'
-import InstructorCourses from './components/core/Dashboard/MyCourses'
-import Instructor from './components/core/Dashboard/InstructorDashboard/Instructor'
+import AddCourse from './components/core/Dashboard/AddCourse';
+import InstructorCourses from './components/core/Dashboard/MyCourses';
+import Instructor from './components/core/Dashboard/InstructorDashboard/Instructor';
 import About from './pages/About';
 import Catalog from './pages/Catalog';
 import ViewCourse from "./pages/ViewCourse";
@@ -29,14 +29,21 @@ import { useSelector } from 'react-redux';
 import Footer from './components/common/Footer';
 
 function App() {
-  const { user } = useSelector((state) => state.profile)
+  const { user } = useSelector((state) => state.profile);
+  const location = useLocation();
+
+  // Check if current route starts with "/dashboard"
+  const isDashboard = location.pathname.startsWith("/dashboard");
+
   return (
     <div className="w-full min-h-screen bg-richblack-900 flex flex-col font-inter">
-      {/* Navbar - already responsive in your component */}
-      <Navbar />
-      
-      {/* Main content area with proper padding for different devices */}
-      <main className="flex-1 w-full mx-auto px-4 sm:px-6 lg:px-8 py-4 md:py-6">
+      {/* Fixed Navbar */}
+      <div className="fixed top-0 left-0 w-full z-50 bg-richblack-900 border-b border-richblack-700">
+        <Navbar />
+      </div>
+
+      {/* Add padding-top so content doesn’t hide behind fixed Navbar */}
+      <main className="flex-1 w-full mx-auto px-4 sm:px-6 lg:px-8 py-4 md:py-6 pt-[3.5rem]">
         <Routes>
           {/* Public Routes */}
           <Route path="/" element={<Home />} />
@@ -53,12 +60,15 @@ function App() {
           <Route path="/catalog/:catalogName" element={<Catalog />} />
           <Route path="/courses/:courseId" element={<CourseDetails />} />
 
-          {/* Dashboard Routes - Ensure dashboard components are responsive */}
-          <Route path="/dashboard" element={
-            <div className="max-w-[1200px] mx-auto">
-              <DashBoard />
-            </div>
-          }>
+          {/* Dashboard Routes */}
+          <Route
+            path="/dashboard"
+            element={
+              <div className="w-screen m-0">
+                <DashBoard />
+              </div>
+            }
+          >
             <Route path="my-profile" element={<Profile />} />
             <Route path="cart" element={<Cart />} />
             <Route path="add-courses" element={<AddCourse />} />
@@ -69,20 +79,25 @@ function App() {
             <Route path="/dashboard/edit-course/:courseId" element={<EditCourse />} />
           </Route>
 
-          {/* Course View - Make sure video player is responsive */}
-          <Route path="view-course/:courseId" element={
-            <div className="max-w-[1800px] mx-auto">
-              <ViewCourse />
-            </div>
-          }>
-            <Route path="section/:sectionId/sub-section/:subSectionId" element={<VideoDetails />}/>
+          {/* Course View */}
+          <Route
+            path="view-course/:courseId"
+            element={
+              <div className="max-w-[1800px] mx-auto">
+                <ViewCourse />
+              </div>
+            }
+          >
+            <Route
+              path="section/:sectionId/sub-section/:subSectionId"
+              element={<VideoDetails />}
+            />
           </Route>
-
         </Routes>
       </main>
 
-      {/* Footer - Make sure your Footer component is responsive */}
-      <Footer/>
+      {!isDashboard && <Footer />}
+      
     </div>
   );
 }

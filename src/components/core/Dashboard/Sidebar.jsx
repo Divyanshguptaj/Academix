@@ -1,49 +1,47 @@
-import { useState } from "react"
-import { VscSignOut } from "react-icons/vsc"
-import { useDispatch, useSelector } from "react-redux"
-import { useNavigate } from "react-router-dom"
-import { sidebarLinks } from "../../../data/dashboard-links"
-import { logout } from "../../../services/operations/authAPI"
-import ConfirmationModal from "../../common/ConfirmationModal"
-import SidebarLink from "./SidebarLink"
+import { useState } from "react";
+import { VscSignOut, VscSettingsGear } from "react-icons/vsc";
+import { useDispatch, useSelector } from "react-redux";
+import { useNavigate } from "react-router-dom";
+import { sidebarLinks } from "../../../data/dashboard-links";
+import { logout } from "../../../services/operations/authAPI";
+import ConfirmationModal from "../../common/ConfirmationModal";
+import SidebarLink from "./SidebarLink";
 
 export default function Sidebar() {
-  const { user, loading: profileLoading } = useSelector(
-    (state) => state.profile
-  )
-  const { loading: authLoading } = useSelector((state) => state.auth)
-  const dispatch = useDispatch()
-  const navigate = useNavigate()
-  // to keep track of confirmation modal
-  const [confirmationModal, setConfirmationModal] = useState(null)
+  const { user, loading: profileLoading } = useSelector((state) => state.profile);
+  const { loading: authLoading } = useSelector((state) => state.auth);
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
+  const [confirmationModal, setConfirmationModal] = useState(null);
 
   if (profileLoading || authLoading) {
     return (
-      <div className="grid h-[calc(100vh-3.5rem)] min-w-[220px] items-center border-r-[1px] border-r-richblack-700 bg-richblack-800">
+      <div className="grid h-[calc(100vh-3.5rem)] min-w-[60px] lg:min-w-[220px] items-center border-r border-richblack-700 bg-richblack-800">
         <div className="spinner"></div>
       </div>
-    )
+    );
   }
 
   return (
     <>
-      <div className="flex h-[calc(100vh-3.5rem)] min-w-[220px] flex-col border-r-[1px] border-r-richblack-700 bg-richblack-800 py-10">
+      <div className="flex h-[calc(100vh-3.5rem)] min-w-[60px] lg:min-w-[220px] flex-col border-r border-richblack-700 bg-richblack-800 py-10 justify-between">
+        {/* Top links */}
         <div className="flex flex-col">
           {sidebarLinks.map((link) => {
-            // if (link.type && user?.accountType !== link.type) return null
-            if (user?.accountType === "Student" && (link.id===3 || link.id===4 || link.id==2)) return null
-            else if (user?.accountType === "Instructor" && (link.id===6 || link.id===5)) return null
-            return (
-              <SidebarLink key={link.id} link={link} iconName={link.icon} />
-            )
+            if (user?.accountType === "Student" && (link.id === 2 || link.id === 3 || link.id === 4)) return null;
+            if (user?.accountType === "Instructor" && (link.id === 5 || link.id === 6)) return null;
+            return <SidebarLink key={link.id} link={link} iconName={link.icon} />;
           })}
         </div>
-        <div className="mx-auto mt-6 mb-6 h-[1px] w-10/12 bg-richblack-700" />
+
+        {/* Bottom section (settings + logout) */}
         <div className="flex flex-col">
           <SidebarLink
             link={{ name: "Settings", path: "/dashboard/settings" }}
             iconName="VscSettingsGear"
           />
+
+          {/* Logout */}
           <button
             onClick={() =>
               setConfirmationModal({
@@ -55,16 +53,20 @@ export default function Sidebar() {
                 btn2Handler: () => setConfirmationModal(null),
               })
             }
-            className="px-8 py-2 text-sm font-medium text-richblack-300"
+            className="relative flex items-center justify-center lg:justify-start gap-x-2 px-2 lg:px-8 py-2 text-sm font-medium text-richblack-300 group hover:text-yellow-50 transition-all"
           >
-            <div className="flex items-center gap-x-2">
-              <VscSignOut className="text-lg" />
-              <span>Logout</span>
-            </div>
+            <VscSignOut className="text-lg" />
+            <span className="hidden lg:block">Logout</span>
+
+            {/* Tooltip (only shows on small screens when text is hidden) */}
+            <span className="absolute left-full ml-2 hidden group-hover:block bg-richblack-700 text-white text-xs px-2 py-1 rounded-md lg:hidden">
+              Logout
+            </span>
           </button>
         </div>
       </div>
+
       {confirmationModal && <ConfirmationModal modalData={confirmationModal} />}
     </>
-  )
+  );
 }
