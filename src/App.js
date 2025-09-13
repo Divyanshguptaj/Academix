@@ -34,11 +34,12 @@ function App() {
 
   // Check if current route starts with "/dashboard"
   const isDashboard = location.pathname.startsWith("/dashboard");
+  const isviewCourse = location.pathname.startsWith("/view-course");
 
   return (
     <div className="w-full min-h-screen bg-richblack-900 flex flex-col font-inter">
       {/* Fixed Navbar */}
-      <div className="fixed top-0 left-0 w-full z-50 bg-richblack-900 border-b border-richblack-700">
+      <div className="fixed top-0 left-0 w-full z-50 bg-richblack-900 border-b border-richblack-800">
         <Navbar />
       </div>
 
@@ -81,9 +82,9 @@ function App() {
 
           {/* Course View */}
           <Route
-            path="view-course/:courseId"
+            path="/view-course/:courseId"
             element={
-              <div className="max-w-[1800px] mx-auto">
+              <div className="w-screen m-0">
                 <ViewCourse />
               </div>
             }
@@ -96,7 +97,7 @@ function App() {
         </Routes>
       </main>
 
-      {!isDashboard && <Footer />}
+      {(!isDashboard || !isviewCourse) && <Footer />}
       
     </div>
   );
