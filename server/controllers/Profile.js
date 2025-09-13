@@ -1,5 +1,6 @@
 import { uploadImagetoCloudinary } from "../utils/imageUploader.js";
 import Profile from "../models/Profile.js";
+import CourseProgress from "../models/courseProgress.js";
 import mongoose from "mongoose";
 import User from "../models/User.js";
 import jwt from "jsonwebtoken";
@@ -174,16 +175,18 @@ export const getAllUsers = async (req, res) => {
 export const getEnrolledCourses = async (req, res) => {
   try {
     const { userId } = req.query;
+
     // Fetch user and populate enrolled courses
     const user = await User.findById(userId).populate({
-      path: "courses", // Populate the courses array
+      path: "courses",
       populate: {
-        path: "courseContent", // Inside courses, populate courseContent (sections)
+        path: "courseContent",
         populate: {
-          path: "subSection", // Inside courseContent, populate subsections
+          path: "subSection",
         },
       },
     });
+
     if (!user) {
       return res.status(404).json({
         success: false,
@@ -191,19 +194,40 @@ export const getEnrolledCourses = async (req, res) => {
       });
     }
 
+    // Get all progress docs for this user
+    const progressDocs = await CourseProgress.find({ userId });
+    // console.log(progressDocs)
     const coursesWithDuration = user.courses.map((course) => {
       let totalDuration = 0;
+      let totalSubSections = 0;
 
       course.courseContent.forEach((section) => {
+        totalSubSections += section.subSection.length;
+
         section.subSection.forEach((sub) => {
           const duration = parseFloat(sub.timeDuration) || 0;
           totalDuration += duration;
         });
       });
 
+      // Find progress for this course
+      const courseProgress = progressDocs.find(
+        (p) => p.courseID.toString() === course._id.toString()
+      );
+
+      const completedCount = courseProgress?.completedVideos?.length || 0;
+
+      const progressPercentage =
+        totalSubSections > 0
+          ? Math.round((completedCount / totalSubSections) * 100)
+          : 0;
+
       return {
         ...course._doc,
         totalDurationInMinutes: totalDuration,
+        totalLectures: totalSubSections,
+        completedLectures: completedCount,
+        progressPercentage,
       };
     });
 

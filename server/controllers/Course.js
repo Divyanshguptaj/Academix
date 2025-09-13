@@ -352,28 +352,30 @@ export const deleteCourse = async (req, res) => {
 export const updateCourseProgress = async (req, res) => {
   try {
     const { userId, courseId, subSectionId } = req.body;
-
+    // console.log(userId, courseId, subSectionId)
     if (!userId || !courseId || !subSectionId) {
       return res.status(400).json({ success: false, message: "Missing required fields" });
     }
 
     // Find the user
     const user = await User.findById(userId);
+    // console.log(user)
     if (!user) {
       return res.status(404).json({ success: false, message: "User not found" });
     }
 
     // Find the user's progress for this course
     let progress = await CourseProgress.findOne({ courseID: courseId });
-
+    // console.log(progress)
     // If progress doesn't exist, create a new entry
     if (!progress) {
       progress = new CourseProgress({
         courseID: courseId,
+        userId,
         completedVideos: [],
       });
     }
-
+    // console.log("pro3:", progress)
     // Check if the subSection is already marked as completed
     if (!progress.completedVideos.includes(subSectionId)) {
       progress.completedVideos.push(subSectionId);
