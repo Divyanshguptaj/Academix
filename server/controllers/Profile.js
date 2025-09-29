@@ -1,6 +1,6 @@
 import { uploadImagetoCloudinary } from "../utils/imageUploader.js";
 import Profile from "../models/Profile.js";
-import CourseProgress from "../models/courseProgress.js";
+import CourseProgress from "../models/CourseProgress.js";
 import mongoose from "mongoose";
 import User from "../models/User.js";
 import jwt from "jsonwebtoken";
