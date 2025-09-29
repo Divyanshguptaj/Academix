@@ -1,5 +1,5 @@
-const BASE_URL = "http://localhost:4000/api/v1";
-// const BASE_URL = process.env.REACT_APP_BACKEND_URL || "https://academix-w1rw.onrender.com/api/v1"
+// const BASE_URL = "http://localhost:4000/api/v1";
+const BASE_URL = process.env.REACT_APP_BACKEND_URL || "https://academix-w1rw.onrender.com/api/v1"
 
 // AUTH ENDPOINTS
 export const endpoints = {
