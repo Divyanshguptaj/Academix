@@ -172,7 +172,7 @@ const SmartStudyCompanion = () => {
                   <div className="bg-yellow-900 bg-opacity-30 p-3 rounded-lg mb-2">
                     <strong className="text-yellow-200">You:</strong> {chat.question}
                   </div>
-                  <div className="bg-richblack-700 p-3 rounded-lg">
+                  <div className="bg-richblack-700 p-3 rounded-lg whitespace-pre-wrap">
                     <strong className="text-green-200">AI:</strong> {chat.answer}
                   </div>
                 </div>
