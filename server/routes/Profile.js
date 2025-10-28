@@ -1,7 +1,7 @@
-const express = require('express');
+import express from 'express';
 const router = express.Router();
 
-const {updateProfile, deleteAccount, getAllUsers,getUserDetails, getEnrolledCourses, instructorDetails, updateDisplayPicture} = require('../controllers/Profile')
+import {updateProfile, deleteAccount, getAllUsers,getUserDetails, getEnrolledCourses, instructorDetails, updateDisplayPicture} from '../controllers/Profile.js'
 
 router.post('/updateProfile',updateProfile);
 router.post('/deleteAccount',deleteAccount);
@@ -11,4 +11,4 @@ router.get('/getUserDetails', getUserDetails);
 router.get('/instructorDashboard', instructorDetails);
 router.put('/updateDisplayPicture', updateDisplayPicture);
 
-module.exports = router
+export default router

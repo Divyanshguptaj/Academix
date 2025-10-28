@@ -1,12 +1,11 @@
-const express = require('express');
+import express from 'express';
 const router = express.Router();
-const { createCategory, findAllCategory, categoryPageDetails } = require("../controllers/Category");
-const {createCourse, showAllCourses, getCourseDetails, editCourse,getInstructorCourses, deleteCourse,updateCourseProgress} = require("../controllers/Course");
-const {auth, isAdmin, isStudent, isInstructor} = require("../middlewares/auth");
-const {createSection, updateSection, deleteSection} = require('../controllers/Section')
-// const {createSection, updateSection, deleteSection} = require('../controllers/Subsection')
-const {createSubSection,deleteSubSection, updateSubSection} = require('../controllers/Subsection')
-const {createRating, getAverageRating, getAllReviews} = require('../controllers/RatingAndReview');
+import { createCategory, findAllCategory, categoryPageDetails } from '../controllers/Category.js'
+import {createCourse, showAllCourses, getCourseDetails, editCourse,getInstructorCourses, deleteCourse,updateCourseProgress} from '../controllers/Course.js'
+import {auth, isAdmin, isStudent, isInstructor} from '../middlewares/auth.js'
+import {createSection, updateSection, deleteSection} from '../controllers/Section.js'
+import {createSubSection,deleteSubSection, updateSubSection} from '../controllers/Subsection.js'
+import {createRating, getAverageRating, getAllReviews} from '../controllers/RatingAndReview.js';
 
 //course -
 router.post('/editCourse', editCourse)
@@ -37,4 +36,4 @@ router.post('/createRating',/*auth , isStudent,*/ createRating)
 router.get('/getAverageRating',getAverageRating);
 router.get('/getReviews',getAllReviews);
 
-module.exports = router
+export default router

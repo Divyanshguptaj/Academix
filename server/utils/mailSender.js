@@ -1,13 +1,14 @@
-const nodemailer = require('nodemailer');
-require('dotenv').config();
+import nodemailer from 'nodemailer';
+import dotenv from 'dotenv';
+dotenv.config();
 const mailSender = async(email, title, body)=>{
     try{
         let transporter = nodemailer.createTransport({
             host: process.env.MAIL_HOST,
-            auth:{ 
+            auth:{
                 user: process.env.MAIL_USER,
                 pass: process.env.MAIL_PASS,
-            } 
+            }
         })
 
         // console.log(transporter)
@@ -23,11 +24,8 @@ const mailSender = async(email, title, body)=>{
         return info;
     }catch(error){
         console.log(error.message);
-        return res.status(400).json({
-            success: false,
-            message: "can't send email",
-        })
+        throw new Error("can't send email");
     }
 }
 
-module.exports = mailSender;
+export default mailSender;
