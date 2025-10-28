@@ -70,3 +70,8 @@ export const settingsEndpoints = {
   CHANGE_PASSWORD_API: BASE_URL + "/auth/changepassword",
   DELETE_PROFILE_API: BASE_URL + "/profile/deleteAccount",
 }
+
+// SMART STUDY API
+export const smartStudyEndpoints = {
+  GENERATE_SUMMARY_API: BASE_URL + "/smartStudy/generateSummary",
+}

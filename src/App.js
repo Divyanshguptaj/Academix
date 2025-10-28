@@ -19,6 +19,7 @@ import EditCourse from './components/core/Dashboard/EditCourse';
 import AddCourse from './components/core/Dashboard/AddCourse';
 import InstructorCourses from './components/core/Dashboard/MyCourses';
 import Instructor from './components/core/Dashboard/InstructorDashboard/Instructor';
+import SmartStudyCompanion from './components/core/Dashboard/SmartStudyCompanion';
 import About from './pages/About';
 import Catalog from './pages/Catalog';
 import ViewCourse from "./pages/ViewCourse";
@@ -77,6 +78,7 @@ function App() {
             <Route path="instructor-courses" element={<InstructorCourses />} />
             <Route path="instructor" element={<Instructor />} />
             <Route path="enrolled-courses" element={<EnrolledCourses />} />
+            <Route path="smart-study" element={<SmartStudyCompanion />} />
             <Route path="/dashboard/edit-course/:courseId" element={<EditCourse />} />
           </Route>
 
