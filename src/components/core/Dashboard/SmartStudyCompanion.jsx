@@ -4,12 +4,16 @@ import { VscCloudUpload } from 'react-icons/vsc';
 import { apiConnector } from '../../../services/apiconnector';
 import { smartStudyEndpoints } from '../../../services/apis';
 
-const { GENERATE_SUMMARY_API } = smartStudyEndpoints;
+const { GENERATE_SUMMARY_API, CHAT_WITH_DOCUMENT_API } = smartStudyEndpoints;
 
 const SmartStudyCompanion = () => {
   const [file, setFile] = useState(null);
   const [summary, setSummary] = useState('');
+  const [documentText, setDocumentText] = useState('');
   const [loading, setLoading] = useState(false);
+  const [chatQuestion, setChatQuestion] = useState('');
+  const [chatHistory, setChatHistory] = useState([]); // Array of {question, answer}
+  const [chatLoading, setChatLoading] = useState(false);
   const fileInputRef = useRef(null);
 
   const handleFileChange = (e) => {
@@ -38,6 +42,8 @@ const SmartStudyCompanion = () => {
 
       if (response.data.success) {
         setSummary(response.data.summary);
+        setDocumentText(response.data.documentText || '');
+        setChatHistory([]);
         toast.success('Summary generated successfully!');
       } else {
         toast.error(response.data.message || 'Failed to generate summary');
@@ -54,8 +60,38 @@ const SmartStudyCompanion = () => {
   const handleClear = () => {
     setFile(null);
     setSummary('');
+    setDocumentText('');
+    setChatHistory([]);
+    setChatQuestion('');
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
+    }
+  };
+
+  const handleChatSend = async () => {
+    if (!chatQuestion.trim() || !documentText) return;
+
+    setChatLoading(true);
+    try {
+      const response = await apiConnector('POST', CHAT_WITH_DOCUMENT_API, {
+        question: chatQuestion,
+        documentText,
+      });
+
+      if (response.data.success) {
+        setChatHistory(prev => [...prev, {
+          question: chatQuestion,
+          answer: response.data.answer,
+        }]);
+        setChatQuestion('');
+      } else {
+        toast.error('Failed to get an answer');
+      }
+    } catch (error) {
+      console.error('Chat error:', error);
+      toast.error('An error occurred while chatting');
+    } finally {
+      setChatLoading(false);
     }
   };
 
@@ -117,6 +153,51 @@ const SmartStudyCompanion = () => {
           <h3 className="text-xl font-semibold text-yellow-50 mb-4">Generated Summary</h3>
           <div className="bg-richblack-800 border border-richblack-700 rounded-lg p-6 whitespace-pre-wrap text-richblack-100">
             {summary}
+          </div>
+        </div>
+      )}
+
+      {/* Chat Section */}
+      {summary && documentText && (
+        <div className="mt-8 w-full max-w-2xl">
+          <h3 className="text-xl font-semibold text-yellow-50 mb-4">Chat with Your Document</h3>
+
+          {/* Chat History */}
+          <div className="bg-richblack-800 border border-richblack-700 rounded-lg p-4 mb-4 max-h-96 overflow-y-auto">
+            {chatHistory.length === 0 ? (
+              <p className="text-richblack-400 italic">Ask a question about your document...</p>
+            ) : (
+              chatHistory.map((chat, idx) => (
+                <div key={idx} className="mb-4">
+                  <div className="bg-yellow-900 bg-opacity-30 p-3 rounded-lg mb-2">
+                    <strong className="text-yellow-200">You:</strong> {chat.question}
+                  </div>
+                  <div className="bg-richblack-700 p-3 rounded-lg">
+                    <strong className="text-green-200">AI:</strong> {chat.answer}
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+
+          {/* Chat Input */}
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={chatQuestion}
+              onChange={(e) => setChatQuestion(e.target.value)}
+              onKeyPress={(e) => e.key === 'Enter' && handleChatSend()}
+              placeholder="Ask a question about the document..."
+              className="flex-1 bg-richblack-800 border border-richblack-700 rounded-lg px-4 py-2 text-white placeholder-richblack-400 focus:outline-none focus:ring-2 focus:ring-yellow-50"
+              disabled={chatLoading}
+            />
+            <button
+              onClick={handleChatSend}
+              disabled={!chatQuestion.trim() || chatLoading}
+              className="bg-green-500 hover:bg-green-600 disabled:bg-gray-600 text-white px-4 py-2 rounded-lg font-semibold transition-colors disabled:cursor-not-allowed"
+            >
+              {chatLoading ? 'Sending...' : 'Send'}
+            </button>
           </div>
         </div>
       )}

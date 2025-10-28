@@ -13,16 +13,6 @@ if (!API_KEY) {
 // ✅ Correct constructor usage
 const genAI = new GoogleGenerativeAI(API_KEY);
 
-// (async () => {
-//   const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-//   const { models } = await genAI.listModels();    // requires latest SDK
-//   for (const m of models) {
-//     if (m.supportedGenerationMethods?.includes('generateContent')) {
-//       console.log(m.name); // e.g., models/gemini-1.5-flash-latest
-//     }
-//   }
-// })();
-
 // Simple chunker to avoid token overflows
 function chunkText(text, maxChars = 12000) {
   const chunks = [];
@@ -111,6 +101,7 @@ exports.generateSummary = async (req, res) => {
     return res.status(200).json({
       success: true,
       summary,
+      documentText: text, // Include extracted text for chat functionality
       message: "Summary generated successfully"
     });
 
@@ -120,6 +111,62 @@ exports.generateSummary = async (req, res) => {
     return res.status(status).json({
       success: false,
       message: error.statusText || "Error processing the file or generating summary",
+      error: error.message,
+      details: error.errorDetails || undefined
+    });
+  }
+};
+
+exports.chatWithDocument = async (req, res) => {
+  try {
+    const { question, documentText } = req.body;
+
+    if (!question || !question.trim()) {
+      return res.status(400).json({
+        success: false,
+        message: "Question is required"
+      });
+    }
+
+    if (!documentText || !documentText.trim()) {
+      return res.status(400).json({
+        success: false,
+        message: "Document text is required"
+      });
+    }
+
+    // Limit the document text to fit within token limits
+    const maxTextLength = 20000; // Adjust based on model's limits
+    const truncatedText = documentText.length > maxTextLength
+      ? documentText.substring(0, maxTextLength) + "..."
+      : documentText;
+
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+
+    const prompt = `You are a helpful academic assistant. Based on the following document content, please answer the user's question accurately and comprehensively.
+
+Document Content:
+${truncatedText}
+
+Question: ${question}
+
+Please provide a clear, detailed, and helpful answer based on the document. If the document doesn't contain information to answer the question, say so politely.`;
+
+    const result = await model.generateContent(prompt);
+    const answer = result.response.text();
+
+    return res.status(200).json({
+      success: true,
+      answer,
+      message: "Question answered successfully"
+    });
+
+  } catch (error) {
+    console.error("Error in chat:", error);
+    const status = error.status || 500;
+    return res.status(status).json({
+      success: false,
+      message: error.statusText || "Error processing the chat request",
       error: error.message,
       details: error.errorDetails || undefined
     });

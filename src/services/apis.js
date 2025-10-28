@@ -74,4 +74,5 @@ export const settingsEndpoints = {
 // SMART STUDY API
 export const smartStudyEndpoints = {
   GENERATE_SUMMARY_API: BASE_URL + "/smartStudy/generateSummary",
+  CHAT_WITH_DOCUMENT_API: BASE_URL + "/smartStudy/chatWithDocument",
 }
