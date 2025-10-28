@@ -6,6 +6,7 @@ import profileRoutes from './routes/Profile.js';
 import paymentRoutes from './routes/Payments.js';
 import courseRoutes from './routes/Course.js';
 import contactRoutes from './routes/Contact.js';
+import smartStudyRoutes from './routes/SmartStudy.js';
 
 import database from './config/database.js';
 import cookieParser from 'cookie-parser';
@@ -31,7 +32,7 @@ app.use(cors({
     credentials: true,
 }));
 
-app.use(fileUpload({ useTempFiles: true, tempFileDir: "/tmp" }));
+app.use(fileUpload({ useTempFiles: false }));
 cloudinaryConnect();
 
 app.use("/api/v1/auth", userRoutes);
@@ -39,6 +40,7 @@ app.use("/api/v1/contact", contactRoutes);
 app.use("/api/v1/profile", profileRoutes);
 app.use("/api/v1/payment", paymentRoutes);
 app.use("/api/v1/course", courseRoutes);
+app.use("/api/v1/smartStudy", smartStudyRoutes);
 
 //def routes
 app.get('/', (req, res) => {
