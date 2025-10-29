@@ -240,126 +240,57 @@ exports.summarizeYouTubeVideo = async (req, res) => {
       });
     }
 
-    // Extract video ID from URL
-    const videoMatch = url.match(/[?&]v=([^#\&\?]*)/) || url.match(/youtu\.be\/([^?\&]*)/) || url.match(/embed\/([^?\&]*)/);
-    const extractedId = videoMatch && (videoMatch[1] || videoMatch[0].split('/').pop());
+    console.log('Processing YouTube video:', url, 'Type:', type);
 
-    if (!extractedId) {
-      return res.status(400).json({
-        success: false,
-        message: "Invalid YouTube URL"
-      });
-    }
-
-    console.log('Processing:', extractedId, type);
-
-    // Fetch transcript
-    const transcripts = await YoutubeTranscript.fetchTranscript(extractedId);
-
-    if (!transcripts || transcripts.length === 0) {
-      return res.status(400).json({
-        success: false,
-        message: "No captions/transcripts available for this video. Please try a video with English subtitles or auto-captions."
-      });
-    }
-
-    const transcriptText = transcripts.map(t => t.text).join(' ');
-    console.log('Transcript length:', transcriptText.length);
-
-    if (!transcriptText.trim()) {
-      return res.status(400).json({
-        success: false,
-        message: "No readable transcript found"
-      });
-    }
-
-    // Generate summary or notes using Gemini with actual transcript
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    // Let Gemini handle the YouTube URL directly
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
 
     let prompt;
+    
     if (type === 'notes') {
       // Study notes for long-term retention
-      prompt = `You are an expert AI study assistant who can analyze and understand YouTube video content comprehensively. Create detailed, comprehensive study notes from this YouTube video that will help someone study and retain this information for months without revisiting the video:
+      prompt = `You are an AI study assistant with advanced web analysis capabilities. Access and analyze this YouTube video thoroughly and create detailed, comprehensive study notes that will help someone study and retain this information for months without revisiting the video:
 
-YouTube URL: ${url}
+YouTube Video URL: ${url}
 
-Create detailed study notes including:
+Analyze the entire video content, including all explanations, examples, and demonstrations shown. Create detailed study notes including:
 
 1. **VIDEO OVERVIEW**
-   - Main topic and purpose
-   - Target audience
-   - Key learning objectives
+   - Main topic and purpose of the video
+   - Target audience and prerequisites
+   - Key learning objectives covered
 
 2. **STRUCTURED CONTENT OUTLINE**
-   - Main topics with subtopics
-   - Important concepts and definitions
-   - Step-by-step explanations where applicable
+   - All main topics covered in order
+   - Important concepts and definitions explained
+   - Step-by-step processes and methodologies
 
 3. **KEY CONCEPTS & EXPLANATIONS**
-   - Important terms with definitions
-   - Core principles and formulas (if any)
-   - Visual or practical examples from the video
+   - Important terms with their definitions from the video
+   - Core principles, formulas, or frameworks presented
+   - Visual or practical examples demonstrated
 
 4. **PRACTICE & APPLICATION**
-   - Practice questions for each major section
-   - Real-world applications
-   - Self-assessment points
+   - Practice questions or problems shown
+   - Real-world applications discussed
+   - Key examples and case studies explained
 
 5. **MEMORY AIDS & STUDY TIPS**
-   - Mnemonics and memory techniques
-   - Quick review checklists
-   - Study strategy recommendations
+   - Mnemonics and memory techniques provided
+   - Study strategy recommendations given
+   - Tips for retaining this material long-term
 
 6. **SUMMARY & KEY TAKEAWAYS**
-   - Concise review points
    - Essential concepts to remember
+   - Main conclusions from the video
+   - Review points for studying
 
-Format everything in a clean, organized, readable structure. Use clear headings, bullet points, numbered lists, and **bold** for important terms. Make it comprehensive enough that someone can fully understand and recall the video content months later.
+Provide actual content based on what you find in this specific YouTube video. Make the study notes comprehensive enough that someone can fully understand and remember the video content months later without watching it again.
 
-Provide the actual detailed content based on what this educational video would typically cover.`;
+Format everything professionally with clear headings, bullet points, and numbered lists. Use **bold** for important terms.`;
     } else {
-      // Descriptive summary for video understanding
-      prompt = `You are an expert AI assistant who can analyze YouTube educational content in detail. Provide a descriptive, comprehensive summary of this YouTube video that gives full context and understanding:
-
-YouTube URL: ${url}
-
-Create a thorough summary covering:
-
-1. **VIDEO TITLE & OVERVIEW**
-   - What the video is actually titled and about
-   - The main educational goal or purpose
-   - Length indication and key learning outcomes
-
-2. **CONTENT BREAKDOWN**
-   - Primary topics covered in sequence
-   - Key concepts explained with details
-   - Important examples and demonstrations shown
-   - Step-by-step processes or methodologies presented
-
-3. **CORE CONCEPTS & DEFINITIONS**
-   - Fundamental terms and definitions explained
-   - Important principles, formulas, or frameworks discussed
-   - Theoretical foundations covered
-   - Practical applications highlighted
-
-4. **DETAILED EXPLANATIONS**
-   - Step-by-step breakdowns of complex processes
-   - Visual aids or examples that would be shown
-   - Problem-solving approaches demonstrated
-   - Case studies or real-world scenarios presented
-
-5. **LEARNING OBJECTIVES**
-   - What viewers should know after watching
-   - Skills or knowledge gained
-   - Connections to broader subject matter
-
-6. **CONCLUSION & KEY TAKEAWAYS**
-   - Main conclusions drawn from the content
-   - Essential points to remember
-   - Next steps or further learning suggestions
-
-Provide comprehensive, detailed content as if you've thoroughly watched and understood this educational video. Make it informative and structured for learning purposes. Focus on factual content and educational value.`;
-    }
+      // Descriptive summary for quick understanding
+      prompt = `${url} can you generate descriptive summary for this youtube video.`}
 
     const result = await model.generateContent(prompt);
     const output = result.response.text();
