@@ -43,4 +43,10 @@ export const sidebarLinks = [
         path: '/dashboard/smart-study',
         icon: 'VscBook',
     },
+    {
+        id: 8,
+        name: "AI Study Assistant",
+        path: '/dashboard/ai-study-assistant',
+        icon: 'VscHubot',
+    },
 ]

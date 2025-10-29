@@ -172,3 +172,51 @@ Please provide a clear, detailed, and helpful answer based on the document. If t
     });
   }
 };
+
+exports.askDoubt = async (req, res) => {
+  try {
+    const { question } = req.body;
+
+    if (!question || !question.trim()) {
+      return res.status(400).json({
+        success: false,
+        message: "Question is required"
+      });
+    }
+
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+
+    const prompt = `You are a helpful AI Study Assistant for an e-learning platform. Answer the student's question about studying, courses, learning techniques, academic subjects, homework help, or general educational doubts.
+
+Be encouraging, provide clear explanations, and suggest practical study tips when relevant.
+
+IMPORTANT: Format math expressions in plain text. For example:
+- Write equations like: Force (F) = mass (m) × acceleration (a)
+- Use words instead of symbols where possible: e.g., "dimension of mass is [M]" instead of $[M]$
+- For units: write "meters per second squared (m/s²)" instead of LaTeX units
+- Keep explanations simple and readable
+
+Question: ${question}
+
+Please provide a helpful, accurate, plain-text response suitable for students.`;
+
+    const result = await model.generateContent(prompt);
+    const answer = result.response.text();
+
+    return res.status(200).json({
+      success: true,
+      answer,
+      message: "Doubt resolved successfully"
+    });
+
+  } catch (error) {
+    console.error("Error in doubt resolution:", error);
+    const status = error.status || 500;
+    return res.status(status).json({
+      success: false,
+      message: error.statusText || "Error processing the doubt request",
+      error: error.message,
+      details: error.errorDetails || undefined
+    });
+  }
+};
