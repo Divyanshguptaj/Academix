@@ -22,6 +22,7 @@ import Instructor from './components/core/Dashboard/InstructorDashboard/Instruct
 import SmartStudyCompanion from './components/core/Dashboard/SmartStudyCompanion';
 import AIStudyAssistant from './components/core/Dashboard/AIStudyAssistant';
 import YouTubeSummarizer from './components/core/Dashboard/YouTubeSummarizer';
+import TextToVideoSummarizer from './components/core/Dashboard/TextToVideoSummarizer';
 import About from './pages/About';
 import Catalog from './pages/Catalog';
 import ViewCourse from "./pages/ViewCourse";
@@ -83,6 +84,7 @@ function App() {
             <Route path="smart-study" element={<SmartStudyCompanion />} />
             <Route path="ai-study-assistant" element={<AIStudyAssistant />} />
             <Route path="youtube-summarizer" element={<YouTubeSummarizer />} />
+            <Route path="text-to-video-summarizer" element={<TextToVideoSummarizer />} />
             <Route path="/dashboard/edit-course/:courseId" element={<EditCourse />} />
           </Route>
 

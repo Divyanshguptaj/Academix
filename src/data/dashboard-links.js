@@ -55,4 +55,10 @@ export const sidebarLinks = [
         path: '/dashboard/youtube-summarizer',
         icon: 'VscDeviceCameraVideo',
     },
+    {
+        id: 10,
+        name: "Text to Video Summarizer",
+        path: '/dashboard/text-to-video-summarizer',
+        icon: 'BiVideo',
+    },
 ]

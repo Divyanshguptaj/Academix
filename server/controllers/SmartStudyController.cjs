@@ -1,9 +1,11 @@
 // controllers/SmartStudyController.cjs
 require('dotenv').config();
 const { GoogleGenerativeAI } = require('@google/generative-ai');
-const { YoutubeTranscript } = require('youtube-transcript');
 const pdfParse = require('pdf-parse-fork');
 const mammoth = require('mammoth');
+const { VertexAI } = require('@google-cloud/aiplatform');
+const { GoogleGenerativeAI } = require('@google/generative-ai');
+const { VertexAI } = require('@google-cloud/vertexai');
 
 
 const API_KEY = process.env.GEMINI_API_KEY;
@@ -240,13 +242,13 @@ exports.summarizeYouTubeVideo = async (req, res) => {
       });
     }
 
-    console.log('Processing YouTube video:', url, 'Type:', type);
+    // console.log('Processing YouTube video:', url, 'Type:', type);
 
     // Let Gemini handle the YouTube URL directly
     const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
 
     let prompt;
-    
+
     if (type === 'notes') {
       // Study notes for long-term retention
       prompt = `You are an AI study assistant with advanced web analysis capabilities. Access and analyze this YouTube video thoroughly and create detailed, comprehensive study notes that will help someone study and retain this information for months without revisiting the video:
@@ -309,6 +311,215 @@ Format everything professionally with clear headings, bullet points, and numbere
       message: error.statusText || "Error generating YouTube content",
       error: error.message,
       details: error.errorDetails || undefined
+    });
+  }
+};
+
+exports.textToVideoSummarizer = async (req, res) => {
+  try {
+    const { text } = req.body;
+
+    if (!text || !text.trim()) {
+      return res.status(400).json({
+        success: false,
+        message: "Text is required"
+      });
+    }
+
+    console.log('Processing text to video summarizer');
+
+    const maxTextLength = 10000; // Limit text length to avoid token issues
+    const truncatedText = text.length > maxTextLength
+      ? text.substring(0, maxTextLength) + "... (text truncated for processing)"
+      : text;
+
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-pro' });
+
+    const prompt = `You are an AI educational content creator specialized in creating video scripts from text content. Analyze the following text and create a detailed video summary script that can be used to produce an educational video explaining the concepts.
+
+Text Content:
+${truncatedText}
+
+Create a comprehensive video script that includes:
+
+1. **VIDEO SCRIPT OVERVIEW**
+   - Main theme and target audience
+   - Key learning objectives
+   - Estimated video duration (based on content depth)
+
+2. **STRUCTURED NARRATIVE**
+   - Introduction with hook and overview
+   - Main body explaining key concepts with examples
+   - Conclusion with summary and key takeaways
+
+3. **VISUAL DESCRIPTION**
+   - Suggested visuals, animations, or graphics for each section
+   - Recommended on-screen text and bullet points
+   - Visual storytelling elements
+
+4. **NARRATION SCRIPT**
+   - Complete spoken script with timing suggestions
+   - Key phrases to emphasize
+   - Pause points for complex concepts
+
+5. **EDUCATIONAL ENHANCEMENTS**
+   - Suggested questions or prompts for viewer engagement
+   - Additional resources or further reading suggestions
+   - Quiz or recap questions at the end
+
+Format the output professionally with clear sections, timing estimates, and specific visual/audio recommendations that would make it suitable for video production. The script should be educational, engaging, and comprehensive.
+
+Note: If text is truncated, the script should still be complete based on available content.`;
+
+    const result = await model.generateContent(prompt);
+    const output = result.response.text();
+
+    return res.status(200).json({
+      success: true,
+      output,
+      message: "Video summary script generated successfully"
+    });
+
+  } catch (error) {
+    console.error("Error in text to video summarizer:", error);
+    const status = error.status || 500;
+    return res.status(status).json({
+      success: false,
+      message: error.statusText || "Error generating video summary",
+      error: error.message,
+      details: error.errorDetails || undefined
+    });
+  }
+};
+
+// Helper function to generate refined prompt for Veo
+async function generateRefinedPrompt(textPrompt) {
+  try {
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+    const prompt = `Create a concise, vivid description for video generation based on this educational content.
+Focus on visually representing the main concept in 2–3 sentences.
+Content: ${textPrompt}`;
+
+    const result = await model.generateContent(prompt);
+    return result.response.text().trim();
+  } catch (error) {
+    console.error('Error generating refined prompt:', error);
+    return textPrompt; // Fallback to original prompt
+  }
+}
+
+// Configure Vertex AI client for Veo
+function getVertexAIClient() {
+  try {
+    // The VertexAI client will use GOOGLE_APPLICATION_CREDENTIALS env var
+    // or default credentials if running on GCP
+    const vertexAI = new VertexAI({
+      project: process.env.GOOGLE_CLOUD_PROJECT,
+      location: process.env.GOOGLE_CLOUD_LOCATION || 'us-central1',
+    });
+    return vertexAI;
+  } catch (error) {
+    console.error('Error initializing Vertex AI client:', error);
+    throw error;
+  }
+}
+
+exports.generateVideoWithVeo = async (req, res) => {
+  try {
+    const { textPrompt } = req.body;
+
+    // 1. Basic input validation (unchanged)
+    if (!textPrompt || !textPrompt.trim()) {
+      return res.status(400).json({ success: false, message: "Text prompt is required" });
+    }
+
+    // 2. (Optional) Generate a refined visual prompt using the standard Gemini API
+    const videoPrompt = await generateRefinedPrompt(textPrompt);
+    console.log('🧠 Refined Video Prompt:', videoPrompt);
+
+    // 3. Configure the Vertex AI client
+    const vertexClient = getVertexAIClient();
+    const VEOS_MODEL_ID = 'veo-3-1'; // Veo model ID
+
+    console.log('🎬 Starting Veo video generation on Vertex AI...');
+
+    // 4. Start the Asynchronous Veo Generation
+    const [operation] = await vertexClient.generateVideos({
+      model: VEOS_MODEL_ID,
+      prompt: videoPrompt,
+      duration: 8, // Veo typically generates 8-second clips
+      resolution: '1920x1080',
+    });
+
+    console.log('✅ Video generation started, operation ID:', operation.name);
+
+    return res.status(200).json({
+      success: true,
+      operationId: operation.name,
+      message: "Video generation started with Veo. Use this ID to check status.",
+      videoPrompt,
+    });
+
+  } catch (error) {
+    console.error("💥 Error in Veo video generation:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Error generating video with Veo on Vertex AI",
+      error: error.message,
+    });
+  }
+};
+
+exports.checkVideoStatus = async (req, res) => {
+  try {
+    const { operationId } = req.body;
+
+    if (!operationId) {
+      return res.status(400).json({ success: false, message: "Operation ID is required" });
+    }
+
+    // Get Vertex AI client
+    const vertexClient = getVertexAIClient();
+
+    // Get the operation
+    const [operation] = await vertexClient.operations.get({
+      name: operationId,
+    });
+
+    if (operation.done) {
+      // Check if it succeeded
+      if (operation.error) {
+        console.error('Video generation failed:', operation.error);
+        return res.status(200).json({
+          success: false,
+          status: 'failed',
+          error: operation.error,
+        });
+      } else {
+        // Success - get the video URL
+        const videoUrl = operation.metadata?.generatedVideo?.url || operation.response?.generatedVideo?.url;
+        console.log('✅ Video generation completed:', videoUrl);
+        return res.status(200).json({
+          success: true,
+          status: 'completed',
+          videoUrl: videoUrl,
+        });
+      }
+    } else {
+      // Still in progress
+      return res.status(200).json({
+        success: true,
+        status: 'in_progress',
+        message: 'Video generation is still in progress',
+      });
+    }
+
+  } catch (error) {
+    console.error("💥 Error checking video status:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Error checking video generation status",
+      error: error.message,
     });
   }
 };

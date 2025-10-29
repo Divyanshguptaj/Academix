@@ -78,4 +78,8 @@ export const smartStudyEndpoints = {
   ASK_DOUBT_API: BASE_URL + "/smartStudy/askDoubt",
   FETCH_YOUTUBE_TRANSCRIPT_API: BASE_URL + "/smartStudy/fetchYouTubeTranscript",
   SUMMARIZE_YOUTUBE_VIDEO_API: BASE_URL + "/smartStudy/summarizeYouTubeVideo",
+  TEXT_TO_VIDEO_SUMMARIZER_API: BASE_URL + "/smartStudy/textToVideoSummarizer",
+  GENERATE_VIDEO_FROM_TEXT_API: BASE_URL + "/smartStudy/generateVideoFromText",
+  GENERATE_VIDEO_WITH_VEO_API: BASE_URL + "/smartStudy/generateVideoWithVeo",
+  CHECK_VIDEO_STATUS_API: BASE_URL + "/smartStudy/checkVideoStatus",
 }
