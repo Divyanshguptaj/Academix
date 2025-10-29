@@ -21,6 +21,7 @@ import InstructorCourses from './components/core/Dashboard/MyCourses';
 import Instructor from './components/core/Dashboard/InstructorDashboard/Instructor';
 import SmartStudyCompanion from './components/core/Dashboard/SmartStudyCompanion';
 import AIStudyAssistant from './components/core/Dashboard/AIStudyAssistant';
+import YouTubeSummarizer from './components/core/Dashboard/YouTubeSummarizer';
 import About from './pages/About';
 import Catalog from './pages/Catalog';
 import ViewCourse from "./pages/ViewCourse";
@@ -81,6 +82,7 @@ function App() {
             <Route path="enrolled-courses" element={<EnrolledCourses />} />
             <Route path="smart-study" element={<SmartStudyCompanion />} />
             <Route path="ai-study-assistant" element={<AIStudyAssistant />} />
+            <Route path="youtube-summarizer" element={<YouTubeSummarizer />} />
             <Route path="/dashboard/edit-course/:courseId" element={<EditCourse />} />
           </Route>
 

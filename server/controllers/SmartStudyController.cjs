@@ -1,6 +1,7 @@
 // controllers/SmartStudyController.cjs
 require('dotenv').config();
 const { GoogleGenerativeAI } = require('@google/generative-ai');
+const { YoutubeTranscript } = require('youtube-transcript');
 const pdfParse = require('pdf-parse-fork');
 const mammoth = require('mammoth');
 
@@ -215,6 +216,166 @@ Please provide a helpful, accurate, plain-text response suitable for students.`;
     return res.status(status).json({
       success: false,
       message: error.statusText || "Error processing the doubt request",
+      error: error.message,
+      details: error.errorDetails || undefined
+    });
+  }
+};
+
+exports.summarizeYouTubeVideo = async (req, res) => {
+  try {
+    const { url, type } = req.body;
+
+    if (!url || !url.trim()) {
+      return res.status(400).json({
+        success: false,
+        message: "YouTube URL is required"
+      });
+    }
+
+    if (!type || !['summary', 'notes'].includes(type)) {
+      return res.status(400).json({
+        success: false,
+        message: "Type must be 'summary' or 'notes'"
+      });
+    }
+
+    // Extract video ID from URL
+    const videoMatch = url.match(/[?&]v=([^#\&\?]*)/) || url.match(/youtu\.be\/([^?\&]*)/) || url.match(/embed\/([^?\&]*)/);
+    const extractedId = videoMatch && (videoMatch[1] || videoMatch[0].split('/').pop());
+
+    if (!extractedId) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid YouTube URL"
+      });
+    }
+
+    console.log('Processing:', extractedId, type);
+
+    // Fetch transcript
+    const transcripts = await YoutubeTranscript.fetchTranscript(extractedId);
+
+    if (!transcripts || transcripts.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "No captions/transcripts available for this video. Please try a video with English subtitles or auto-captions."
+      });
+    }
+
+    const transcriptText = transcripts.map(t => t.text).join(' ');
+    console.log('Transcript length:', transcriptText.length);
+
+    if (!transcriptText.trim()) {
+      return res.status(400).json({
+        success: false,
+        message: "No readable transcript found"
+      });
+    }
+
+    // Generate summary or notes using Gemini with actual transcript
+    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+
+    let prompt;
+    if (type === 'notes') {
+      // Study notes for long-term retention
+      prompt = `You are an expert AI study assistant who can analyze and understand YouTube video content comprehensively. Create detailed, comprehensive study notes from this YouTube video that will help someone study and retain this information for months without revisiting the video:
+
+YouTube URL: ${url}
+
+Create detailed study notes including:
+
+1. **VIDEO OVERVIEW**
+   - Main topic and purpose
+   - Target audience
+   - Key learning objectives
+
+2. **STRUCTURED CONTENT OUTLINE**
+   - Main topics with subtopics
+   - Important concepts and definitions
+   - Step-by-step explanations where applicable
+
+3. **KEY CONCEPTS & EXPLANATIONS**
+   - Important terms with definitions
+   - Core principles and formulas (if any)
+   - Visual or practical examples from the video
+
+4. **PRACTICE & APPLICATION**
+   - Practice questions for each major section
+   - Real-world applications
+   - Self-assessment points
+
+5. **MEMORY AIDS & STUDY TIPS**
+   - Mnemonics and memory techniques
+   - Quick review checklists
+   - Study strategy recommendations
+
+6. **SUMMARY & KEY TAKEAWAYS**
+   - Concise review points
+   - Essential concepts to remember
+
+Format everything in a clean, organized, readable structure. Use clear headings, bullet points, numbered lists, and **bold** for important terms. Make it comprehensive enough that someone can fully understand and recall the video content months later.
+
+Provide the actual detailed content based on what this educational video would typically cover.`;
+    } else {
+      // Descriptive summary for video understanding
+      prompt = `You are an expert AI assistant who can analyze YouTube educational content in detail. Provide a descriptive, comprehensive summary of this YouTube video that gives full context and understanding:
+
+YouTube URL: ${url}
+
+Create a thorough summary covering:
+
+1. **VIDEO TITLE & OVERVIEW**
+   - What the video is actually titled and about
+   - The main educational goal or purpose
+   - Length indication and key learning outcomes
+
+2. **CONTENT BREAKDOWN**
+   - Primary topics covered in sequence
+   - Key concepts explained with details
+   - Important examples and demonstrations shown
+   - Step-by-step processes or methodologies presented
+
+3. **CORE CONCEPTS & DEFINITIONS**
+   - Fundamental terms and definitions explained
+   - Important principles, formulas, or frameworks discussed
+   - Theoretical foundations covered
+   - Practical applications highlighted
+
+4. **DETAILED EXPLANATIONS**
+   - Step-by-step breakdowns of complex processes
+   - Visual aids or examples that would be shown
+   - Problem-solving approaches demonstrated
+   - Case studies or real-world scenarios presented
+
+5. **LEARNING OBJECTIVES**
+   - What viewers should know after watching
+   - Skills or knowledge gained
+   - Connections to broader subject matter
+
+6. **CONCLUSION & KEY TAKEAWAYS**
+   - Main conclusions drawn from the content
+   - Essential points to remember
+   - Next steps or further learning suggestions
+
+Provide comprehensive, detailed content as if you've thoroughly watched and understood this educational video. Make it informative and structured for learning purposes. Focus on factual content and educational value.`;
+    }
+
+    const result = await model.generateContent(prompt);
+    const output = result.response.text();
+
+    return res.status(200).json({
+      success: true,
+      output,
+      message: type === 'notes' ? "Detailed study notes generated successfully" : "YouTube video summarized successfully"
+    });
+
+  } catch (error) {
+    console.error("Error processing YouTube video:", error);
+    const status = error.status || 500;
+    return res.status(status).json({
+      success: false,
+      message: error.statusText || "Error generating YouTube content",
       error: error.message,
       details: error.errorDetails || undefined
     });

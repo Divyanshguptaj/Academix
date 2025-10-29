@@ -76,4 +76,6 @@ export const smartStudyEndpoints = {
   GENERATE_SUMMARY_API: BASE_URL + "/smartStudy/generateSummary",
   CHAT_WITH_DOCUMENT_API: BASE_URL + "/smartStudy/chatWithDocument",
   ASK_DOUBT_API: BASE_URL + "/smartStudy/askDoubt",
+  FETCH_YOUTUBE_TRANSCRIPT_API: BASE_URL + "/smartStudy/fetchYouTubeTranscript",
+  SUMMARIZE_YOUTUBE_VIDEO_API: BASE_URL + "/smartStudy/summarizeYouTubeVideo",
 }
