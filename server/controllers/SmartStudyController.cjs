@@ -128,10 +128,6 @@ Important guidelines:
       );
     }
 
-    console.log(
-      `Successfully assigned ${backgroundImages.length} background images`
-    );
-
     // Step 3: Create JSON2Video movie structure
     const movieId = `movie_${Date.now()}`;
 
@@ -424,8 +420,8 @@ Important guidelines:
       }
     );
 
-    console.log("JSON2Video API response:", JSON.stringify(data, null, 2));
-    console.log("Extracted operationId:", data.project || data.id);
+    // console.log("JSON2Video API response:", JSON.stringify(data, null, 2));
+    // console.log("Extracted operationId:", data.project || data.id);
 
     return res.status(200).json({
       success: true,
@@ -865,8 +861,6 @@ exports.summarizeYouTubeVideo = async (req, res) => {
         message: "Type must be 'summary' or 'notes'",
       });
     }
-
-    // console.log('Processing YouTube video:', url, 'Type:', type);
 
     // Let Gemini handle the YouTube URL directly
     const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
