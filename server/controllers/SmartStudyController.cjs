@@ -34,9 +34,11 @@ exports.generateJson2Video = async (req, res) => {
     }
 
     // Step 1: Use Gemini to generate comprehensive 2-minute video script
-    console.log("Generating comprehensive 2-minute video script with Gemini...");
+    console.log(
+      "Generating comprehensive 2-minute video script with Gemini..."
+    );
     const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash-exp" });
-    
+
     const geminiPrompt = `Create a comprehensive 2-minute educational video script about: "${textPrompt}"
 
 The video should have 8-10 scenes to fully utilize the 2-minute duration and thoroughly explain the topic.
@@ -86,21 +88,23 @@ Important guidelines:
 
     const result = await model.generateContent(geminiPrompt);
     let scriptText = result.response.text().trim();
-    
+
     // Clean up any markdown code blocks
-    scriptText = scriptText.replace(/```json\s*/g, '').replace(/```\s*/g, '');
-    
+    scriptText = scriptText.replace(/```json\s*/g, "").replace(/```\s*/g, "");
+
     console.log("Gemini response received, parsing...");
-    
+
     const videoScript = JSON.parse(scriptText);
 
     if (!videoScript.scenes || videoScript.scenes.length < 8) {
-      throw new Error("Invalid script format from Gemini - needs at least 8 scenes");
+      throw new Error(
+        "Invalid script format from Gemini - needs at least 8 scenes"
+      );
     }
 
     // Step 2: Use verified Unsplash images as backgrounds
     console.log("Selecting background images...");
-    
+
     // Use a curated list of verified working Unsplash images in portrait orientation
     const verifiedUnsplashImages = [
       "https://images.unsplash.com/photo-1557683316-973673baf926?w=1080&h=1920&fit=crop",
@@ -112,21 +116,25 @@ Important guidelines:
       "https://images.unsplash.com/photo-1634017839464-5c339ebe3cb4?w=1080&h=1920&fit=crop",
       "https://images.unsplash.com/photo-1618172193763-c511deb635ca?w=1080&h=1920&fit=crop",
       "https://images.unsplash.com/photo-1620641788421-7a1c342ea42e?w=1080&h=1920&fit=crop",
-      "https://images.unsplash.com/photo-1604076913837-52ab5629fba9?w=1080&h=1920&fit=crop"
+      "https://images.unsplash.com/photo-1604076913837-52ab5629fba9?w=1080&h=1920&fit=crop",
     ];
-    
+
     const backgroundImages = [];
-    
+
     // Assign images to scenes cyclically from verified list
     for (let i = 0; i < videoScript.scenes.length; i++) {
-      backgroundImages.push(verifiedUnsplashImages[i % verifiedUnsplashImages.length]);
+      backgroundImages.push(
+        verifiedUnsplashImages[i % verifiedUnsplashImages.length]
+      );
     }
 
-    console.log(`Successfully assigned ${backgroundImages.length} background images`);
+    console.log(
+      `Successfully assigned ${backgroundImages.length} background images`
+    );
 
     // Step 3: Create JSON2Video movie structure
     const movieId = `movie_${Date.now()}`;
-    
+
     const movie = {
       id: movieId,
       comment: videoScript.title || "Educational Video",
@@ -139,21 +147,21 @@ Important guidelines:
       cache: true,
       scenes: [],
       elements: [],
-      settings: {}
+      settings: {},
     };
 
     // Define color overlays
     const colorOverlays = [
       "rgba(102, 126, 234, 0.7)", // Purple
       "rgba(240, 147, 251, 0.7)", // Pink
-      "rgba(79, 172, 254, 0.7)",  // Blue
-      "rgba(67, 233, 123, 0.7)",  // Green
+      "rgba(79, 172, 254, 0.7)", // Blue
+      "rgba(67, 233, 123, 0.7)", // Green
       "rgba(250, 112, 154, 0.7)", // Orange-Pink
-      "rgba(48, 207, 208, 0.7)",  // Teal
+      "rgba(48, 207, 208, 0.7)", // Teal
       "rgba(168, 237, 234, 0.7)", // Light teal
       "rgba(255, 154, 158, 0.7)", // Rose
       "rgba(255, 236, 210, 0.7)", // Peach
-      "rgba(255, 110, 127, 0.7)"  // Coral
+      "rgba(255, 110, 127, 0.7)", // Coral
     ];
 
     // Create scenes from Gemini output
@@ -161,7 +169,7 @@ Important guidelines:
       const sceneId = `scene_${index + 1}_${Date.now()}`;
       const backgroundImage = backgroundImages[index % backgroundImages.length];
       const colorOverlay = colorOverlays[index % colorOverlays.length];
-      
+
       movie.scenes.push({
         id: sceneId,
         comment: scene.purpose || `Scene ${index + 1}`,
@@ -174,11 +182,11 @@ Important guidelines:
             src: backgroundImage,
             scale: {
               width: 1080,
-              height: 1920
+              height: 1920,
             },
             x: 0,
             y: 0,
-            comment: "Background image"
+            comment: "Background image",
           },
           // Color overlay box for better readability
           {
@@ -189,14 +197,14 @@ Important guidelines:
               box: {
                 background: colorOverlay,
                 "box-shadow": "none",
-                "final_width": "100%"
-              }
+                final_width: "100%",
+              },
             },
             comment: "Color overlay",
             x: 0,
             y: 0,
             width: 1080,
-            height: 1920
+            height: 1920,
           },
           // Scene purpose label (small text at top)
           {
@@ -208,14 +216,14 @@ Important guidelines:
               "font-family": "Inter",
               "font-weight": "600",
               "text-align": "center",
-              "color": "#FFFFFF",
-              "text-shadow": "2px 2px 4px rgba(0,0,0,0.5)"
+              color: "#FFFFFF",
+              "text-shadow": "2px 2px 4px rgba(0,0,0,0.5)",
             },
             x: 0,
             y: 100,
             width: 1080,
             text: scene.purpose || `Part ${index + 1}`,
-            comment: "Scene label"
+            comment: "Scene label",
           },
           // Main text (larger, centered)
           {
@@ -228,16 +236,16 @@ Important guidelines:
               "font-weight": "700",
               "text-align": "center",
               "vertical-align": "center",
-              "color": "#FFFFFF",
+              color: "#FFFFFF",
               "text-shadow": "4px 4px 8px rgba(0,0,0,0.6)",
-              "line-height": "1.3"
+              "line-height": "1.3",
             },
             x: 65,
             y: 600,
             width: 950,
             height: 600,
             text: scene.text,
-            comment: "Main on-screen text"
+            comment: "Main on-screen text",
           },
           // Voice narration
           {
@@ -245,7 +253,7 @@ Important guidelines:
             type: "voice",
             voice: "en-US-JennyNeural",
             text: scene.voiceText,
-            comment: "Narration"
+            comment: "Narration",
           },
           // Audiogram (visual sound waves)
           {
@@ -256,7 +264,7 @@ Important guidelines:
             width: 1080,
             height: 200,
             color: "#ffffff",
-            amplitude: 8
+            amplitude: 8,
           },
           // Progress indicator (scene number)
           {
@@ -268,16 +276,16 @@ Important guidelines:
               "font-family": "Inter",
               "font-weight": "500",
               "text-align": "center",
-              "color": "#FFFFFF",
-              "text-shadow": "2px 2px 4px rgba(0,0,0,0.5)"
+              color: "#FFFFFF",
+              "text-shadow": "2px 2px 4px rgba(0,0,0,0.5)",
             },
             x: 0,
             y: 1520,
             width: 1080,
             text: `${index + 1}/${videoScript.scenes.length}`,
-            comment: "Progress indicator"
-          }
-        ]
+            comment: "Progress indicator",
+          },
+        ],
       });
     });
 
@@ -294,11 +302,11 @@ Important guidelines:
           src: "https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=1080&h=1920&fit=crop",
           scale: {
             width: 1080,
-            height: 1920
+            height: 1920,
           },
           x: 0,
           y: 0,
-          comment: "Summary background"
+          comment: "Summary background",
         },
         {
           id: "overlay_summary",
@@ -308,14 +316,14 @@ Important guidelines:
             box: {
               background: "rgba(26, 26, 46, 0.9)",
               "box-shadow": "none",
-              "final_width": "100%"
-            }
+              final_width: "100%",
+            },
           },
           comment: "Dark overlay",
           x: 0,
           y: 0,
           width: 1080,
-          height: 1920
+          height: 1920,
         },
         {
           id: "summary_title",
@@ -326,14 +334,14 @@ Important guidelines:
             "font-family": "Inter",
             "font-weight": "700",
             "text-align": "center",
-            "color": "#FFFFFF",
-            "text-shadow": "3px 3px 6px rgba(0,0,0,0.5)"
+            color: "#FFFFFF",
+            "text-shadow": "3px 3px 6px rgba(0,0,0,0.5)",
           },
           x: 0,
           y: 200,
           width: 1080,
           text: "Key Takeaways",
-          comment: "Summary title"
+          comment: "Summary title",
         },
         {
           id: "takeaways_text",
@@ -344,25 +352,29 @@ Important guidelines:
             "font-family": "Inter",
             "font-weight": "500",
             "text-align": "center",
-            "color": "#FFFFFF",
+            color: "#FFFFFF",
             "line-height": "1.8",
-            "text-shadow": "2px 2px 4px rgba(0,0,0,0.5)"
+            "text-shadow": "2px 2px 4px rgba(0,0,0,0.5)",
           },
           x: 90,
           y: 400,
           width: 900,
           height: 1000,
-          text: videoScript.keyTakeaways.map((t, i) => `${i + 1}. ${t}`).join('\n\n'),
-          comment: "Key takeaways list"
+          text: videoScript.keyTakeaways
+            .map((t, i) => `${i + 1}. ${t}`)
+            .join("\n\n"),
+          comment: "Key takeaways list",
         },
         {
           id: "voice_summary",
           type: "voice",
           voice: "en-US-JennyNeural",
-          text: `Here are your key takeaways: ${videoScript.keyTakeaways.join('. ')}. Thank you for watching!`,
-          comment: "Summary narration"
-        }
-      ]
+          text: `Here are your key takeaways: ${videoScript.keyTakeaways.join(
+            ". "
+          )}. Thank you for watching!`,
+          comment: "Summary narration",
+        },
+      ],
     });
 
     // Add background music (soft and educational)
@@ -372,7 +384,7 @@ Important guidelines:
       src: "https://json2video-test.s3.amazonaws.com/assets/audios/advertime.mp3",
       "fade-out": 2,
       duration: -1,
-      volume: 0.12
+      volume: 0.12,
     });
 
     // Step 4: Send to JSON2Video API
@@ -380,30 +392,30 @@ Important guidelines:
     const { data } = await axios.post(
       "https://api.json2video.com/v2/movies",
       {
-  "width": 640,
-  "height": 360,
-  "quality": "high",
-  "draft": false,
-  "scenes": [
-    {
-      "background-color": "#4392F1",
-      "elements": [
-        {
-          "type": "text",
-          "style": "008",
-          "text": "Hello world",
-          "settings": {
-            "color": "white",
-            "font-size": "10vw",
-            "font-family": "Bebas Neue"
+        width: 640,
+        height: 360,
+        quality: "high",
+        draft: false,
+        scenes: [
+          {
+            "background-color": "#4392F1",
+            elements: [
+              {
+                type: "text",
+                style: "008",
+                text: "Hello world",
+                settings: {
+                  color: "white",
+                  "font-size": "10vw",
+                  "font-family": "Bebas Neue",
+                },
+                duration: 5,
+                cache: false,
+              },
+            ],
           },
-          "duration": 5,
-          "cache": false
-        }
-      ]
-    }
-  ]
-},
+        ],
+      },
       {
         headers: {
           "x-api-key": API_KEY,
@@ -412,31 +424,36 @@ Important guidelines:
       }
     );
 
+    console.log("JSON2Video API response:", JSON.stringify(data, null, 2));
+    console.log("Extracted operationId:", data.project || data.id);
+
     return res.status(200).json({
       success: true,
-      message: "Comprehensive 2-minute educational video generation started successfully",
-      projectId: data.project || data.id,
+      message:
+        "Comprehensive 2-minute educational video generation started successfully",
+      operationId: data.project || data.id || "unknown",
       videoScript: {
         title: videoScript.title,
         description: videoScript.description,
         totalScenes: videoScript.scenes.length,
-        estimatedDuration: `${Math.round(videoScript.scenes.reduce((sum, s) => sum + (s.duration || 12), 0))} seconds`,
-        keyTakeaways: videoScript.keyTakeaways
+        estimatedDuration: `${Math.round(
+          videoScript.scenes.reduce((sum, s) => sum + (s.duration || 12), 0)
+        )} seconds`,
+        keyTakeaways: videoScript.keyTakeaways,
       },
       response: data,
     });
-
   } catch (error) {
     console.error("JSON2Video generation error:", error);
-    
+
     const err = error.response?.data || { message: error.message };
-    
+
     return res.status(500).json({
       success: false,
       message: "Error generating video with JSON2Video",
       error: err.message || error.message || "Unknown error",
       details: err,
-      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+      stack: process.env.NODE_ENV === "development" ? error.stack : undefined,
     });
   }
 };
@@ -532,9 +549,9 @@ exports.checkJson2Status = async (req, res) => {
     const { operationId } = req.body;
 
     if (!operationId) {
-      return res.status(400).json({ 
-        success: false, 
-        message: "Operation ID is required" 
+      return res.status(400).json({
+        success: false,
+        message: "Operation ID is required",
       });
     }
 
@@ -547,7 +564,7 @@ exports.checkJson2Status = async (req, res) => {
     }
 
     console.log(`Checking status for project: ${operationId}`);
-    
+
     const response = await axios.get(
       `https://api.json2video.com/v2/movies?project=${operationId}`,
       {
@@ -576,7 +593,7 @@ exports.checkJson2Status = async (req, res) => {
         videoUrl: data.movie.url,
         thumbnail: data.movie.thumbnail,
         duration: data.movie.duration,
-        message: "Your comprehensive educational video is ready!"
+        message: "Your comprehensive educational video is ready!",
       });
     } else if (status === "error" || status === "failed") {
       return res.status(200).json({
@@ -596,7 +613,7 @@ exports.checkJson2Status = async (req, res) => {
     }
   } catch (error) {
     console.error("Error checking json2video status:", error);
-    
+
     if (error.response?.status === 404) {
       return res.status(404).json({
         success: false,
@@ -604,7 +621,7 @@ exports.checkJson2Status = async (req, res) => {
         message: "Project not found",
       });
     }
-    
+
     return res.status(500).json({
       success: false,
       message: "Error checking video generation status",
