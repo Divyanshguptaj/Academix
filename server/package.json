@@ -12,6 +12,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@google-cloud/storage": "^7.17.2",
     "@google-cloud/vertexai": "^1.10.0",
     "@google/genai": "^1.27.0",
     "@google/generative-ai": "^0.24.1",

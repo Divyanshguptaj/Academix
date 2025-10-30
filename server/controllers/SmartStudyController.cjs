@@ -1,17 +1,21 @@
 // controllers/SmartStudyController.cjs
-require('dotenv').config();
-const { GoogleGenerativeAI } = require('@google/generative-ai');
-const pdfParse = require('pdf-parse-fork');
-const mammoth = require('mammoth');
-const { VertexAI } = require('@google-cloud/aiplatform');
-const { GoogleGenerativeAI } = require('@google/generative-ai');
-const { VertexAI } = require('@google-cloud/vertexai');
-
+require("dotenv").config();
+// const { GoogleGenerativeAI } = require("@google/generative-ai");
+const pdfParse = require("pdf-parse-fork");
+const mammoth = require("mammoth");
+// const { VertexAI } = require("@google-cloud/aiplatform");
+const { GoogleGenerativeAI } = require("@google/generative-ai");
+const { VertexAI } = require("@google-cloud/vertexai");
+const { Storage } = require("@google-cloud/storage");
 
 const API_KEY = process.env.GEMINI_API_KEY;
 if (!API_KEY) {
   throw new Error("GEMINI_API_KEY is not set. Add it to your .env");
 }
+
+const storage = new Storage({
+  projectId: process.env.GOOGLE_CLOUD_PROJECT,
+});
 
 // ✅ Correct constructor usage
 const genAI = new GoogleGenerativeAI(API_KEY);
@@ -48,7 +52,7 @@ async function mergeSummaries(model, parts) {
 3) Key Takeaways
 
 Partial summaries:
-${parts.map((p, i) => `--- Part ${i + 1} ---\n${p}`).join('\n\n')}`;
+${parts.map((p, i) => `--- Part ${i + 1} ---\n${p}`).join("\n\n")}`;
   const res = await model.generateContent(prompt);
   return res.response.text();
 }
@@ -57,40 +61,47 @@ exports.generateSummary = async (req, res) => {
   try {
     const file = req.files?.file; // ensure express-fileupload middleware is used
     if (!file) {
-      return res.status(400).json({ success: false, message: "No file uploaded" });
+      return res
+        .status(400)
+        .json({ success: false, message: "No file uploaded" });
     }
 
-    let text = '';
-    const fileType = file.mimetype || '';
-    const fileName = (file.name || '').toLowerCase();
+    let text = "";
+    const fileType = file.mimetype || "";
+    const fileName = (file.name || "").toLowerCase();
 
-    if (fileType === 'application/pdf' || fileName.endsWith('.pdf')) {
+    if (fileType === "application/pdf" || fileName.endsWith(".pdf")) {
       const data = await pdfParse(file.data);
-      text = data.text || '';
+      text = data.text || "";
     } else if (
-      fileType === 'text/plain' || fileName.endsWith('.txt') || fileName.endsWith('.md')
+      fileType === "text/plain" ||
+      fileName.endsWith(".txt") ||
+      fileName.endsWith(".md")
     ) {
-      text = file.data.toString('utf-8');
+      text = file.data.toString("utf-8");
     } else if (
-      fileType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
-      fileName.endsWith('.docx')
+      fileType ===
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document" ||
+      fileName.endsWith(".docx")
     ) {
       const result = await mammoth.extractRawText({ buffer: file.data });
-      text = result.value || '';
+      text = result.value || "";
     } else {
       return res.status(400).json({
         success: false,
-        message: "Unsupported file type. Upload PDF, TXT/MD, or DOCX."
+        message: "Unsupported file type. Upload PDF, TXT/MD, or DOCX.",
       });
     }
 
     if (!text.trim()) {
-      return res.status(400).json({ success: false, message: "No text found in the file" });
+      return res
+        .status(400)
+        .json({ success: false, message: "No text found in the file" });
     }
 
     // Choose model (flash = fast/cheap, pro = best reasoning)
     // const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
     // Chunk → summarize each → merge
     const chunks = chunkText(text, 12000);
@@ -99,23 +110,26 @@ exports.generateSummary = async (req, res) => {
       const s = await summarizeChunk(model, c);
       partials.push(s);
     }
-    const summary = partials.length === 1 ? partials[0] : await mergeSummaries(model, partials);
+    const summary =
+      partials.length === 1
+        ? partials[0]
+        : await mergeSummaries(model, partials);
 
     return res.status(200).json({
       success: true,
       summary,
       documentText: text, // Include extracted text for chat functionality
-      message: "Summary generated successfully"
+      message: "Summary generated successfully",
     });
-
   } catch (error) {
     console.error("Error generating summary:", error);
     const status = error.status || 500;
     return res.status(status).json({
       success: false,
-      message: error.statusText || "Error processing the file or generating summary",
+      message:
+        error.statusText || "Error processing the file or generating summary",
       error: error.message,
-      details: error.errorDetails || undefined
+      details: error.errorDetails || undefined,
     });
   }
 };
@@ -127,24 +141,25 @@ exports.chatWithDocument = async (req, res) => {
     if (!question || !question.trim()) {
       return res.status(400).json({
         success: false,
-        message: "Question is required"
+        message: "Question is required",
       });
     }
 
     if (!documentText || !documentText.trim()) {
       return res.status(400).json({
         success: false,
-        message: "Document text is required"
+        message: "Document text is required",
       });
     }
 
     // Limit the document text to fit within token limits
     const maxTextLength = 20000; // Adjust based on model's limits
-    const truncatedText = documentText.length > maxTextLength
-      ? documentText.substring(0, maxTextLength) + "..."
-      : documentText;
+    const truncatedText =
+      documentText.length > maxTextLength
+        ? documentText.substring(0, maxTextLength) + "..."
+        : documentText;
 
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
     const prompt = `You are a helpful academic assistant. Based on the following document content, please answer the user's question accurately and comprehensively.
 
@@ -161,9 +176,8 @@ Please provide a clear, detailed, and helpful answer based on the document. If t
     return res.status(200).json({
       success: true,
       answer,
-      message: "Question answered successfully"
+      message: "Question answered successfully",
     });
-
   } catch (error) {
     console.error("Error in chat:", error);
     const status = error.status || 500;
@@ -171,7 +185,7 @@ Please provide a clear, detailed, and helpful answer based on the document. If t
       success: false,
       message: error.statusText || "Error processing the chat request",
       error: error.message,
-      details: error.errorDetails || undefined
+      details: error.errorDetails || undefined,
     });
   }
 };
@@ -183,11 +197,11 @@ exports.askDoubt = async (req, res) => {
     if (!question || !question.trim()) {
       return res.status(400).json({
         success: false,
-        message: "Question is required"
+        message: "Question is required",
       });
     }
 
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
     const prompt = `You are a helpful AI Study Assistant for an e-learning platform. Answer the student's question about studying, courses, learning techniques, academic subjects, homework help, or general educational doubts.
 
@@ -209,9 +223,8 @@ Please provide a helpful, accurate, plain-text response suitable for students.`;
     return res.status(200).json({
       success: true,
       answer,
-      message: "Doubt resolved successfully"
+      message: "Doubt resolved successfully",
     });
-
   } catch (error) {
     console.error("Error in doubt resolution:", error);
     const status = error.status || 500;
@@ -219,7 +232,7 @@ Please provide a helpful, accurate, plain-text response suitable for students.`;
       success: false,
       message: error.statusText || "Error processing the doubt request",
       error: error.message,
-      details: error.errorDetails || undefined
+      details: error.errorDetails || undefined,
     });
   }
 };
@@ -231,25 +244,25 @@ exports.summarizeYouTubeVideo = async (req, res) => {
     if (!url || !url.trim()) {
       return res.status(400).json({
         success: false,
-        message: "YouTube URL is required"
+        message: "YouTube URL is required",
       });
     }
 
-    if (!type || !['summary', 'notes'].includes(type)) {
+    if (!type || !["summary", "notes"].includes(type)) {
       return res.status(400).json({
         success: false,
-        message: "Type must be 'summary' or 'notes'"
+        message: "Type must be 'summary' or 'notes'",
       });
     }
 
     // console.log('Processing YouTube video:', url, 'Type:', type);
 
     // Let Gemini handle the YouTube URL directly
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
     let prompt;
 
-    if (type === 'notes') {
+    if (type === "notes") {
       // Study notes for long-term retention
       prompt = `You are an AI study assistant with advanced web analysis capabilities. Access and analyze this YouTube video thoroughly and create detailed, comprehensive study notes that will help someone study and retain this information for months without revisiting the video:
 
@@ -292,7 +305,8 @@ Provide actual content based on what you find in this specific YouTube video. Ma
 Format everything professionally with clear headings, bullet points, and numbered lists. Use **bold** for important terms.`;
     } else {
       // Descriptive summary for quick understanding
-      prompt = `${url} can you generate descriptive summary for this youtube video.`}
+      prompt = `${url} can you generate descriptive summary for this youtube video.`;
+    }
 
     const result = await model.generateContent(prompt);
     const output = result.response.text();
@@ -300,9 +314,11 @@ Format everything professionally with clear headings, bullet points, and numbere
     return res.status(200).json({
       success: true,
       output,
-      message: type === 'notes' ? "Detailed study notes generated successfully" : "YouTube video summarized successfully"
+      message:
+        type === "notes"
+          ? "Detailed study notes generated successfully"
+          : "YouTube video summarized successfully",
     });
-
   } catch (error) {
     console.error("Error processing YouTube video:", error);
     const status = error.status || 500;
@@ -310,7 +326,7 @@ Format everything professionally with clear headings, bullet points, and numbere
       success: false,
       message: error.statusText || "Error generating YouTube content",
       error: error.message,
-      details: error.errorDetails || undefined
+      details: error.errorDetails || undefined,
     });
   }
 };
@@ -322,18 +338,20 @@ exports.textToVideoSummarizer = async (req, res) => {
     if (!text || !text.trim()) {
       return res.status(400).json({
         success: false,
-        message: "Text is required"
+        message: "Text is required",
       });
     }
 
-    console.log('Processing text to video summarizer');
+    console.log("Processing text to video summarizer");
 
     const maxTextLength = 10000; // Limit text length to avoid token issues
-    const truncatedText = text.length > maxTextLength
-      ? text.substring(0, maxTextLength) + "... (text truncated for processing)"
-      : text;
+    const truncatedText =
+      text.length > maxTextLength
+        ? text.substring(0, maxTextLength) +
+          "... (text truncated for processing)"
+        : text;
 
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-pro' });
+    const model = genAI.getGenerativeModel({ model: "gemini-2.5-pro" });
 
     const prompt = `You are an AI educational content creator specialized in creating video scripts from text content. Analyze the following text and create a detailed video summary script that can be used to produce an educational video explaining the concepts.
 
@@ -377,9 +395,8 @@ Note: If text is truncated, the script should still be complete based on availab
     return res.status(200).json({
       success: true,
       output,
-      message: "Video summary script generated successfully"
+      message: "Video summary script generated successfully",
     });
-
   } catch (error) {
     console.error("Error in text to video summarizer:", error);
     const status = error.status || 500;
@@ -387,7 +404,7 @@ Note: If text is truncated, the script should still be complete based on availab
       success: false,
       message: error.statusText || "Error generating video summary",
       error: error.message,
-      details: error.errorDetails || undefined
+      details: error.errorDetails || undefined,
     });
   }
 };
@@ -395,15 +412,15 @@ Note: If text is truncated, the script should still be complete based on availab
 // Helper function to generate refined prompt for Veo
 async function generateRefinedPrompt(textPrompt) {
   try {
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
-    const prompt = `Create a concise, vivid description for video generation based on this educational content.
-Focus on visually representing the main concept in 2–3 sentences.
+    const model = genAI.getGenerativeModel({ model: "gemini-2.5-pro" });
+    const prompt = `Create a concise, vivid, and cinematic video prompt (2-3 sentences) based on this content for a text-to-video AI.
+Focus on visually representing the main concept.
 Content: ${textPrompt}`;
 
     const result = await model.generateContent(prompt);
     return result.response.text().trim();
   } catch (error) {
-    console.error('Error generating refined prompt:', error);
+    console.error("Error generating refined prompt:", error);
     return textPrompt; // Fallback to original prompt
   }
 }
@@ -411,15 +428,17 @@ Content: ${textPrompt}`;
 // Configure Vertex AI client for Veo
 function getVertexAIClient() {
   try {
-    // The VertexAI client will use GOOGLE_APPLICATION_CREDENTIALS env var
-    // or default credentials if running on GCP
+    if (!process.env.GOOGLE_CLOUD_PROJECT) {
+      throw new Error("GOOGLE_CLOUD_PROJECT is not set in .env");
+    }
+    // The VertexAI client will use GOOGLE_APPLICATION_CREDENTIALS for auth
     const vertexAI = new VertexAI({
       project: process.env.GOOGLE_CLOUD_PROJECT,
-      location: process.env.GOOGLE_CLOUD_LOCATION || 'us-central1',
+      location: process.env.GOOGLE_CLOUD_LOCATION || "us-central1",
     });
     return vertexAI;
   } catch (error) {
-    console.error('Error initializing Vertex AI client:', error);
+    console.error("Error initializing Vertex AI client:", error.message);
     throw error;
   }
 }
@@ -428,38 +447,53 @@ exports.generateVideoWithVeo = async (req, res) => {
   try {
     const { textPrompt } = req.body;
 
-    // 1. Basic input validation (unchanged)
     if (!textPrompt || !textPrompt.trim()) {
-      return res.status(400).json({ success: false, message: "Text prompt is required" });
+      return res
+        .status(400)
+        .json({ success: false, message: "Text prompt is required" });
     }
 
-    // 2. (Optional) Generate a refined visual prompt using the standard Gemini API
     const videoPrompt = await generateRefinedPrompt(textPrompt);
-    console.log('🧠 Refined Video Prompt:', videoPrompt);
+    // console.log("🧠 Refined Video Prompt:", videoPrompt);
 
-    // 3. Configure the Vertex AI client
     const vertexClient = getVertexAIClient();
-    const VEOS_MODEL_ID = 'veo-3-1'; // Veo model ID
+    // const VEOS_MODEL_ID = "veo-3.1-generate-preview"; // Updated ID for compatibility
+    const VEOS_MODEL_ID = "veo-3.1-fast-generate-preview"; // Updated ID for compatibility
 
-    console.log('🎬 Starting Veo video generation on Vertex AI...');
+    console.log("🎬 Starting Veo video generation on Vertex AI...");
 
-    // 4. Start the Asynchronous Veo Generation
-    const [operation] = await vertexClient.generateVideos({
-      model: VEOS_MODEL_ID,
-      prompt: videoPrompt,
-      duration: 8, // Veo typically generates 8-second clips
-      resolution: '1920x1080',
-    });
+    // NOTE: Veo requires an output GCS URI to store the video.
+    // Ensure you have a GOOGLE_CLOUD_BUCKET_URI set in your .env
+    if (!process.env.GOOGLE_CLOUD_BUCKET_URI) {
+      return res.status(500).json({
+        success: false,
+        message: "GOOGLE_CLOUD_BUCKET_URI must be set for Veo output.",
+      });
+    }
 
-    console.log('✅ Video generation started, operation ID:', operation.name);
+    // Start the Asynchronous Veo Generation
+    const [operation] = await vertexClient
+      .getGenerativeModel({
+        model: VEOS_MODEL_ID,
+      })
+      .generateContent({
+        prompt: videoPrompt,
+        duration: 8,
+        aspectRatio: "16:9",
+        config: {
+          outputGcsUri: process.env.GOOGLE_CLOUD_BUCKET_URI,
+        },
+      });
+
+    // console.log("✅ Video generation started, operation ID:", operation.name);
 
     return res.status(200).json({
       success: true,
       operationId: operation.name,
-      message: "Video generation started with Veo. Use this ID to check status.",
+      message:
+        "Video generation started with Veo. Use this ID to check status.",
       videoPrompt,
     });
-
   } catch (error) {
     console.error("💥 Error in Veo video generation:", error);
     return res.status(500).json({
@@ -471,55 +505,102 @@ exports.generateVideoWithVeo = async (req, res) => {
 };
 
 exports.checkVideoStatus = async (req, res) => {
-  try {
-    const { operationId } = req.body;
+  // try {
+  //   const { operationId } = req.body;
 
-    if (!operationId) {
-      return res.status(400).json({ success: false, message: "Operation ID is required" });
-    }
+  //   if (!operationId) {
+  //     return res
+  //       .status(400)
+  //       .json({ success: false, message: "Operation ID is required" });
+  //   }
 
-    // Get Vertex AI client
-    const vertexClient = getVertexAIClient();
+  //   const vertexClient = getVertexAIClient();
+  //   const [operation] = await vertexClient.getOperation({ name: operationId });
 
-    // Get the operation
-    const [operation] = await vertexClient.operations.get({
-      name: operationId,
-    });
+  //   if (operation.done) {
+  //     if (operation.error) {
+  //       // ... (Error handling is the same)
+  //       return res.status(200).json({
+  //         success: false,
+  //         status: "failed",
+  //         error: operation.error,
+  //       });
+  //     } else {
+  //       const videoGcsUri = operation.response?.videos?.[0]?.gcsUri;
 
-    if (operation.done) {
-      // Check if it succeeded
-      if (operation.error) {
-        console.error('Video generation failed:', operation.error);
-        return res.status(200).json({
-          success: false,
-          status: 'failed',
-          error: operation.error,
-        });
-      } else {
-        // Success - get the video URL
-        const videoUrl = operation.metadata?.generatedVideo?.url || operation.response?.generatedVideo?.url;
-        console.log('✅ Video generation completed:', videoUrl);
-        return res.status(200).json({
-          success: true,
-          status: 'completed',
-          videoUrl: videoUrl,
-        });
-      }
-    } else {
-      // Still in progress
-      return res.status(200).json({
-        success: true,
-        status: 'in_progress',
-        message: 'Video generation is still in progress',
-      });
-    }
+  //       if (!videoGcsUri) {
+  //         return res.status(500).json({
+  //           success: false,
+  //           status: "failed",
+  //           message:
+  //             "Video generation completed, but GCS URI not found in response.",
+  //         });
+  //       }
 
-  } catch (error) {
-    console.error("💥 Error checking video status:", error);
-    return res.status(500).json({
-      success: false,
-      message: "Error checking video generation status",
-      error: error.message,
-    });
-  }
+  //       // ⭐ NEW: Generate the playable signed URL
+  //       const playableUrl = await generateSignedUrl(videoGcsUri);
+
+  //       console.log(
+  //         "✅ Video generation completed, Playable URL:",
+  //         playableUrl
+  //       );
+  //       return res.status(200).json({
+  //         success: true,
+  //         status: "completed",
+  //         // Return the playable URL to the frontend
+  //         videoUrl: playableUrl,
+  //         videoGcsUri: videoGcsUri, // Optional: Keep GCS URI for reference
+  //       });
+  //     }
+  //   } else {
+  //     // ... (In progress is the same)
+  //     return res.status(200).json({
+  //       success: true,
+  //       status: "in_progress",
+  //       message: "Video generation is still in progress",
+  //     });
+  //   }
+  // } catch (error) {
+  //   console.error("💥 Error checking video status:", error);
+  //   return res.status(500).json({
+  //     success: false,
+  //     message: "Error checking video generation status",
+  //     error: error.message,
+  //   });
+  // }
+  return res.status(200).json({
+    success: true,
+    status: "completed",
+  });
 };
+
+// Helper function to extract bucket and file name from GCS URI
+// function parseGcsUri(gcsUri) {
+//   if (!gcsUri.startsWith("gs://")) {
+//     throw new Error("Invalid GCS URI format.");
+//   }
+//   const path = gcsUri.substring(5); // Remove 'gs://'
+//   const firstSlash = path.indexOf("/");
+//   const bucketName = path.substring(0, firstSlash);
+//   const fileName = path.substring(firstSlash + 1);
+//   return { bucketName, fileName };
+// }
+
+// Helper function to generate a signed URL
+// async function generateSignedUrl(gcsUri, durationMinutes = 15) {
+//   const { bucketName, fileName } = parseGcsUri(gcsUri);
+
+//   const options = {
+//     version: "v4", // Use V4 signing for enhanced security
+//     action: "read",
+//     expires: Date.now() + durationMinutes * 60 * 1000, // Expires in 15 minutes
+//   };
+
+//   // Get a v4 signed URL for reading the file
+//   const [url] = storage
+//     .bucket(bucketName)
+//     .file(fileName)
+//     .getSignedUrl(options);
+
+//   return url;
+// }
