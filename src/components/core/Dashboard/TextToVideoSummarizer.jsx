@@ -5,7 +5,7 @@ import { BiVideo, BiPlay, BiStop, BiVolume } from 'react-icons/bi';
 import { apiConnector } from '../../../services/apiconnector';
 import { smartStudyEndpoints } from '../../../services/apis';
 
-const { TEXT_TO_VIDEO_SUMMARIZER_API, GENERATE_VIDEO_WITH_VEO_API, CHECK_VIDEO_STATUS_API } = smartStudyEndpoints;
+const { TEXT_TO_VIDEO_SUMMARIZER_API, GENERATE_JSON2_VIDEO_API, CHECK_JSON2_STATUS_API } = smartStudyEndpoints;
 
 const TextToVideoSummarizer = () => {
   const [text, setText] = useState('');
@@ -70,7 +70,7 @@ const TextToVideoSummarizer = () => {
 
     setVideoGenerating(true);
     try {
-      const response = await apiConnector('POST', GENERATE_VIDEO_WITH_VEO_API, {
+      const response = await apiConnector('POST', GENERATE_JSON2_VIDEO_API, {
         textPrompt: output
       });
 
@@ -81,7 +81,7 @@ const TextToVideoSummarizer = () => {
         // Start polling for status
         videoIntervalRef.current = setInterval(async () => {
           await checkVideoStatus(response.data.operationId);
-        }, 15000); // Check every 15 seconds for Veo
+        }, 15000); // Check every 15 seconds for json2video
       } else {
         toast.error(response.data.message || 'Failed to start video generation');
         setVideoGenerating(false);
@@ -95,7 +95,7 @@ const TextToVideoSummarizer = () => {
 
   const checkVideoStatus = async (taskId) => {
     try {
-      const response = await apiConnector('POST', CHECK_VIDEO_STATUS_API, {
+      const response = await apiConnector('POST', CHECK_JSON2_STATUS_API, {
         operationId: taskId
       });
 

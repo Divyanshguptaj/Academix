@@ -1,24 +1,12 @@
 // controllers/SmartStudyController.cjs
 require("dotenv").config();
-// const { GoogleGenerativeAI } = require("@google/generative-ai");
 const pdfParse = require("pdf-parse-fork");
 const mammoth = require("mammoth");
-// const { VertexAI } = require("@google-cloud/aiplatform");
+const axios = require("axios");
 const { GoogleGenerativeAI } = require("@google/generative-ai");
-const { VertexAI } = require("@google-cloud/vertexai");
-const { Storage } = require("@google-cloud/storage");
-
-const API_KEY = process.env.GEMINI_API_KEY;
-if (!API_KEY) {
-  throw new Error("GEMINI_API_KEY is not set. Add it to your .env");
-}
-
-const storage = new Storage({
-  projectId: process.env.GOOGLE_CLOUD_PROJECT,
-});
 
 // ✅ Correct constructor usage
-const genAI = new GoogleGenerativeAI(API_KEY);
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
 // Simple chunker to avoid token overflows
 function chunkText(text, maxChars = 12000) {
@@ -130,6 +118,102 @@ exports.generateSummary = async (req, res) => {
         error.statusText || "Error processing the file or generating summary",
       error: error.message,
       details: error.errorDetails || undefined,
+    });
+  }
+};
+
+// json2video Video Generation Functions
+const JSON2VIDEO_API_KEY = process.env.JSON2VIDEO_API_KEY;
+if (!JSON2VIDEO_API_KEY) {
+  throw new Error("JSON2VIDEO_API_KEY is not set. Add it to your .env");
+}
+
+exports.generateJson2Video = async (req, res) => {
+  try {
+    const { textPrompt } = req.body;
+
+    // Use dummy prompt if not provided
+    const prompt = textPrompt || "A cat sitting on a chair, waving its tail";
+
+    console.log("🎬 Starting json2video video generation...");
+
+    const response = await axios.post("https://api.json2video.com/v2/movies", {
+      scenes: [
+        {
+          elements: [
+            {
+              type: "text",
+              text: prompt
+            }
+          ]
+        }
+      ]
+    }, {
+      headers: {
+        'x-api-key': JSON2VIDEO_API_KEY,
+        "Content-Type": "application/json",
+      },
+    });
+
+    return res.status(200).json({
+      success: true,
+      operationId: response.data.project,
+      message: "Video generation started with json2video. Use this ID to check status.",
+      prompt: prompt,
+    });
+  } catch (error) {
+    console.error("💥 Error in json2video generation:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Error generating video with json2video",
+      error: error.message,
+    });
+  }
+};
+
+exports.checkJson2Status = async (req, res) => {
+  try {
+    const { operationId } = req.body;
+
+    if (!operationId) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Operation ID is required" });
+    }
+
+    const response = await axios.get(`https://api.json2video.com/v2/movies?project=${operationId}`, {
+      headers: {
+        'x-api-key': JSON2VIDEO_API_KEY,
+      },
+    });
+
+    const data = response.data;
+
+    if (data.movie.status === "done") {
+      return res.status(200).json({
+        success: true,
+        status: "completed",
+        videoUrl: data.movie.url,
+      });
+    } else if (data.movie.status === "") {
+      return res.status(200).json({
+        success: false,
+        status: "failed",
+        error: "Failed",
+      });
+    } else {
+      return res.status(200).json({
+        success: true,
+        status: "in_progress",
+        message: "Video generation is still in progress",
+      });
+    }
+  } catch (error) {
+    console.error("💥 Error checking json2video status:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Error checking video generation status",
+      error: error.message,
     });
   }
 };
@@ -408,199 +492,3 @@ Note: If text is truncated, the script should still be complete based on availab
     });
   }
 };
-
-// Helper function to generate refined prompt for Veo
-async function generateRefinedPrompt(textPrompt) {
-  try {
-    const model = genAI.getGenerativeModel({ model: "gemini-2.5-pro" });
-    const prompt = `Create a concise, vivid, and cinematic video prompt (2-3 sentences) based on this content for a text-to-video AI.
-Focus on visually representing the main concept.
-Content: ${textPrompt}`;
-
-    const result = await model.generateContent(prompt);
-    return result.response.text().trim();
-  } catch (error) {
-    console.error("Error generating refined prompt:", error);
-    return textPrompt; // Fallback to original prompt
-  }
-}
-
-// Configure Vertex AI client for Veo
-function getVertexAIClient() {
-  try {
-    if (!process.env.GOOGLE_CLOUD_PROJECT) {
-      throw new Error("GOOGLE_CLOUD_PROJECT is not set in .env");
-    }
-    // The VertexAI client will use GOOGLE_APPLICATION_CREDENTIALS for auth
-    const vertexAI = new VertexAI({
-      project: process.env.GOOGLE_CLOUD_PROJECT,
-      location: process.env.GOOGLE_CLOUD_LOCATION || "us-central1",
-    });
-    return vertexAI;
-  } catch (error) {
-    console.error("Error initializing Vertex AI client:", error.message);
-    throw error;
-  }
-}
-
-exports.generateVideoWithVeo = async (req, res) => {
-  try {
-    const { textPrompt } = req.body;
-
-    if (!textPrompt || !textPrompt.trim()) {
-      return res
-        .status(400)
-        .json({ success: false, message: "Text prompt is required" });
-    }
-
-    const videoPrompt = await generateRefinedPrompt(textPrompt);
-    // console.log("🧠 Refined Video Prompt:", videoPrompt);
-
-    const vertexClient = getVertexAIClient();
-    // const VEOS_MODEL_ID = "veo-3.1-generate-preview"; // Updated ID for compatibility
-    const VEOS_MODEL_ID = "veo-3.1-fast-generate-preview"; // Updated ID for compatibility
-
-    console.log("🎬 Starting Veo video generation on Vertex AI...");
-
-    // NOTE: Veo requires an output GCS URI to store the video.
-    // Ensure you have a GOOGLE_CLOUD_BUCKET_URI set in your .env
-    if (!process.env.GOOGLE_CLOUD_BUCKET_URI) {
-      return res.status(500).json({
-        success: false,
-        message: "GOOGLE_CLOUD_BUCKET_URI must be set for Veo output.",
-      });
-    }
-
-    // Start the Asynchronous Veo Generation
-    const [operation] = await vertexClient
-      .getGenerativeModel({
-        model: VEOS_MODEL_ID,
-      })
-      .generateContent({
-        prompt: videoPrompt,
-        duration: 8,
-        aspectRatio: "16:9",
-        config: {
-          outputGcsUri: process.env.GOOGLE_CLOUD_BUCKET_URI,
-        },
-      });
-
-    // console.log("✅ Video generation started, operation ID:", operation.name);
-
-    return res.status(200).json({
-      success: true,
-      operationId: operation.name,
-      message:
-        "Video generation started with Veo. Use this ID to check status.",
-      videoPrompt,
-    });
-  } catch (error) {
-    console.error("💥 Error in Veo video generation:", error);
-    return res.status(500).json({
-      success: false,
-      message: "Error generating video with Veo on Vertex AI",
-      error: error.message,
-    });
-  }
-};
-
-exports.checkVideoStatus = async (req, res) => {
-  // try {
-  //   const { operationId } = req.body;
-
-  //   if (!operationId) {
-  //     return res
-  //       .status(400)
-  //       .json({ success: false, message: "Operation ID is required" });
-  //   }
-
-  //   const vertexClient = getVertexAIClient();
-  //   const [operation] = await vertexClient.getOperation({ name: operationId });
-
-  //   if (operation.done) {
-  //     if (operation.error) {
-  //       // ... (Error handling is the same)
-  //       return res.status(200).json({
-  //         success: false,
-  //         status: "failed",
-  //         error: operation.error,
-  //       });
-  //     } else {
-  //       const videoGcsUri = operation.response?.videos?.[0]?.gcsUri;
-
-  //       if (!videoGcsUri) {
-  //         return res.status(500).json({
-  //           success: false,
-  //           status: "failed",
-  //           message:
-  //             "Video generation completed, but GCS URI not found in response.",
-  //         });
-  //       }
-
-  //       // ⭐ NEW: Generate the playable signed URL
-  //       const playableUrl = await generateSignedUrl(videoGcsUri);
-
-  //       console.log(
-  //         "✅ Video generation completed, Playable URL:",
-  //         playableUrl
-  //       );
-  //       return res.status(200).json({
-  //         success: true,
-  //         status: "completed",
-  //         // Return the playable URL to the frontend
-  //         videoUrl: playableUrl,
-  //         videoGcsUri: videoGcsUri, // Optional: Keep GCS URI for reference
-  //       });
-  //     }
-  //   } else {
-  //     // ... (In progress is the same)
-  //     return res.status(200).json({
-  //       success: true,
-  //       status: "in_progress",
-  //       message: "Video generation is still in progress",
-  //     });
-  //   }
-  // } catch (error) {
-  //   console.error("💥 Error checking video status:", error);
-  //   return res.status(500).json({
-  //     success: false,
-  //     message: "Error checking video generation status",
-  //     error: error.message,
-  //   });
-  // }
-  return res.status(200).json({
-    success: true,
-    status: "completed",
-  });
-};
-
-// Helper function to extract bucket and file name from GCS URI
-// function parseGcsUri(gcsUri) {
-//   if (!gcsUri.startsWith("gs://")) {
-//     throw new Error("Invalid GCS URI format.");
-//   }
-//   const path = gcsUri.substring(5); // Remove 'gs://'
-//   const firstSlash = path.indexOf("/");
-//   const bucketName = path.substring(0, firstSlash);
-//   const fileName = path.substring(firstSlash + 1);
-//   return { bucketName, fileName };
-// }
-
-// Helper function to generate a signed URL
-// async function generateSignedUrl(gcsUri, durationMinutes = 15) {
-//   const { bucketName, fileName } = parseGcsUri(gcsUri);
-
-//   const options = {
-//     version: "v4", // Use V4 signing for enhanced security
-//     action: "read",
-//     expires: Date.now() + durationMinutes * 60 * 1000, // Expires in 15 minutes
-//   };
-
-//   // Get a v4 signed URL for reading the file
-//   const [url] = storage
-//     .bucket(bucketName)
-//     .file(fileName)
-//     .getSignedUrl(options);
-
-//   return url;
-// }
