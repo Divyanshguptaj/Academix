@@ -128,36 +128,36 @@ Important guidelines:
       );
     }
 
-    // Step 3: Create JSON2Video movie structure
+    // Step 3: Create JSON2Video movie structure (Landscape format)
     const movieId = `movie_${Date.now()}`;
 
     const movie = {
       id: movieId,
       comment: videoScript.title || "Educational Video",
-      width: 1080,
-      height: 1920,
+      width: 1920, // Landscape width
+      height: 1080, // Landscape height
       quality: "high",
       draft: false,
-      resolution: "custom",
+      resolution: "landscape", // Changed to landscape
       fps: 30,
       cache: true,
       scenes: [],
       elements: [],
-      settings: {},
+      settings: {}
     };
 
-    // Define color overlays
+    // Define color overlays (same colors, suitable for landscape)
     const colorOverlays = [
-      "rgba(102, 126, 234, 0.7)", // Purple
-      "rgba(240, 147, 251, 0.7)", // Pink
-      "rgba(79, 172, 254, 0.7)", // Blue
-      "rgba(67, 233, 123, 0.7)", // Green
-      "rgba(250, 112, 154, 0.7)", // Orange-Pink
-      "rgba(48, 207, 208, 0.7)", // Teal
-      "rgba(168, 237, 234, 0.7)", // Light teal
-      "rgba(255, 154, 158, 0.7)", // Rose
-      "rgba(255, 236, 210, 0.7)", // Peach
-      "rgba(255, 110, 127, 0.7)", // Coral
+      "rgba(102, 126, 234, 0.6)", // Purple (slightly reduced opacity for landscape)
+      "rgba(240, 147, 251, 0.6)", // Pink
+      "rgba(79, 172, 254, 0.6)",  // Blue
+      "rgba(67, 233, 123, 0.6)",  // Green
+      "rgba(250, 112, 154, 0.6)", // Orange-Pink
+      "rgba(48, 207, 208, 0.6)",  // Teal
+      "rgba(168, 237, 234, 0.6)", // Light teal
+      "rgba(255, 154, 158, 0.6)", // Rose
+      "rgba(255, 236, 210, 0.6)", // Peach
+      "rgba(255, 110, 127, 0.6)"  // Coral
     ];
 
     // Create scenes from Gemini output
@@ -171,14 +171,14 @@ Important guidelines:
         comment: scene.purpose || `Scene ${index + 1}`,
         duration: scene.duration || 12,
         elements: [
-          // Background image
+          // Background image (now landscape dimensions)
           {
             type: "image",
             id: `bg_img_${index}`,
-            src: backgroundImage,
+            src: backgroundImage.replace('w=1080&h=1920', 'w=1920&h=1080'), // Swap dimensions
             scale: {
-              width: 1080,
-              height: 1920,
+              width: 1920, // Landscape width
+              height: 1080, // Landscape height
             },
             x: 0,
             y: 0,
@@ -199,16 +199,16 @@ Important guidelines:
             comment: "Color overlay",
             x: 0,
             y: 0,
-            width: 1080,
-            height: 1920,
+            width: 1920, // Updated width
+            height: 1080, // Updated height
           },
-          // Scene purpose label (small text at top)
+          // Scene purpose label (adjusted positioning for landscape)
           {
             id: `label_${index}`,
             type: "text",
             style: "001",
             settings: {
-              "font-size": "32px",
+              "font-size": "48px", // Slightly larger for landscape
               "font-family": "Inter",
               "font-weight": "600",
               "text-align": "center",
@@ -216,18 +216,18 @@ Important guidelines:
               "text-shadow": "2px 2px 4px rgba(0,0,0,0.5)",
             },
             x: 0,
-            y: 100,
-            width: 1080,
+            y: 80,
+            width: 1920, // Full width
             text: scene.purpose || `Part ${index + 1}`,
             comment: "Scene label",
           },
-          // Main text (larger, centered)
+          // Main text (larger, centered for landscape)
           {
             id: `text_${index}`,
             type: "text",
             style: "003",
             settings: {
-              "font-size": "72px",
+              "font-size": "80px", // Larger for landscape screen
               "font-family": "Inter",
               "font-weight": "700",
               "text-align": "center",
@@ -236,10 +236,10 @@ Important guidelines:
               "text-shadow": "4px 4px 8px rgba(0,0,0,0.6)",
               "line-height": "1.3",
             },
-            x: 65,
-            y: 600,
-            width: 950,
-            height: 600,
+            x: 100,
+            y: 400, // Adjusted for landscape
+            width: 1720, // Wider for landscape
+            height: 400,
             text: scene.text,
             comment: "Main on-screen text",
           },
@@ -251,24 +251,24 @@ Important guidelines:
             text: scene.voiceText,
             comment: "Narration",
           },
-          // Audiogram (visual sound waves)
+          // Audiogram (repositioned for landscape bottom)
           {
             id: `audiogram_${index}`,
             type: "audiogram",
             x: 0,
-            y: 1620,
-            width: 1080,
-            height: 200,
+            y: 940, // Moved to bottom
+            width: 1920,
+            height: 140, // Slightly shorter
             color: "#ffffff",
             amplitude: 8,
           },
-          // Progress indicator (scene number)
+          // Progress indicator (scene number) - repositioned for landscape
           {
             id: `progress_${index}`,
             type: "text",
             style: "001",
             settings: {
-              "font-size": "28px",
+              "font-size": "36px", // Larger for landscape
               "font-family": "Inter",
               "font-weight": "500",
               "text-align": "center",
@@ -276,8 +276,8 @@ Important guidelines:
               "text-shadow": "2px 2px 4px rgba(0,0,0,0.5)",
             },
             x: 0,
-            y: 1520,
-            width: 1080,
+            y: 900, // Moved up for landscape
+            width: 1920,
             text: `${index + 1}/${videoScript.scenes.length}`,
             comment: "Progress indicator",
           },
@@ -285,7 +285,7 @@ Important guidelines:
       });
     });
 
-    // Add final summary scene with key takeaways
+    // Add final summary scene with key takeaways (adjusted for landscape)
     const summarySceneId = `scene_summary_${Date.now()}`;
     movie.scenes.push({
       id: summarySceneId,
@@ -295,10 +295,10 @@ Important guidelines:
         {
           type: "image",
           id: "bg_img_summary",
-          src: "https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=1080&h=1920&fit=crop",
+          src: "https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=1920&h=1080&fit=crop", // Changed to landscape
           scale: {
-            width: 1080,
-            height: 1920,
+            width: 1920,
+            height: 1080,
           },
           x: 0,
           y: 0,
@@ -310,7 +310,7 @@ Important guidelines:
           component: "basic/100",
           settings: {
             box: {
-              background: "rgba(26, 26, 46, 0.9)",
+              background: "rgba(26, 26, 46, 0.85)",
               "box-shadow": "none",
               final_width: "100%",
             },
@@ -318,15 +318,15 @@ Important guidelines:
           comment: "Dark overlay",
           x: 0,
           y: 0,
-          width: 1080,
-          height: 1920,
+          width: 1920, // Landscape width
+          height: 1080, // Landscape height
         },
         {
           id: "summary_title",
           type: "text",
           style: "001",
           settings: {
-            "font-size": "64px",
+            "font-size": "72px", // Larger for landscape
             "font-family": "Inter",
             "font-weight": "700",
             "text-align": "center",
@@ -334,8 +334,8 @@ Important guidelines:
             "text-shadow": "3px 3px 6px rgba(0,0,0,0.5)",
           },
           x: 0,
-          y: 200,
-          width: 1080,
+          y: 150,
+          width: 1920, // Full width
           text: "Key Takeaways",
           comment: "Summary title",
         },
@@ -344,18 +344,18 @@ Important guidelines:
           type: "text",
           style: "003",
           settings: {
-            "font-size": "42px",
+            "font-size": "48px", // Larger for landscape readability
             "font-family": "Inter",
             "font-weight": "500",
             "text-align": "center",
             color: "#FFFFFF",
-            "line-height": "1.8",
-            "text-shadow": "2px 2px 4px rgba(0,0,0,0.5)",
+            "line-height": "1.6",
+            "text-shadow": "2px 2px 4px rgba(0,0,0,0.4)",
           },
-          x: 90,
-          y: 400,
-          width: 900,
-          height: 1000,
+          x: 200,
+          y: 300,
+          width: 1520,
+          height: 600,
           text: videoScript.keyTakeaways
             .map((t, i) => `${i + 1}. ${t}`)
             .join("\n\n"),
@@ -388,31 +388,6 @@ Important guidelines:
     const { data } = await axios.post(
       "https://api.json2video.com/v2/movies",
       movie,
-      // {
-      //   width: 640,
-      //   height: 360,
-      //   quality: "high",
-      //   draft: false,
-      //   scenes: [
-      //     {
-      //       "background-color": "#4392F1",
-      //       elements: [
-      //         {
-      //           type: "text",
-      //           style: "008",
-      //           text: "Hello world",
-      //           settings: {
-      //             color: "white",
-      //             "font-size": "10vw",
-      //             "font-family": "Bebas Neue",
-      //           },
-      //           duration: 5,
-      //           cache: false,
-      //         },
-      //       ],
-      //     },
-      //   ],
-      // },
       {
         headers: {
           "x-api-key": API_KEY,
