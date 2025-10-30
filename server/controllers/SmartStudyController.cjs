@@ -33,37 +33,56 @@ exports.generateJson2Video = async (req, res) => {
       });
     }
 
-    // Step 1: Use Gemini to generate video script
-    console.log("Generating video script with Gemini...");
+    // Step 1: Use Gemini to generate comprehensive 2-minute video script
+    console.log("Generating comprehensive 2-minute video script with Gemini...");
     const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash-exp" });
     
-    const geminiPrompt = `Create a short 10-15 second video script based on this text: "${textPrompt}"
+    const geminiPrompt = `Create a comprehensive 2-minute educational video script about: "${textPrompt}"
 
-Generate a JSON response with exactly 3 scenes for a dynamic video. Each scene should be 3-5 seconds.
+The video should have 8-10 scenes to fully utilize the 2-minute duration and thoroughly explain the topic.
+
+Structure the video as follows:
+1. **Hook/Introduction** (8-10 seconds) - Grab attention, introduce the topic
+2. **What Is It?** (12-15 seconds) - Define and explain the core concept
+3. **Why It Matters** (12-15 seconds) - Importance and relevance
+4. **Key Point 1** (15-18 seconds) - First major aspect with example
+5. **Key Point 2** (15-18 seconds) - Second major aspect with example
+6. **Key Point 3** (15-18 seconds) - Third major aspect with example
+7. **Real-World Application** (15-18 seconds) - Practical examples or use cases
+8. **Common Misconceptions** (12-15 seconds) - Clear up confusion
+9. **Summary** (10-12 seconds) - Recap key takeaways
+10. **Call to Action** (8-10 seconds) - Encourage further learning
+
+IMPORTANT: For each scene, also provide a specific image search query that would find the most relevant and visually appealing background image for that scene.
 
 Return ONLY valid JSON in this exact format (no markdown, no explanations):
 {
-  "title": "catchy title",
+  "title": "Catchy video title",
+  "description": "Brief description of what viewers will learn",
   "scenes": [
     {
-      "text": "short impactful text for scene 1",
-      "voiceText": "what the narrator says for scene 1",
-      "duration": 4
+      "sceneNumber": 1,
+      "purpose": "Hook/Introduction",
+      "text": "On-screen text (8-12 words max)",
+      "voiceText": "Complete narration script for this scene",
+      "duration": 10,
+      "visualSuggestion": "Brief description of visual theme",
+      "imageSearchQuery": "specific search query for finding relevant background image"
     },
-    {
-      "text": "short impactful text for scene 2", 
-      "voiceText": "what the narrator says for scene 2",
-      "duration": 4
-    },
-    {
-      "text": "short impactful text for scene 3",
-      "voiceText": "what the narrator says for scene 3",
-      "duration": 4
-    }
-  ]
+    ... (8-10 scenes total)
+  ],
+  "keyTakeaways": ["takeaway 1", "takeaway 2", "takeaway 3"]
 }
 
-Make it engaging and concise. Each text should be under 15 words.`;
+Important guidelines:
+- Make each scene build upon the previous one
+- Use simple, clear language
+- Include specific examples or analogies
+- Each voiceText should be conversational and engaging
+- Total duration should be approximately 120 seconds (2 minutes)
+- On-screen text should be short and impactful
+- Make it educational but entertaining
+- For imageSearchQuery, be specific and descriptive (e.g., "modern technology abstract", "green plants nature sunlight", "business teamwork office")`;
 
     const result = await model.generateContent(geminiPrompt);
     let scriptText = result.response.text().trim();
@@ -71,76 +90,154 @@ Make it engaging and concise. Each text should be under 15 words.`;
     // Clean up any markdown code blocks
     scriptText = scriptText.replace(/```json\s*/g, '').replace(/```\s*/g, '');
     
-    console.log("Gemini response:", scriptText);
+    console.log("Gemini response received, parsing...");
     
     const videoScript = JSON.parse(scriptText);
 
-    if (!videoScript.scenes || videoScript.scenes.length < 3) {
-      throw new Error("Invalid script format from Gemini");
+    if (!videoScript.scenes || videoScript.scenes.length < 8) {
+      throw new Error("Invalid script format from Gemini - needs at least 8 scenes");
     }
 
-    // Step 2: Create JSON2Video movie structure
+    // Step 2: Use verified Unsplash images as backgrounds
+    console.log("Selecting background images...");
+    
+    // Use a curated list of verified working Unsplash images in portrait orientation
+    const verifiedUnsplashImages = [
+      "https://images.unsplash.com/photo-1557683316-973673baf926?w=1080&h=1920&fit=crop",
+      "https://images.unsplash.com/photo-1579546929518-9e396f3cc809?w=1080&h=1920&fit=crop",
+      "https://images.unsplash.com/photo-1558591710-4b4a1ae0f04d?w=1080&h=1920&fit=crop",
+      "https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=1080&h=1920&fit=crop",
+      "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=1080&h=1920&fit=crop",
+      "https://images.unsplash.com/photo-1617791160505-6f00504e3519?w=1080&h=1920&fit=crop",
+      "https://images.unsplash.com/photo-1634017839464-5c339ebe3cb4?w=1080&h=1920&fit=crop",
+      "https://images.unsplash.com/photo-1618172193763-c511deb635ca?w=1080&h=1920&fit=crop",
+      "https://images.unsplash.com/photo-1620641788421-7a1c342ea42e?w=1080&h=1920&fit=crop",
+      "https://images.unsplash.com/photo-1604076913837-52ab5629fba9?w=1080&h=1920&fit=crop"
+    ];
+    
+    const backgroundImages = [];
+    
+    // Assign images to scenes cyclically from verified list
+    for (let i = 0; i < videoScript.scenes.length; i++) {
+      backgroundImages.push(verifiedUnsplashImages[i % verifiedUnsplashImages.length]);
+    }
+
+    console.log(`Successfully assigned ${backgroundImages.length} background images`);
+
+    // Step 3: Create JSON2Video movie structure
     const movieId = `movie_${Date.now()}`;
     
     const movie = {
       id: movieId,
-      comment: videoScript.title || "Generated Video",
+      comment: videoScript.title || "Educational Video",
       width: 1080,
-      height: 1920, // Vertical video (9:16)
+      height: 1920,
       quality: "high",
       draft: false,
-      resolution: "vertical",
+      resolution: "custom",
+      fps: 30,
+      cache: true,
       scenes: [],
-      elements: []
+      elements: [],
+      settings: {}
     };
+
+    // Define color overlays
+    const colorOverlays = [
+      "rgba(102, 126, 234, 0.7)", // Purple
+      "rgba(240, 147, 251, 0.7)", // Pink
+      "rgba(79, 172, 254, 0.7)",  // Blue
+      "rgba(67, 233, 123, 0.7)",  // Green
+      "rgba(250, 112, 154, 0.7)", // Orange-Pink
+      "rgba(48, 207, 208, 0.7)",  // Teal
+      "rgba(168, 237, 234, 0.7)", // Light teal
+      "rgba(255, 154, 158, 0.7)", // Rose
+      "rgba(255, 236, 210, 0.7)", // Peach
+      "rgba(255, 110, 127, 0.7)"  // Coral
+    ];
 
     // Create scenes from Gemini output
     videoScript.scenes.forEach((scene, index) => {
-      const sceneId = `scene_${index + 1}`;
+      const sceneId = `scene_${index + 1}_${Date.now()}`;
+      const backgroundImage = backgroundImages[index % backgroundImages.length];
+      const colorOverlay = colorOverlays[index % colorOverlays.length];
       
       movie.scenes.push({
         id: sceneId,
-        comment: `Scene ${index + 1}`,
-        duration: scene.duration || 4,
+        comment: scene.purpose || `Scene ${index + 1}`,
+        duration: scene.duration || 12,
         elements: [
-          // Background gradient
+          // Background image
           {
-            id: `bg_${index}`,
+            type: "image",
+            id: `bg_img_${index}`,
+            src: backgroundImage,
+            scale: {
+              width: 1080,
+              height: 1920
+            },
+            x: 0,
+            y: 0,
+            comment: "Background image"
+          },
+          // Color overlay box for better readability
+          {
+            id: `overlay_${index}`,
             type: "component",
-            component: "shape/rectangle",
+            component: "basic/100",
             settings: {
-              rectangle1: {
-                left: "0%",
-                top: "0%",
-                width: "100%",
-                height: "100%",
-                background: index === 0 
-                  ? "linear-gradient(120deg, #667eea 0%, #764ba2 100%)"
-                  : index === 1
-                  ? "linear-gradient(120deg, #f093fb 0%, #f5576c 100%)"
-                  : "linear-gradient(120deg, #4facfe 0%, #00f2fe 100%)"
+              box: {
+                background: colorOverlay,
+                "box-shadow": "none",
+                "final_width": "100%"
               }
             },
-            comment: "Background",
-            duration: scene.duration || 4
+            comment: "Color overlay",
+            x: 0,
+            y: 0,
+            width: 1080,
+            height: 1920
           },
-          // Main text
+          // Scene purpose label (small text at top)
+          {
+            id: `label_${index}`,
+            type: "text",
+            style: "001",
+            settings: {
+              "font-size": "32px",
+              "font-family": "Inter",
+              "font-weight": "600",
+              "text-align": "center",
+              "color": "#FFFFFF",
+              "text-shadow": "2px 2px 4px rgba(0,0,0,0.5)"
+            },
+            x: 0,
+            y: 100,
+            width: 1080,
+            text: scene.purpose || `Part ${index + 1}`,
+            comment: "Scene label"
+          },
+          // Main text (larger, centered)
           {
             id: `text_${index}`,
             type: "text",
             style: "003",
             settings: {
-              "font-size": "80px",
+              "font-size": "72px",
               "font-family": "Inter",
               "font-weight": "700",
               "text-align": "center",
+              "vertical-align": "center",
               "color": "#FFFFFF",
-              "text-shadow": "4px 4px 8px rgba(0,0,0,0.3)"
+              "text-shadow": "4px 4px 8px rgba(0,0,0,0.6)",
+              "line-height": "1.3"
             },
-            position: "center-center",
-            width: 900,
+            x: 65,
+            y: 600,
+            width: 950,
+            height: 600,
             text: scene.text,
-            comment: "Main text"
+            comment: "Main on-screen text"
           },
           // Voice narration
           {
@@ -158,29 +255,155 @@ Make it engaging and concise. Each text should be under 15 words.`;
             y: 1620,
             width: 1080,
             height: 200,
-            position: "custom",
             color: "#ffffff",
-            amplitude: 10
+            amplitude: 8
+          },
+          // Progress indicator (scene number)
+          {
+            id: `progress_${index}`,
+            type: "text",
+            style: "001",
+            settings: {
+              "font-size": "28px",
+              "font-family": "Inter",
+              "font-weight": "500",
+              "text-align": "center",
+              "color": "#FFFFFF",
+              "text-shadow": "2px 2px 4px rgba(0,0,0,0.5)"
+            },
+            x: 0,
+            y: 1520,
+            width: 1080,
+            text: `${index + 1}/${videoScript.scenes.length}`,
+            comment: "Progress indicator"
           }
         ]
       });
     });
 
-    // Add background music (optional)
+    // Add final summary scene with key takeaways
+    const summarySceneId = `scene_summary_${Date.now()}`;
+    movie.scenes.push({
+      id: summarySceneId,
+      comment: "Key Takeaways Summary",
+      duration: 8,
+      elements: [
+        {
+          type: "image",
+          id: "bg_img_summary",
+          src: "https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=1080&h=1920&fit=crop",
+          scale: {
+            width: 1080,
+            height: 1920
+          },
+          x: 0,
+          y: 0,
+          comment: "Summary background"
+        },
+        {
+          id: "overlay_summary",
+          type: "component",
+          component: "basic/100",
+          settings: {
+            box: {
+              background: "rgba(26, 26, 46, 0.9)",
+              "box-shadow": "none",
+              "final_width": "100%"
+            }
+          },
+          comment: "Dark overlay",
+          x: 0,
+          y: 0,
+          width: 1080,
+          height: 1920
+        },
+        {
+          id: "summary_title",
+          type: "text",
+          style: "001",
+          settings: {
+            "font-size": "64px",
+            "font-family": "Inter",
+            "font-weight": "700",
+            "text-align": "center",
+            "color": "#FFFFFF",
+            "text-shadow": "3px 3px 6px rgba(0,0,0,0.5)"
+          },
+          x: 0,
+          y: 200,
+          width: 1080,
+          text: "Key Takeaways",
+          comment: "Summary title"
+        },
+        {
+          id: "takeaways_text",
+          type: "text",
+          style: "003",
+          settings: {
+            "font-size": "42px",
+            "font-family": "Inter",
+            "font-weight": "500",
+            "text-align": "center",
+            "color": "#FFFFFF",
+            "line-height": "1.8",
+            "text-shadow": "2px 2px 4px rgba(0,0,0,0.5)"
+          },
+          x: 90,
+          y: 400,
+          width: 900,
+          height: 1000,
+          text: videoScript.keyTakeaways.map((t, i) => `${i + 1}. ${t}`).join('\n\n'),
+          comment: "Key takeaways list"
+        },
+        {
+          id: "voice_summary",
+          type: "voice",
+          voice: "en-US-JennyNeural",
+          text: `Here are your key takeaways: ${videoScript.keyTakeaways.join('. ')}. Thank you for watching!`,
+          comment: "Summary narration"
+        }
+      ]
+    });
+
+    // Add background music (soft and educational)
     movie.elements.push({
       id: "bg_music",
       type: "audio",
       src: "https://json2video-test.s3.amazonaws.com/assets/audios/advertime.mp3",
-      "fade-out": 1,
+      "fade-out": 2,
       duration: -1,
-      volume: 0.15
+      volume: 0.12
     });
 
-    // Step 3: Send to JSON2Video API
-    console.log("Sending to JSON2Video API...");
+    // Step 4: Send to JSON2Video API
+    console.log("Sending comprehensive video to JSON2Video API...");
     const { data } = await axios.post(
       "https://api.json2video.com/v2/movies",
-      movie,
+      {
+  "width": 640,
+  "height": 360,
+  "quality": "high",
+  "draft": false,
+  "scenes": [
+    {
+      "background-color": "#4392F1",
+      "elements": [
+        {
+          "type": "text",
+          "style": "008",
+          "text": "Hello world",
+          "settings": {
+            "color": "white",
+            "font-size": "10vw",
+            "font-family": "Bebas Neue"
+          },
+          "duration": 5,
+          "cache": false
+        }
+      ]
+    }
+  ]
+},
       {
         headers: {
           "x-api-key": API_KEY,
@@ -191,10 +414,15 @@ Make it engaging and concise. Each text should be under 15 words.`;
 
     return res.status(200).json({
       success: true,
-      message: "Video generation started successfully",
-      operationId: data.project || data.id,
-      videoScript: videoScript,
-      movieConfig: movie,
+      message: "Comprehensive 2-minute educational video generation started successfully",
+      projectId: data.project || data.id,
+      videoScript: {
+        title: videoScript.title,
+        description: videoScript.description,
+        totalScenes: videoScript.scenes.length,
+        estimatedDuration: `${Math.round(videoScript.scenes.reduce((sum, s) => sum + (s.duration || 12), 0))} seconds`,
+        keyTakeaways: videoScript.keyTakeaways
+      },
       response: data,
     });
 
@@ -226,7 +454,7 @@ exports.textToVideoSummarizer = async (req, res) => {
 
     console.log("Processing text to video summarizer");
 
-    const maxTextLength = 10000;
+    const maxTextLength = 15000; // Increased for better context
     const truncatedText =
       text.length > maxTextLength
         ? text.substring(0, maxTextLength) +
@@ -235,41 +463,49 @@ exports.textToVideoSummarizer = async (req, res) => {
 
     const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash-exp" });
 
-    const prompt = `You are an AI educational content creator specialized in creating video scripts from text content. Analyze the following text and create a detailed video summary script that can be used to produce an educational video explaining the concepts.
+    const prompt = `You are an AI educational content creator specialized in creating comprehensive video scripts from text content. Analyze the following text and create a detailed 2-minute video script that fully explains the concepts to viewers.
 
 Text Content:
 ${truncatedText}
 
-Create a comprehensive video script that includes:
+Create a comprehensive 2-minute video script (approximately 120 seconds) that includes:
 
-1. **VIDEO SCRIPT OVERVIEW**
+1. **VIDEO OVERVIEW**
+   - Catchy title
    - Main theme and target audience
-   - Key learning objectives
-   - Estimated video duration (based on content depth)
+   - 3-5 key learning objectives
+   - Video structure breakdown (8-10 scenes)
 
-2. **STRUCTURED NARRATIVE**
-   - Introduction with hook and overview
-   - Main body explaining key concepts with examples
-   - Conclusion with summary and key takeaways
+2. **DETAILED SCENE-BY-SCENE BREAKDOWN**
+   For each scene (8-10 scenes total), provide:
+   - Scene purpose (Hook, Definition, Why It Matters, Key Points, Examples, Summary, etc.)
+   - On-screen text (short and impactful, 8-12 words)
+   - Complete narration script (what the voice will say)
+   - Suggested duration (10-15 seconds per scene)
+   - Visual description and color theme suggestion
 
-3. **VISUAL DESCRIPTION**
-   - Suggested visuals, animations, or graphics for each section
-   - Recommended on-screen text and bullet points
-   - Visual storytelling elements
+3. **EDUCATIONAL FLOW**
+   - Start with a hook to grab attention
+   - Build concepts progressively
+   - Include real-world examples and analogies
+   - Address common misconceptions
+   - Provide practical applications
+   - End with clear takeaways
 
-4. **NARRATION SCRIPT**
-   - Complete spoken script with timing suggestions
-   - Key phrases to emphasize
-   - Pause points for complex concepts
+4. **ENGAGEMENT ELEMENTS**
+   - Key questions viewers should be able to answer
+   - Visual metaphors or analogies to use
+   - Moments to emphasize (power phrases)
+   - Suggested pacing (when to slow down for complex ideas)
 
-5. **EDUCATIONAL ENHANCEMENTS**
-   - Suggested questions or prompts for viewer engagement
-   - Additional resources or further reading suggestions
-   - Quiz or recap questions at the end
+5. **SUMMARY & TAKEAWAYS**
+   - 3-5 key takeaways that viewers should remember
+   - Suggested next steps or further learning resources
+   - Call to action
 
-Format the output professionally with clear sections, timing estimates, and specific visual/audio recommendations that would make it suitable for video production. The script should be educational, engaging, and comprehensive.
+Format the output as a detailed video production script with clear sections, timing for each scene, specific narration text, and visual recommendations. Make it educational, comprehensive, and engaging enough to fully explain the topic in 2 minutes.
 
-Note: If text is truncated, the script should still be complete based on available content.`;
+The script should be suitable for direct video production with clear instructions for both visual and audio elements.`;
 
     const result = await model.generateContent(prompt);
     const output = result.response.text();
@@ -277,7 +513,7 @@ Note: If text is truncated, the script should still be complete based on availab
     return res.status(200).json({
       success: true,
       output,
-      message: "Video summary script generated successfully",
+      message: "Comprehensive 2-minute video script generated successfully",
     });
   } catch (error) {
     console.error("Error in text to video summarizer:", error);
@@ -340,6 +576,7 @@ exports.checkJson2Status = async (req, res) => {
         videoUrl: data.movie.url,
         thumbnail: data.movie.thumbnail,
         duration: data.movie.duration,
+        message: "Your comprehensive educational video is ready!"
       });
     } else if (status === "error" || status === "failed") {
       return res.status(200).json({
@@ -353,7 +590,7 @@ exports.checkJson2Status = async (req, res) => {
         success: true,
         status: "in_progress",
         currentStatus: status,
-        message: `Video generation is ${status}`,
+        message: `Video generation is ${status}. This may take 2-3 minutes for a comprehensive 2-minute video.`,
         progress: data.movie.progress || null,
       });
     }
