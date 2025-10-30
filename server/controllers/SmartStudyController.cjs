@@ -89,7 +89,7 @@ exports.generateSummary = async (req, res) => {
 
     // Choose model (flash = fast/cheap, pro = best reasoning)
     // const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
-    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+  const model = genAI.getGenerativeModel({ model: "gemini-pro" });
 
     // Chunk → summarize each → merge
     const chunks = chunkText(text, 12000);
@@ -110,7 +110,7 @@ exports.generateSummary = async (req, res) => {
       message: "Summary generated successfully",
     });
   } catch (error) {
-    console.error("Error generating summary:", error);
+    console.error("Error generating summary:");
     const status = error.status || 500;
     return res.status(status).json({
       success: false,
@@ -128,6 +128,132 @@ if (!JSON2VIDEO_API_KEY) {
   throw new Error("JSON2VIDEO_API_KEY is not set. Add it to your .env");
 }
 
+// NOTE: This assumes 'genAI' is correctly initialized globally at the top of your file.
+
+// Helper function to generate structured JSON for video scenes
+// async function generateVideoScenesJson(textPrompt, maxDuration = 15) {
+//   const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+
+//   // Ensure the total estimated duration is within the limit.
+//   const maxDurationPerScene = Math.floor(maxDuration / 3);
+
+//   // This prompt forces Gemini to act as a structured video editor
+//   const prompt = `
+//       You are an AI video editor for the JSON2Video API. Your task is to analyze the following educational text and create a structured JSON array of 3 to 4 unique video scenes. The total video duration must be ${maxDuration} seconds or less.
+
+//       For each scene:
+//       1. Choose a simple background color (e.g., "#000000", "#4392F1").
+//       2. Extract a maximum 50-character summary text that explains one key concept.
+//       3. Set the scene duration to a value between 3 and ${maxDurationPerScene} seconds.
+//       4. Use element type "text" with style "008" and font "Bebas Neue".
+
+//       Educational Content: "${textPrompt}"
+
+//       Your output MUST be a valid JSON array, strictly following this structure. DO NOT include any text outside the JSON block.
+
+//       [
+//         {
+//           "background-color": "...",
+//           "elements": [
+//             {
+//               "type": "text",
+//               "style": "008",
+//               "text": "The key concept summary (max 50 chars)",
+//               "duration": N, // 3 to ${maxDurationPerScene} seconds
+//               "settings": {
+//                 "color": "white",
+//                 "font-size": "8vw",
+//                 "font-family": "Bebas Neue"
+//               }
+//             }
+//           ]
+//         },
+//         // ... Add 2 to 3 more scenes here ...
+//       ]
+//     `;
+
+//   // Request the JSON output
+//   console.log("Prompt for video scenes JSON:");
+//   const result = await model.generateContent(prompt);
+//   console.log("🎬 inside genereate video scene json function");
+//   // The result.text should be a clean JSON string
+//   const jsonString = result.response.text().trim();
+//   return JSON.parse(jsonString);
+// }
+
+// exports.generateJson2Video = async (req, res) => {
+//   try {
+//     const { textPrompt } = req.body;
+//     const maxVideoDuration = 15; // Set video limit
+
+//     if (!textPrompt || !textPrompt.trim()) {
+//       return res.status(400).json({
+//         success: false,
+//         message: "Text prompt for video generation is required",
+//       });
+//     }
+
+//     if (!process.env.JSON2VIDEO_API_KEY) {
+//       return res.status(500).json({
+//         success: false,
+//         message:
+//           "Video generation service is not configured. Please set JSON2VIDEO_API_KEY in .env",
+//       });
+//     }
+
+//     console.log("🎬 Starting json2video generation via Gemini structured prompt...");
+
+//     // Step 1: Use Gemini to generate the structured JSON for the scenes
+//     const videoScenes = await generateVideoScenesJson(
+//       textPrompt,
+//       maxVideoDuration
+//     );
+//     console.log("🎬 Generated video scenes JSON:", videoScenes);
+//     // Step 2: Assemble the final JSON body for the JSON2Video API
+//     const videoBody = {
+//       width: 1080, // Higher quality resolution
+//       height: 1920, // Vertical video for better display
+//       draft: false,
+//       scenes: videoScenes,
+//     };
+
+//     // Step 3: Call json2video API
+//     const response = await axios.post(
+//       "https://api.json2video.com/v2/movies",
+//       videoBody,
+//       {
+//         headers: {
+//           "x-api-key": process.env.JSON2VIDEO_API_KEY, // Use process.env for security
+//           "Content-Type": "application/json",
+//         },
+//       }
+//     );
+//     console.log("🎬 json2video API response a gaya ");
+//     // The API returns an operation ID (project ID)
+//     return res.status(200).json({
+//       success: true,
+//       operationId: response.data.project,
+//       message:
+//         "Video generation started with json2video. Use this ID to check status.",
+//       videoRequest: videoBody, // Show what was sent
+//     });
+//   } catch (error) {
+//     console.error("💥 Error in json2video generation:");
+//     // Check if the error is from the API or a JSON parse issue
+//     const errorMessage = error.response ? error.response.data : error.message;
+
+//     return res.status(500).json({
+//       success: false,
+//       message:
+//         "Error generating video with json2video (Check API Key & Gemini Output)",
+//       error: errorMessage,
+//     });
+//   }
+// };
+
+// NOTE: You will also need a separate function (e.g., checkJson2VideoStatus)
+// to poll the API using the operationId to get the final video URL.
+
 exports.generateJson2Video = async (req, res) => {
   try {
     const { textPrompt } = req.body;
@@ -138,12 +264,24 @@ exports.generateJson2Video = async (req, res) => {
     console.log("🎬 Starting json2video video generation...");
 
     const response = await axios.post("https://api.json2video.com/v2/movies", {
+      width: 640,
+      height: 360,
+      draft: false,
       scenes: [
         {
+          "background-color": "#4392F1",
           elements: [
             {
               type: "text",
-              text: prompt
+              style: "008",
+              text: prompt.substring(0, 100), // limit text length
+              settings: {
+                color: "white",
+                "font-size": "10vw",
+                "font-family": "Bebas Neue"
+              },
+              duration: 5,
+              cache: false
             }
           ]
         }
@@ -181,12 +319,16 @@ exports.checkJson2Status = async (req, res) => {
         .json({ success: false, message: "Operation ID is required" });
     }
 
-    const response = await axios.get(`https://api.json2video.com/v2/movies?project=${operationId}`, {
-      headers: {
-        'x-api-key': JSON2VIDEO_API_KEY,
-      },
-    });
-
+    // console.log("object1")
+    const response = await axios.get(
+      `https://api.json2video.com/v2/movies?project=${operationId}`,
+      {
+        headers: {
+          "x-api-key": JSON2VIDEO_API_KEY,
+        },
+      }
+    );
+    // console.log("object2")
     const data = response.data;
 
     if (data.movie.status === "done") {
@@ -209,7 +351,7 @@ exports.checkJson2Status = async (req, res) => {
       });
     }
   } catch (error) {
-    console.error("💥 Error checking json2video status:", error);
+    console.error("💥 Error checking json2video status:");
     return res.status(500).json({
       success: false,
       message: "Error checking video generation status",
@@ -263,7 +405,7 @@ Please provide a clear, detailed, and helpful answer based on the document. If t
       message: "Question answered successfully",
     });
   } catch (error) {
-    console.error("Error in chat:", error);
+    console.error("Error in chat:");
     const status = error.status || 500;
     return res.status(status).json({
       success: false,
@@ -310,7 +452,7 @@ Please provide a helpful, accurate, plain-text response suitable for students.`;
       message: "Doubt resolved successfully",
     });
   } catch (error) {
-    console.error("Error in doubt resolution:", error);
+    console.error("Error in doubt resolution:");
     const status = error.status || 500;
     return res.status(status).json({
       success: false,
@@ -404,7 +546,7 @@ Format everything professionally with clear headings, bullet points, and numbere
           : "YouTube video summarized successfully",
     });
   } catch (error) {
-    console.error("Error processing YouTube video:", error);
+    console.error("Error processing YouTube video:");
     const status = error.status || 500;
     return res.status(status).json({
       success: false,
@@ -435,7 +577,7 @@ exports.textToVideoSummarizer = async (req, res) => {
           "... (text truncated for processing)"
         : text;
 
-    const model = genAI.getGenerativeModel({ model: "gemini-2.5-pro" });
+    const model = genAI.getGenerativeModel({ model: "gemini-pro" });
 
     const prompt = `You are an AI educational content creator specialized in creating video scripts from text content. Analyze the following text and create a detailed video summary script that can be used to produce an educational video explaining the concepts.
 
@@ -482,7 +624,7 @@ Note: If text is truncated, the script should still be complete based on availab
       message: "Video summary script generated successfully",
     });
   } catch (error) {
-    console.error("Error in text to video summarizer:", error);
+    console.error("Error in text to video summarizer:");
     const status = error.status || 500;
     return res.status(status).json({
       success: false,
