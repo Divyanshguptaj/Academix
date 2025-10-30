@@ -387,31 +387,32 @@ Important guidelines:
     console.log("Sending comprehensive video to JSON2Video API...");
     const { data } = await axios.post(
       "https://api.json2video.com/v2/movies",
-      {
-        width: 640,
-        height: 360,
-        quality: "high",
-        draft: false,
-        scenes: [
-          {
-            "background-color": "#4392F1",
-            elements: [
-              {
-                type: "text",
-                style: "008",
-                text: "Hello world",
-                settings: {
-                  color: "white",
-                  "font-size": "10vw",
-                  "font-family": "Bebas Neue",
-                },
-                duration: 5,
-                cache: false,
-              },
-            ],
-          },
-        ],
-      },
+      movie,
+      // {
+      //   width: 640,
+      //   height: 360,
+      //   quality: "high",
+      //   draft: false,
+      //   scenes: [
+      //     {
+      //       "background-color": "#4392F1",
+      //       elements: [
+      //         {
+      //           type: "text",
+      //           style: "008",
+      //           text: "Hello world",
+      //           settings: {
+      //             color: "white",
+      //             "font-size": "10vw",
+      //             "font-family": "Bebas Neue",
+      //           },
+      //           duration: 5,
+      //           cache: false,
+      //         },
+      //       ],
+      //     },
+      //   ],
+      // },
       {
         headers: {
           "x-api-key": API_KEY,
