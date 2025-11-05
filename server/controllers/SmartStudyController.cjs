@@ -684,7 +684,7 @@ exports.generateSummary = async (req, res) => {
 
     // Choose model (flash = fast/cheap, pro = best reasoning)
     // const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
-    const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+    const model = genAI.getGenerativeModel({ model: "gemini-2.5-pro" });
 
     // Chunk → summarize each → merge
     const chunks = chunkText(text, 12000);
