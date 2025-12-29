@@ -5,12 +5,96 @@ import CountryCode from "../../data/countrycode.json";
 import { apiConnector } from "../../services/apiconnector";
 import { contactusEndpoint } from "../../services/apis";
 
+const SearchableCountrySelect = ({ register, setValue, defaultValue }) => {
+  const [searchTerm, setSearchTerm] = useState("");
+  const [isOpen, setIsOpen] = useState(false);
+  const [selectedCountry, setSelectedCountry] = useState(
+    CountryCode.find(country => country.code === "IN") || CountryCode[0]
+  );
+  const dropdownRef = React.useRef(null);
+  const searchInputRef = React.useRef(null);
+
+  useEffect(() => {
+    setValue("countrycode", selectedCountry.dial_code);
+  }, [selectedCountry, setValue]);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setIsOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (isOpen && searchInputRef.current) {
+      // Small delay to ensure the element is rendered
+      setTimeout(() => {
+        searchInputRef.current.focus();
+      }, 100);
+    }
+  }, [isOpen]);
+
+  const filteredCountries = CountryCode.filter(country =>
+    country.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    country.dial_code.includes(searchTerm) ||
+    country.code.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const handleSelect = (country) => {
+    setSelectedCountry(country);
+    setSearchTerm("");
+    setIsOpen(false);
+  };
+
+  return (
+    <div className="relative" ref={dropdownRef}>
+      <div
+        className="form-style bg-slate-900 rounded-md text-white border border-1 border-gray-300 p-2 cursor-pointer flex justify-between items-center w-full"
+        onClick={() => setIsOpen(!isOpen)}
+        style={{ minWidth: '200px' }}
+      >
+        <span className="truncate flex-1 mr-2">{selectedCountry.dial_code} - {selectedCountry.name}</span>
+        <span>▼</span>
+      </div>
+      {isOpen && (
+        <div className="absolute top-full left-0 right-0 bg-slate-900 border border-gray-300 rounded-md mt-1 z-10 max-h-60 overflow-y-auto min-w-[200px] transition-all duration-200 ease-in-out opacity-100 scale-100">
+          <input
+            ref={searchInputRef}
+            type="text"
+            placeholder="Search country or code..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full p-2 bg-slate-800 text-white border-b border-gray-300 rounded-t-md"
+            onClick={(e) => e.stopPropagation()}
+          />
+          {filteredCountries.map((country, index) => (
+            <div
+              key={index}
+              className="p-2 hover:bg-slate-800 cursor-pointer text-white"
+              onClick={() => handleSelect(country)}
+            >
+              {country.dial_code} - {country.name}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
 const ContactUsForm = () => {
   const [loading, setLoading] = useState(false);
   const {
     register,
     handleSubmit,
     reset,
+    setValue,
     formState: { errors, isSubmitSuccessful },
   } = useForm();
 
@@ -115,21 +199,13 @@ const ContactUsForm = () => {
         </label>
 
         <div className="flex gap-5">
-          <div className="flex w-[81px] flex-col gap-2">
-            <select
-              name="countrycode"
-              id="countrycode"
-              className="form-style bg-slate-900 rounded-md text-white border border-1 border-gray-300 p-2"
-              {...register("countrycode", { required: true })}
-            >
-              {CountryCode.map((ele, i) => (
-                <option key={i} value={ele.code}>
-                  {ele.code} - {ele.country}
-                </option>
-              ))}
-            </select>
+          <div className="flex w-[200px] flex-col gap-2">
+            <SearchableCountrySelect
+              register={register}
+              setValue={setValue}
+            />
           </div>
-          <div className="flex w-[calc(100%-90px)] flex-col gap-2">
+          <div className="flex w-[calc(100%-210px)] flex-col gap-2">
             <input
               type="tel"
               name="phoneNo"

@@ -73,7 +73,7 @@ export default function MyProfile() {
           className={`${
             user?.additionalDetails?.about
               ? "text-white"
-              : "text-richblack-400"
+              : "text-richblack-300"
           } text-sm font-medium`}
         >
           {user?.additionalDetails?.about ?? "Write Something About Yourself"}

@@ -1,5 +1,5 @@
-// const BASE_URL = "http://localhost:4000/api/v1";
-const BASE_URL = "https://academix-w1rw.onrender.com/api/v1";
+const BASE_URL = "http://localhost:4000/api/v1";
+// const BASE_URL = "https://academix-w1rw.onrender.com/api/v1";
 // const BASE_URL = process.env.REACT_APP_BACKEND_URL || "https://academix-w1rw.onrender.com/api/v1"
 
 // AUTH ENDPOINTS
@@ -77,8 +77,8 @@ export const smartStudyEndpoints = {
   GENERATE_SUMMARY_API: BASE_URL + "/smartStudy/generateSummary",
   CHAT_WITH_DOCUMENT_API: BASE_URL + "/smartStudy/chatWithDocument",
   ASK_DOUBT_API: BASE_URL + "/smartStudy/askDoubt",
-  FETCH_YOUTUBE_TRANSCRIPT_API: BASE_URL + "/smartStudy/fetchYouTubeTranscript",
-  SUMMARIZE_YOUTUBE_VIDEO_API: BASE_URL + "/smartStudy/summarizeYouTubeVideo",
+
+
   TEXT_TO_VIDEO_SUMMARIZER_API: BASE_URL + "/smartStudy/textToVideoSummarizer",
   GENERATE_JSON2_VIDEO_API: BASE_URL + "/smartStudy/generateJson2Video",
   CHECK_JSON2_STATUS_API: BASE_URL + "/smartStudy/checkJson2Status",

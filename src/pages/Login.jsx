@@ -139,7 +139,7 @@ const Login = () => {
                 type="submit"
                 className="mt-10 w-full bg-yellow-500 text-black font-bold py-2 rounded-md hover:bg-yellow-600 focus:outline-none focus:ring-2 focus:ring-yellow-500"
               >
-                Sign in
+                Sign Up
               </button>
             </div>
           </form>

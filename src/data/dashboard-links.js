@@ -49,12 +49,7 @@ export const sidebarLinks = [
         path: '/dashboard/ai-study-assistant',
         icon: 'VscHubot',
     },
-    {
-        id: 9,
-        name: "YouTube Summarizer",
-        path: '/dashboard/youtube-summarizer',
-        icon: 'VscDeviceCameraVideo',
-    },
+
     {
         id: 10,
         name: "Text to Video Summarizer",

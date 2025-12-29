@@ -37,7 +37,7 @@ exports.generateJson2Video = async (req, res) => {
     console.log(
       "Generating comprehensive 2-minute video script with Gemini..."
     );
-    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash-exp" });
+    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
 
     const geminiPrompt = `Create a comprehensive 2-minute educational video script about: "${textPrompt}"
 
@@ -450,7 +450,7 @@ exports.textToVideoSummarizer = async (req, res) => {
           "... (text truncated for processing)"
         : text;
 
-    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash-exp" });
+    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
 
     const prompt = `You are an AI educational content creator specialized in creating comprehensive video scripts from text content. Analyze the following text and create a detailed 2-minute video script that fully explains the concepts to viewers.
 
@@ -814,98 +814,6 @@ Please provide a helpful, accurate, plain-text response suitable for students.`;
     return res.status(status).json({
       success: false,
       message: error.statusText || "Error processing the doubt request",
-      error: error.message,
-      details: error.errorDetails || undefined,
-    });
-  }
-};
-
-exports.summarizeYouTubeVideo = async (req, res) => {
-  try {
-    const { url, type } = req.body;
-
-    if (!url || !url.trim()) {
-      return res.status(400).json({
-        success: false,
-        message: "YouTube URL is required",
-      });
-    }
-
-    if (!type || !["summary", "notes"].includes(type)) {
-      return res.status(400).json({
-        success: false,
-        message: "Type must be 'summary' or 'notes'",
-      });
-    }
-
-    // Let Gemini handle the YouTube URL directly
-    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
-
-    let prompt;
-
-    if (type === "notes") {
-      // Study notes for long-term retention
-      prompt = `You are an AI study assistant with advanced web analysis capabilities. Access and analyze this YouTube video thoroughly and create detailed, comprehensive study notes that will help someone study and retain this information for months without revisiting the video:
-
-YouTube Video URL: ${url}
-
-Analyze the entire video content, including all explanations, examples, and demonstrations shown. Create detailed study notes including:
-
-1. **VIDEO OVERVIEW**
-   - Main topic and purpose of the video
-   - Target audience and prerequisites
-   - Key learning objectives covered
-
-2. **STRUCTURED CONTENT OUTLINE**
-   - All main topics covered in order
-   - Important concepts and definitions explained
-   - Step-by-step processes and methodologies
-
-3. **KEY CONCEPTS & EXPLANATIONS**
-   - Important terms with their definitions from the video
-   - Core principles, formulas, or frameworks presented
-   - Visual or practical examples demonstrated
-
-4. **PRACTICE & APPLICATION**
-   - Practice questions or problems shown
-   - Real-world applications discussed
-   - Key examples and case studies explained
-
-5. **MEMORY AIDS & STUDY TIPS**
-   - Mnemonics and memory techniques provided
-   - Study strategy recommendations given
-   - Tips for retaining this material long-term
-
-6. **SUMMARY & KEY TAKEAWAYS**
-   - Essential concepts to remember
-   - Main conclusions from the video
-   - Review points for studying
-
-Provide actual content based on what you find in this specific YouTube video. Make the study notes comprehensive enough that someone can fully understand and remember the video content months later without watching it again.
-
-Format everything professionally with clear headings, bullet points, and numbered lists. Use **bold** for important terms.`;
-    } else {
-      // Descriptive summary for quick understanding
-      prompt = `${url} can you generate descriptive summary for this youtube video.`;
-    }
-
-    const result = await model.generateContent(prompt);
-    const output = result.response.text();
-
-    return res.status(200).json({
-      success: true,
-      output,
-      message:
-        type === "notes"
-          ? "Detailed study notes generated successfully"
-          : "YouTube video summarized successfully",
-    });
-  } catch (error) {
-    console.error("Error processing YouTube video:");
-    const status = error.status || 500;
-    return res.status(status).json({
-      success: false,
-      message: error.statusText || "Error generating YouTube content",
       error: error.message,
       details: error.errorDetails || undefined,
     });
