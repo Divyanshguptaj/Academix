@@ -1,0 +1,12 @@
+{
+  "name": "shared-utils",
+  "version": "1.0.0",
+  "description": "Shared utilities for microservices",
+  "main": "index.js",
+  "type": "module",
+  "dependencies": {
+    "cloudinary": "^2.5.1",
+    "dotenv": "^16.6.1",
+    "nodemailer": "^6.9.16"
+  }
+}
