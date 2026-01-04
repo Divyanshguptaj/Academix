@@ -4,8 +4,6 @@ import otpgenerator from "otp-generator";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import Profile from "../models/Profile.js";
-import dotenv from "dotenv";
-dotenv.config();
 
 //Send OTP -
 export const sendOTP = async (req, res) => {

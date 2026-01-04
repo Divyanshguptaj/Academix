@@ -1,85 +1,84 @@
-// const BASE_URL = "http://localhost:4000/api/v1";
-// const BASE_URL = "https://academix-w1rw.onrender.com/api/v1";
-const BASE_URL = process.env.REACT_APP_BASE_URL || "https://academix-w1rw.onrender.com/api/v1"
+// API Gateway URL (Single entry point for all microservices)
+const API_GATEWAY_URL = process.env.REACT_APP_API_GATEWAY_URL || "http://localhost:4000/api/v1";
 
-// AUTH ENDPOINTS
+// AUTH ENDPOINTS (Routed through API Gateway to User Service)
 export const endpoints = {
-  SENDOTP_API: BASE_URL + "/auth/sendotp",
-  SIGNUP_API: BASE_URL + "/auth/signup",
-  LOGIN_API: BASE_URL + "/auth/login",
-  RESETPASSTOKEN_API: BASE_URL + "/auth/reset-password-token",
-  RESETPASSWORD_API: BASE_URL + "/auth/reset-password",
+  SENDOTP_API: API_GATEWAY_URL + "/auth/sendotp",
+  SIGNUP_API: API_GATEWAY_URL + "/auth/signup",
+  LOGIN_API: API_GATEWAY_URL + "/auth/login",
+  RESETPASSTOKEN_API: API_GATEWAY_URL + "/auth/reset-password-token",
+  RESETPASSWORD_API: API_GATEWAY_URL + "/auth/reset-password",
 }
 
-// PROFILE ENDPOINTS
+// PROFILE ENDPOINTS (Routed through API Gateway to User Service)
 export const profileEndpoints = {
-  GET_USER_DETAILS_API: BASE_URL + "/profile/getUserDetails",
-  GET_USER_ENROLLED_COURSES_API: BASE_URL + "/profile/getEnrolledCourses",
-  GET_INSTRUCTOR_DATA_API: BASE_URL + "/profile/instructorDashboard",
+  GET_USER_DETAILS_API: API_GATEWAY_URL + "/profile/getUserDetails",
+  GET_USER_ENROLLED_COURSES_API: API_GATEWAY_URL + "/profile/getEnrolledCourses",
+  GET_INSTRUCTOR_DATA_API: API_GATEWAY_URL + "/profile/instructorDashboard",
 }
 
-// STUDENTS ENDPOINTS
+// STUDENTS ENDPOINTS (Routed through API Gateway to Payment Service)
 export const studentEndpoints = {
-  COURSE_PAYMENT_API: BASE_URL + "/payment/capturePayment",
-  COURSE_VERIFY_API: BASE_URL + "/payment/verifyPayment",
-  SEND_PAYMENT_SUCCESS_EMAIL_API: BASE_URL + "/payment/sendPaymentSuccessEmail",
+  COURSE_PAYMENT_API: API_GATEWAY_URL + "/payment/capturePayment",
+  COURSE_VERIFY_API: API_GATEWAY_URL + "/payment/verifyPayment",
+  SEND_PAYMENT_SUCCESS_EMAIL_API: API_GATEWAY_URL + "/payment/sendPaymentSuccessEmail",
 }
 
-// COURSE ENDPOINTS
+// COURSE ENDPOINTS (Routed through API Gateway to Course Service)
 export const courseEndpoints = {
-  GET_ALL_COURSE_API: BASE_URL + "/course/showAllCoures",
-  COURSE_DETAILS_API: BASE_URL + "/course/getFullCourseDetails",
-  EDIT_COURSE_API: BASE_URL + "/course/editCourse",
-  COURSE_CATEGORIES_API: BASE_URL + "/course/showAllCategories", 
-  CREATE_COURSE_API: BASE_URL + "/course/createCourse",
-  CREATE_SECTION_API: BASE_URL + "/course/createSection",
-  CREATE_SUBSECTION_API: BASE_URL + "/course/addSubSection",
-  UPDATE_SECTION_API: BASE_URL + "/course/updateSection",
-  UPDATE_SUBSECTION_API: BASE_URL + "/course/updateSubSection",
-  GET_ALL_INSTRUCTOR_COURSES_API: BASE_URL + "/course/getInstructorCourses",
-  DELETE_SECTION_API: BASE_URL + "/course/deleteSection",
-  DELETE_SUBSECTION_API: BASE_URL + "/course/deleteSubSection",
-  DELETE_COURSE_API: BASE_URL + "/course/deleteCourse",
-  GET_FULL_COURSE_DETAILS_AUTHENTICATED: BASE_URL + "/course/getFullCourseDetails",
-  LECTURE_COMPLETION_API: BASE_URL + "/course/updateCourseProgress",
-  CREATE_RATING_API: BASE_URL + "/course/createRating",
+  GET_ALL_COURSE_API: API_GATEWAY_URL + "/course/showAllCoures",
+  COURSE_DETAILS_API: API_GATEWAY_URL + "/course/getFullCourseDetails",
+  EDIT_COURSE_API: API_GATEWAY_URL + "/course/editCourse",
+  COURSE_CATEGORIES_API: API_GATEWAY_URL + "/course/showAllCategories", 
+  CREATE_COURSE_API: API_GATEWAY_URL + "/course/createCourse",
+  CREATE_SECTION_API: API_GATEWAY_URL + "/course/createSection",
+  CREATE_SUBSECTION_API: API_GATEWAY_URL + "/course/addSubSection",
+  UPDATE_SECTION_API: API_GATEWAY_URL + "/course/updateSection",
+  UPDATE_SUBSECTION_API: API_GATEWAY_URL + "/course/updateSubSection",
+  GET_ALL_INSTRUCTOR_COURSES_API: API_GATEWAY_URL + "/course/getInstructorCourses",
+  DELETE_SECTION_API: API_GATEWAY_URL + "/course/deleteSection",
+  DELETE_SUBSECTION_API: API_GATEWAY_URL + "/course/deleteSubSection",
+  DELETE_COURSE_API: API_GATEWAY_URL + "/course/deleteCourse",
+  GET_FULL_COURSE_DETAILS_AUTHENTICATED: API_GATEWAY_URL + "/course/getFullCourseDetails",
+  LECTURE_COMPLETION_API: API_GATEWAY_URL + "/course/updateCourseProgress",
+  CREATE_RATING_API: API_GATEWAY_URL + "/course/createRating",
 }
 
-// RATINGS AND REVIEWS
+// RATINGS AND REVIEWS (Routed through API Gateway to Course Service)
 export const ratingsEndpoints = {
-  REVIEWS_DETAILS_API: BASE_URL + "/course/getReviews",
+  REVIEWS_DETAILS_API: API_GATEWAY_URL + "/course/getReviews",
 }
 
-// CATAGORIES API
+// CATAGORIES API (Routed through API Gateway to Course Service)
 export const categories = {
-  CATEGORIES_API: BASE_URL + "/course/showAllCategories",
+  CATEGORIES_API: API_GATEWAY_URL + "/course/showAllCategories",
 }
 
-// CATALOG PAGE DATA
+// CATALOG PAGE DATA (Routed through API Gateway to Course Service)
 export const catalogData = {
-  CATALOGPAGEDATA_API: BASE_URL + "/course/getCategoryPageDetails",
+  CATALOGPAGEDATA_API: API_GATEWAY_URL + "/course/getCategoryPageDetails",
 }
-// CONTACT-US API
+
+// CONTACT-US API (Handled directly by API Gateway)
 export const contactusEndpoint = {
-  CONTACT_US_API: BASE_URL + "/contact",
+  CONTACT_US_API: API_GATEWAY_URL + "/contact",
 }
 
-// SETTINGS PAGE API
+// SETTINGS PAGE API (Routed through API Gateway to User Service)
 export const settingsEndpoints = {
-  UPDATE_DISPLAY_PICTURE_API: BASE_URL + "/profile/updateDisplayPicture",
-  UPDATE_PROFILE_API: BASE_URL + "/profile/updateProfile",
-  CHANGE_PASSWORD_API: BASE_URL + "/auth/changepassword",
-  DELETE_PROFILE_API: BASE_URL + "/profile/deleteAccount",
+  UPDATE_DISPLAY_PICTURE_API: API_GATEWAY_URL + "/profile/updateDisplayPicture",
+  UPDATE_PROFILE_API: API_GATEWAY_URL + "/profile/updateProfile",
+  CHANGE_PASSWORD_API: API_GATEWAY_URL + "/auth/changepassword",
+  DELETE_PROFILE_API: API_GATEWAY_URL + "/profile/deleteAccount",
 }
 
-// SMART STUDY API
+// SMART STUDY API (Routed through API Gateway to AI Service)
 export const smartStudyEndpoints = {
-  GENERATE_SUMMARY_API: BASE_URL + "/smartStudy/generateSummary",
-  CHAT_WITH_DOCUMENT_API: BASE_URL + "/smartStudy/chatWithDocument",
-  ASK_DOUBT_API: BASE_URL + "/smartStudy/askDoubt",
+  GENERATE_SUMMARY_API: API_GATEWAY_URL + "/smart-study/generateSummary",
+  CHAT_WITH_DOCUMENT_API: API_GATEWAY_URL + "/smart-study/chatWithDocument",
+  ASK_DOUBT_API: API_GATEWAY_URL + "/smart-study/askDoubt",
 
-
-  TEXT_TO_VIDEO_SUMMARIZER_API: BASE_URL + "/smartStudy/textToVideoSummarizer",
-  GENERATE_JSON2_VIDEO_API: BASE_URL + "/smartStudy/generateJson2Video",
-  CHECK_JSON2_STATUS_API: BASE_URL + "/smartStudy/checkJson2Status",
+  TEXT_TO_VIDEO_SUMMARIZER_API: API_GATEWAY_URL + "/smart-study/textToVideoSummarizer",
+  GENERATE_JSON2_VIDEO_API: API_GATEWAY_URL + "/smart-study/generateJson2Video",
+  CHECK_JSON2_STATUS_API: API_GATEWAY_URL + "/smart-study/checkJson2Status",
 }

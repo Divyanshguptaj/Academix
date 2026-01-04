@@ -37,7 +37,7 @@ export const auth = async (req, res, next) => {
 //isStudent
 export const isStudent = async (req, res, next)=>{
     try{
-        // console.log("here")
+        console.log("here")
         if(req.user.accountType !== "Student"){
             return res.status(400).json({
                 success: false,
