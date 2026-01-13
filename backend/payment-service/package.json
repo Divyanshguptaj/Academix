@@ -9,14 +9,15 @@
     "dev": "nodemon server.js"
   },
   "dependencies": {
-    "express": "^4.21.2",
-    "mongoose": "^8.9.1",
-    "razorpay": "^2.9.5",
-    "jsonwebtoken": "^9.0.2",
+    "axios": "^1.7.9",
+    "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
     "dotenv": "^16.6.1",
-    "cookie-parser": "^1.4.7",
+    "express": "^4.22.1",
     "express-fileupload": "^1.5.2",
+    "jsonwebtoken": "^9.0.2",
+    "mongoose": "^8.9.1",
+    "razorpay": "^2.9.5",
     "shared-utils": "file:../shared-utils"
   },
   "devDependencies": {

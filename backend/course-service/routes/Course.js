@@ -1,7 +1,7 @@
 import express from 'express';
 const router = express.Router();
 import { createCategory, findAllCategory, categoryPageDetails } from '../controllers/Category.js'
-import {createCourse, showAllCourses, getCourseDetails, editCourse,getInstructorCourses, deleteCourse,updateCourseProgress} from '../controllers/Course.js'
+import {createCourse, showAllCourses, getCourseDetails, editCourse,getInstructorCourses, deleteCourse,updateCourseProgress, getCourseDetailsForPayment, enrollStudentInCourse} from '../controllers/Course.js'
 import {auth, isAdmin, isStudent, isInstructor} from '../../shared-utils/middlewares/auth.js'
 import {createSection, updateSection, deleteSection} from '../controllers/Section.js'
 import {createSubSection,deleteSubSection, updateSubSection} from '../controllers/Subsection.js'
@@ -15,6 +15,10 @@ router.post('/deleteCourse', deleteCourse)
 router.get('/showAllCoures', showAllCourses);
 router.get('/getInstructorCourses', getInstructorCourses);
 router.post('/getFullCourseDetails',getCourseDetails);
+
+// Payment Service communication endpoints
+router.get('/details/:courseId', getCourseDetailsForPayment);
+router.post('/enroll', enrollStudentInCourse);
 
 //section -
 router.post('/createSection',createSection)

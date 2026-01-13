@@ -9,20 +9,20 @@
     "dev": "nodemon server.js"
   },
   "dependencies": {
-    "express": "^4.21.2",
-    "mongoose": "^8.9.1",
-    "@google/generative-ai": "^0.24.1",
     "@google/genai": "^1.27.0",
+    "@google/generative-ai": "^0.24.1",
     "axios": "^1.13.1",
-    "jsonwebtoken": "^9.0.2",
+    "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
     "dotenv": "^16.6.1",
-    "cookie-parser": "^1.4.7",
+    "express": "^4.22.1",
     "express-fileupload": "^1.5.2",
+    "jsonwebtoken": "^9.0.2",
     "mammoth": "^1.11.0",
+    "mongoose": "^8.21.0",
     "pdf-parse-fork": "^1.2.0",
-    "youtube-transcript": "^1.2.1",
-    "shared-utils": "file:../shared-utils"
+    "shared-utils": "file:../shared-utils",
+    "youtube-transcript": "^1.2.1"
   },
   "devDependencies": {
     "nodemon": "^3.1.9"

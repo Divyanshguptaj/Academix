@@ -1,5 +1,3 @@
-import { createDatabaseConnection } from 'shared-utils';
+import createDatabaseConnection  from '../../shared-utils/database.js';
 
-const connect = createDatabaseConnection('payment_service');
-
-export default connect;
+export default createDatabaseConnection;

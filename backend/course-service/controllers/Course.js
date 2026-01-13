@@ -1,10 +1,10 @@
 import Course from '../models/Course.js'
 import Category from '../models/Category.js'
-import User from "../models/User.js"
 import Section from "../models/Section.js"
 import SubSection from "../models/SubSection.js"
 import { uploadImagetoCloudinary } from '../../shared-utils/imageUploader.js'
-import CourseProgress from "../models/CourseProgress.js"
+import axios from 'axios'
+import mongoose from 'mongoose'
 
 import dotenv from 'dotenv';
 dotenv.config();
@@ -113,12 +113,22 @@ export const createCourse = async (req, res) => {
             });
         }
 
-        // Find instructor details
-        const instructorDetails = await User.findOne({ email: email });
-        if (!instructorDetails) {
-            return res.status(400).json({
+        // Find instructor details via User Service API
+        let instructorDetails;
+        try {
+            const userResponse = await axios.get(`http://localhost:4001/auth/user-by-email/${email}`);
+            if (!userResponse.data.success) {
+                return res.status(400).json({
+                    success: false,
+                    message: "Can't find instructor details..."
+                });
+            }
+            instructorDetails = userResponse.data.user;
+        } catch (error) {
+            console.error("Error calling User Service:", error.message);
+            return res.status(500).json({
                 success: false,
-                message: "Can't find instructor details..."
+                message: "Error communicating with User Service"
             });
         }
 
@@ -151,12 +161,16 @@ export const createCourse = async (req, res) => {
                 status: status,
             });
 
-            // Update instructor by adding the new course
-            await User.findByIdAndUpdate(
-                { _id: instructorDetails._id },
-                { $push: { courses: newCourse._id } },
-                { new: true }
-            );
+            // Update instructor by adding the new course via User Service API
+            try {
+                await axios.post('http://localhost:4001/profile/add-course', {
+                    userId: instructorDetails._id,
+                    courseId: newCourse._id
+                });
+            } catch (error) {
+                console.error("Error updating instructor courses:", error.message);
+                // Don't fail the course creation, but log the error
+            }
 
             // ✅ Update category by adding the new course
             await Category.findByIdAndUpdate(
@@ -320,10 +334,16 @@ export const deleteCourse = async (req, res) => {
             }
         }
 
-        // Remove course from instructor's course list
-        await User.findByIdAndUpdate(course.instructor, {
-            $pull: { courses: courseId },
-        });
+        // Remove course from instructor's course list via User Service API
+        try {
+            await axios.post('http://localhost:4001/profile/remove-course', {
+                userId: course.instructor,
+                courseId: courseId
+            });
+        } catch (error) {
+            console.error("Error removing course from instructor:", error.message);
+            // Don't fail the deletion, but log the error
+        }
 
         // Remove course from category
         // if (course.category) {
@@ -352,50 +372,116 @@ export const deleteCourse = async (req, res) => {
 export const updateCourseProgress = async (req, res) => {
   try {
     const { userId, courseId, subSectionId } = req.body;
-    // console.log(userId, courseId, subSectionId)
+
     if (!userId || !courseId || !subSectionId) {
       return res.status(400).json({ success: false, message: "Missing required fields" });
     }
 
-    // Find the user
-    const user = await User.findById(userId);
-    // console.log(user)
-    if (!user) {
-      return res.status(404).json({ success: false, message: "User not found" });
-    }
-
-    // Find the user's progress for this course
-    let progress = await CourseProgress.findOne({ courseID: courseId });
-    // console.log(progress)
-    // If progress doesn't exist, create a new entry
-    if (!progress) {
-      progress = new CourseProgress({
-        courseID: courseId,
+    // Update course progress via User Service API
+    try {
+      const response = await axios.post('http://localhost:4001/profile/update-progress', {
         userId,
-        completedVideos: [],
+        courseId,
+        subSectionId
+      });
+
+      return res.status(200).json({
+        success: true,
+        message: "Lecture marked as completed",
+        data: response.data,
+      });
+    } catch (error) {
+      console.error("Error calling User Service for progress update:", error.message);
+      return res.status(500).json({
+        success: false,
+        message: "Error updating course progress"
       });
     }
-    // console.log("pro3:", progress)
-    // Check if the subSection is already marked as completed
-    if (!progress.completedVideos.includes(subSectionId)) {
-      progress.completedVideos.push(subSectionId);
-      await progress.save();
-    }
-
-    // Ensure the user's course progress list contains this progress
-    if (!user.courseProgress.includes(progress._id)) {
-      user.courseProgress.push(progress._id);
-      await user.save();
-    }
-
-    return res.status(200).json({
-      success: true,
-      message: "Lecture marked as completed",
-      progress,
-    });
 
   } catch (error) {
     console.error("Error updating course progress:", error);
     return res.status(500).json({ success: false, message: "Internal server error" });
+  }
+};
+
+// Get course details for payment processing (for Payment Service communication)
+export const getCourseDetailsForPayment = async (req, res) => {
+  try {
+    const { courseId } = req.params;
+
+    if (!courseId) {
+      return res.status(400).json({
+        success: false,
+        message: "Course ID is required",
+      });
+    }
+
+    const course = await Course.findById(courseId).select('_id courseName price studentsEnrolled');
+
+    if (!course) {
+      return res.status(404).json({
+        success: false,
+        message: "Course not found",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      course,
+    });
+  } catch (error) {
+    console.error("Error getting course details for payment:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
+    });
+  }
+};
+
+// Enroll student in course (for Payment Service communication)
+export const enrollStudentInCourse = async (req, res) => {
+  try {
+    const { courses, userId } = req.body;
+
+    if (!courses || !userId) {
+      return res.status(400).json({
+        success: false,
+        message: "Courses and User ID are required",
+      });
+    }
+
+    for (const courseData of courses) {
+      const courseId = typeof courseData === 'object' ? courseData.courseId : courseData;
+
+      if (!mongoose.Types.ObjectId.isValid(courseId)) {
+        console.error(`Invalid course ID: ${courseId}`);
+        continue;
+      }
+
+      const course = await Course.findById(courseId);
+      if (!course) {
+        console.error(`Course with ID ${courseId} not found`);
+        continue;
+      }
+
+      const uid = new mongoose.Types.ObjectId(userId);
+
+      // Enroll user in the course if not already enrolled
+      if (!course.studentsEnrolled.includes(uid)) {
+        course.studentsEnrolled.push(uid);
+        await course.save();
+      }
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Student enrolled in courses successfully",
+    });
+  } catch (error) {
+    console.error("Error enrolling student in course:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
+    });
   }
 };

@@ -1,7 +1,6 @@
 import { instance } from "../config/razorpay.js";
-import Course from "../models/Course.js";
 import crypto from "crypto";
-import User from "../models/User.js";
+import axios from "axios";
 import mailSender from "../../shared-utils/mailSender.js";
 import mongoose from "mongoose";
 import { paymentSuccessEmail } from "../../shared-utils/mail/templates/paymentSuccessEmail.js";
@@ -34,14 +33,20 @@ export const capturePayment = async (req, res) => {
             });
         }
 
-        // Find the course by its ID
-        course = await Course.findById(course_id);
-        // console.log(course)
-        if (!course) {
-          return res
-            .status(404)
-            .json({ success: false, message: "Could not find the Course" });
+        // Get course details from Course Service API
+        try {
+          const courseResponse = await axios.get(`http://localhost:4002/course/details/${course_id}`);
+          if (!courseResponse.data.success) {
+            return res
+              .status(404)
+              .json({ success: false, message: "Could not find the Course" });
+          }
+          course = courseResponse.data.course;
+        } catch (error) {
+          console.error("Error calling Course Service:", error.message);
+          return res.status(500).json({ success: false, message: "Error communicating with Course Service" });
         }
+
         // Check if the user is already enrolled
         const uid = new mongoose.Types.ObjectId(userId);
         if (course.studentsEnrolled.includes(uid)) {
@@ -50,11 +55,6 @@ export const capturePayment = async (req, res) => {
             .json({ success: false, message: "Student is already Enrolled" });
         }
 
-        // const updated = await User.findByIdAndUpdate(
-        //   userId,
-        //   { $push: { courses: course_id } },
-        //   { new: true }
-        // );
         total_amount += course.price;
       } catch (error) {
         // console.error("Error finding course:", error);
@@ -143,7 +143,15 @@ export const sendPaymentSuccessEmail = async (req, res) => {
   }
 
   try {
-    const enrolledStudent = await User.findById(userId);
+    // Get user details from User Service API
+    const userResponse = await axios.get(`http://localhost:4001/profile/getUserDetails?email=${req.body.userDetails.email}`);
+    if (!userResponse.data.success) {
+      return res
+        .status(404)
+        .json({ success: false, message: "User not found" });
+    }
+
+    const enrolledStudent = userResponse.data.userDetails;
 
     await mailSender(
       enrolledStudent.email,
@@ -166,34 +174,27 @@ export const sendPaymentSuccessEmail = async (req, res) => {
 // enroll the student in the courses
 const enrollStudents = async (courses, userId) => {
   try {
-    for (const course of courses) {
-      const courseId = typeof course === "object" ? course.courseId : course;
+    // Enroll student in courses via Course Service API
+    try {
+      await axios.post('http://localhost:4002/course/enroll', {
+        courses,
+        userId
+      });
+    } catch (error) {
+      console.error("Error enrolling student via Course Service:", error.message);
+    }
 
-      if (!mongoose.Types.ObjectId.isValid(courseId)) {
-        console.error(`Invalid course ID: ${courseId}`);
-        continue;
-      }
-
-      const courseDoc = await Course.findById(courseId);
-      if (!courseDoc) {
-        console.error(`Course with ID ${courseId} not found`);
-        continue;
-      }
-
-      const uid = new mongoose.Types.ObjectId(userId);
-
-      // Enroll user in the course if not already enrolled
-      if (!courseDoc.studentsEnrolled.includes(uid)) {
-        courseDoc.studentsEnrolled.push(uid);
-        await courseDoc.save();
-
-        // Add course to user's document too
-        await User.findByIdAndUpdate(
+    // Add courses to user's profile via User Service API
+    try {
+      for (const course of courses) {
+        const courseId = typeof course === "object" ? course.courseId : course;
+        await axios.post('http://localhost:4001/profile/add-course', {
           userId,
-          { $addToSet: { courses: courseId } }, // prevents duplicates
-          { new: true }
-        );
+          courseId
+        });
       }
+    } catch (error) {
+      console.error("Error updating user courses via User Service:", error.message);
     }
   } catch (error) {
     console.error("Error enrolling student:", error);

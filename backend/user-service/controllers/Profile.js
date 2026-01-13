@@ -376,3 +376,160 @@ export const updateDisplayPicture = async (req, res) => {
     return res.status(500).json({ success: false, message: "Server error" });
   }
 };
+
+// Add course to user's course list (for Course Service communication)
+export const addCourseToUser = async (req, res) => {
+  try {
+    const { userId, courseId } = req.body;
+
+    if (!userId || !courseId) {
+      return res.status(400).json({
+        success: false,
+        message: "User ID and Course ID are required",
+      });
+    }
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    // Check if course is already in user's courses
+    if (!user.courses.includes(courseId)) {
+      user.courses.push(courseId);
+      await user.save();
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Course added to user successfully",
+    });
+  } catch (error) {
+    console.error("Add Course to User Error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal Server Error",
+    });
+  }
+};
+
+// Remove course from user's course list (for Course Service communication)
+export const removeCourseFromUser = async (req, res) => {
+  try {
+    const { userId, courseId } = req.body;
+
+    if (!userId || !courseId) {
+      return res.status(400).json({
+        success: false,
+        message: "User ID and Course ID are required",
+      });
+    }
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    // Remove course from user's courses array
+    user.courses = user.courses.filter(course => course.toString() !== courseId);
+    await user.save();
+
+    return res.status(200).json({
+      success: true,
+      message: "Course removed from user successfully",
+    });
+  } catch (error) {
+    console.error("Remove Course from User Error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal Server Error",
+    });
+  }
+};
+
+// Get course progress for a user (for Course Service communication)
+export const getCourseProgress = async (req, res) => {
+  try {
+    const { courseId, userId } = req.params;
+
+    if (!courseId || !userId) {
+      return res.status(400).json({
+        success: false,
+        message: "Course ID and User ID are required",
+      });
+    }
+
+    const progress = await CourseProgress.findOne({
+      courseID: courseId,
+      userId: userId
+    });
+
+    return res.status(200).json({
+      success: true,
+      progress: progress || null,
+    });
+  } catch (error) {
+    console.error("Get Course Progress Error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal Server Error",
+    });
+  }
+};
+
+// Update course progress (for Course Service communication)
+export const updateCourseProgress = async (req, res) => {
+  try {
+    const { userId, courseId, subSectionId } = req.body;
+
+    if (!userId || !courseId || !subSectionId) {
+      return res.status(400).json({
+        success: false,
+        message: "User ID, Course ID, and SubSection ID are required",
+      });
+    }
+
+    // Find the user's progress for this course
+    let progress = await CourseProgress.findOne({ courseID: courseId, userId });
+
+    // If progress doesn't exist, create a new entry
+    if (!progress) {
+      progress = new CourseProgress({
+        courseID: courseId,
+        userId,
+        completedVideos: [],
+      });
+    }
+
+    // Check if the subSection is already marked as completed
+    if (!progress.completedVideos.includes(subSectionId)) {
+      progress.completedVideos.push(subSectionId);
+      await progress.save();
+    }
+
+    // Ensure the user's course progress list contains this progress
+    const user = await User.findById(userId);
+    if (user && !user.courseProgress.includes(progress._id)) {
+      user.courseProgress.push(progress._id);
+      await user.save();
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Lecture marked as completed",
+      progress,
+    });
+  } catch (error) {
+    console.error("Update Course Progress Error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal Server Error",
+    });
+  }
+};
