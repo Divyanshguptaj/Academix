@@ -23,7 +23,12 @@ const userSchema = new mongoose.Schema({
     accountType: {
         type: String,
         enum: ['Admin', 'Student', 'Instructor'],
-        required: true
+        default: 'Student'
+    },
+    authProvider: {
+        type: String,
+        enum: ['local', 'google'],
+        default: 'local'
     },
     additionalDetails:{
         type: mongoose.Schema.Types.ObjectId,

@@ -73,7 +73,7 @@ export function signUp(fullSignupData) {
   };
 }
 
-export function login(email, password, role, navigate) {
+export function login(email, password, navigate) {
   return async (dispatch) => {
     const toastId = toast.loading("Loading...")
     dispatch(setLoading(true))
@@ -81,7 +81,6 @@ export function login(email, password, role, navigate) {
       const response = await apiConnector("POST", LOGIN_API, {
         email,
         password,
-        role,
       })
 
       if (!response.data.success) {
@@ -168,4 +167,79 @@ export function resetPassword(password, confirmPassword, token, navigate) {
     }
     dispatch(setLoading(false));
   }
+}
+
+export function googleLogin(email, accessToken, navigate) {
+  return async (dispatch) => {
+    const toastId = toast.loading("Logging in with Google...");
+    dispatch(setLoading(true));
+    try {
+      // Replace with your actual backend endpoint for Google login
+      const response = await apiConnector("POST", LOGIN_API, {
+        email,
+        auth0AccessToken: accessToken, // Send Auth0 token to backend
+        mode: "googleLogin", // Indicate Google login
+      });
+
+      console.log("GOOGLE LOGIN API RESPONSE............", response);
+
+      if (!response.data.success) {
+        throw new Error(response.data.message);
+      }
+
+      toast.success("Google Login Successful");
+      dispatch(setToken(response.data.token));
+      dispatch(setUser(response.data.user));
+      localStorage.setItem("token", JSON.stringify(response.data.token));
+      localStorage.setItem("user", JSON.stringify(response.data.user));
+      navigate("/dashboard"); // Redirect to dashboard after successful login
+
+    } catch (error) {
+      console.log("GOOGLE LOGIN API ERROR............", error);
+      toast.error(error.response?.data?.message || "Google Login Failed");
+      // If login fails, you might want to redirect to signup or offer a retry
+      // For now, redirect to login page
+      navigate("/login"); 
+    }
+    dispatch(setLoading(false));
+    toast.dismiss(toastId);
+  };
+}
+
+export function googleSignupFinalize(googleUserData, accessToken, navigate) {
+  return async (dispatch) => {
+    const toastId = toast.loading("Finalizing Google signup...");
+    dispatch(setLoading(true));
+    try {
+      // Replace with your actual backend endpoint for Google signup finalization
+      // This endpoint should take Google-provided data and any additional signupData
+      // to create a full user profile in your DB.
+      const response = await apiConnector("POST", SIGNUP_API, {
+        ...googleUserData, // email, firstName, lastName, picture, auth0Id
+        accountType: googleUserData.accountType || 'Student', // Ensure accountType is set
+        auth0AccessToken: accessToken, // Send Auth0 token to backend for verification
+        mode: "googleSignup", // Indicate Google signup
+      });
+
+      console.log("GOOGLE SIGNUP FINALIZE API RESPONSE............", response);
+
+      if (!response.data.success) {
+        throw new Error(response.data.message);
+      }
+
+      toast.success("Google Signup Successful! Please verify your email with OTP.");
+      // After signup, the backend might send an OTP, so redirect to OTP verification page
+      // Or if the user is directly logged in, set token and user.
+      navigate("/verify-email"); // Assuming this is your OTP page
+      // You might pass email to pre-fill the OTP page if needed: navigate("/verify-email", { state: { email: googleUserData.email } });
+
+    } catch (error) {
+      console.log("GOOGLE SIGNUP FINALIZE API ERROR............", error);
+      toast.error(error.response?.data?.message || "Google Signup Failed");
+      // If signup fails (e.g., email already exists), redirect to login
+      navigate("/login"); 
+    }
+    dispatch(setLoading(false));
+    toast.dismiss(toastId);
+  };
 }

@@ -16,13 +16,17 @@ const PAYMENT_SERVICE_URL = process.env.PAYMENT_SERVICE_URL || 'http://localhost
 const AI_SERVICE_URL = process.env.AI_SERVICE_URL || 'http://localhost:4004';
 
 // Middleware
-app.use(express.json({ limit: '50mb' }));
-app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 app.use(cors({
   origin: process.env.CORS_ORIGIN || 'http://localhost:3000',
   credentials: true
 }));
+
+// Debug middleware to log all requests
+app.use((req, res, next) => {
+  console.log(`[${new Date().toISOString()}] ${req.method} ${req.originalUrl}`);
+  next();
+});
 
 // Health check endpoint
 app.get('/', (req, res) => {
@@ -39,16 +43,54 @@ app.get('/', (req, res) => {
 });
 
 // Route all requests to appropriate services
-app.use('/api/v1/auth', createProxyMiddleware({
-  target: USER_SERVICE_URL,
-  changeOrigin: true,
-  pathRewrite: {
-    '^/api/v1/auth': '/auth'
-  },
-  onProxyReq: (proxyReq, req, res) => {
-    console.log(`Proxying auth request: ${req.method} ${req.originalUrl}`);
-  }
-}));
+app.use(
+  "/api/v1/auth",
+  createProxyMiddleware({
+    target: USER_SERVICE_URL,
+    changeOrigin: true,
+    timeout: 30000,
+    proxyTimeout: 30000,
+
+    /**
+     * 🔁 Rewrite:
+     * Incoming: /api/v1/auth/login
+     * Forwarded: /auth/login
+     */
+    pathRewrite: (path, req) => {
+      return `/auth${path}`; // path === "/login"
+    },
+
+    /**
+     * 📦 Forward request body
+     */
+    onProxyReq: (proxyReq, req, res) => {
+      if (req.body && Object.keys(req.body).length > 0) {
+        const bodyData = JSON.stringify(req.body);
+        proxyReq.setHeader("Content-Type", "application/json");
+        proxyReq.setHeader("Content-Length", Buffer.byteLength(bodyData));
+        proxyReq.write(bodyData);
+      }
+    },
+
+    /**
+     * 📥 Response log (debug only)
+     */
+    onProxyRes: (proxyRes, req, res) => {
+      console.log(`[GATEWAY] Auth response: ${proxyRes.statusCode}`);
+    },
+
+    /**
+     * ❌ Error handler
+     */
+    onError: (err, req, res) => {
+      console.error("[GATEWAY] Proxy error:", err.message);
+      res.status(500).json({
+        success: false,
+        message: "User service unavailable",
+      });
+    },
+  })
+);
 
 app.use('/api/v1/profile', createProxyMiddleware({
   target: USER_SERVICE_URL,
