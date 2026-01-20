@@ -26,9 +26,61 @@ const GoogleAuthHandler = () => {
 
     if (isAuthenticated && user) {
       // User authenticated with Auth0, now sync with backend
-      handleGoogleAuth();
+      // Check the mode from sessionStorage to determine login vs signup
+      const appState = JSON.parse(sessionStorage.getItem('auth0.redirect.state') || '{}');
+      const { mode } = appState;
+
+      if (mode === 'login' || !mode) {
+        // For login, try to authenticate directly without password modal
+        handleGoogleAuthForLogin();
+      } else {
+        // For signup, show password form
+        setShowPasswordForm(true);
+      }
     }
   }, [isAuthenticated, isLoading, user]);
+
+  const handleGoogleAuthForLogin = async () => {
+    if (!user) return;
+
+    try {
+      const userData = {
+        firstName: user.given_name || user.name?.split(' ')[0] || '',
+        lastName: user.family_name || user.name?.split(' ').slice(1).join(' ') || '',
+        email: user.email,
+        password: 'google_login_temp', // Dummy password for existing users
+        image: user.picture,
+      };
+
+      setIsSubmitting(true);
+
+      const response = await apiConnector('POST', GOOGLE_AUTH_API, { ...userData, mode: 'login' });
+
+      if (response.data.success) {
+        // User exists, login successful
+        dispatch(setToken(response.data.token));
+        const userImage = response.data?.user?.image
+          ? response.data.user.image
+          : `https://api.dicebear.com/5.x/initials/svg?seed=${response.data.user.firstName} ${response.data.user.lastName}`;
+        dispatch(setUser({ ...response.data.user, image: userImage }));
+
+        localStorage.setItem("token", JSON.stringify(response.data.token));
+        localStorage.setItem("user", JSON.stringify(response.data.user));
+        navigate("/dashboard/my-profile");
+      } else {
+        // User doesn't exist, redirect to signup
+        navigate('/signup');
+        alert('Account not found. Please sign up first.');
+      }
+    } catch (error) {
+      console.error('Google login error:', error);
+      // If login fails, redirect to signup
+      navigate('/signup');
+      alert('Login failed. Please sign up if you don\'t have an account.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   const handleGoogleAuth = async () => {
     if (!user) return;
@@ -68,6 +120,7 @@ const GoogleAuthHandler = () => {
       const response = await apiConnector('POST', GOOGLE_AUTH_API, {
         ...userData,
         password, // Use the entered password
+        mode: 'signup'
       });
 
       if (response.data.success) {

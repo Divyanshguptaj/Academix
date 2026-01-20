@@ -266,116 +266,152 @@ export const changePassword = async (req, res) => {
 };
 
 // Google OAuth User Sync
-// export const googleAuth = async (req, res) => {
-//   console.log("Google Auth called with body:", req.body);
-//   try {
-//     const { firstName, lastName, email, password, image } = req.body;
-//     console.log("Extracted data:", { firstName, lastName, email, password: password ? "present" : "missing", image });
+export const googleAuth = async (req, res) => {
+  console.log("Google Auth called with body:", req.body);
+  try {
+    const { firstName, lastName, email, password, image, mode } = req.body;
+    console.log("Extracted data:", { firstName, lastName, email, password: password ? "present" : "missing", image, mode });
 
-//     // Validation
-//     if (!firstName || !lastName || !email || !password) {
-//       console.log("Validation failed: missing fields");
-//       return res.status(403).json({
-//         success: false,
-//         message: "All fields are mandatory",
-//       });
-//     }
-//     console.log("Validation passed");
+    // Validation - require basic fields
+    if (!firstName || !lastName || !email) {
+      console.log("Validation failed: missing required fields");
+      return res.status(403).json({
+        success: false,
+        message: "First name, last name, and email are mandatory",
+      });
+    }
 
-//     // Check if user already exists
-//     console.log("Checking for existing user with email:", email);
-//     const existingUser = await User.findOne({ email });
-//     console.log("Existing user found:", existingUser ? "yes" : "no");
+    // For login mode, password is not required
+    if (mode !== 'login' && !password) {
+      console.log("Validation failed: password required for non-login modes");
+      return res.status(403).json({
+        success: false,
+        message: "Password is required",
+      });
+    }
 
-//     if (existingUser) {
-//       console.log("Logging in existing user");
-//       // User exists, login them (works for both local and Google users)
-//       const payload = {
-//         email: existingUser.email,
-//         id: existingUser._id,
-//         accountType: existingUser.accountType,
-//       };
-//       const token = jwt.sign(payload, process.env.JWT_SECRET, {
-//         expiresIn: "24h",
-//       });
-//       existingUser.password = undefined;
-//       existingUser.token = token;
+    console.log("Validation passed");
 
-//       const options = {
-//         expires: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000),
-//         httpOnly: true,
-//       };
-//       console.log("Sending success response for existing user");
-//       return res.cookie("token", token, options).status(200).json({
-//         success: true,
-//         token,
-//         user: existingUser,
-//         message: "Logged in successfully with Google",
-//       });
-//     }
+    // Check if user already exists
+    console.log("Checking for existing user with email:", email);
+    const existingUser = await User.findOne({ email });
+    console.log("Existing user found:", existingUser ? "yes" : "no");
 
-//     console.log("Creating new user");
-//     // New OAuth user - create account
-//     const hashedPassword = await bcrypt.hash(password, 10);
-//     console.log("Password hashed");
+    if (existingUser) {
+      console.log("Logging in existing user");
+      // User exists, login them (works for both local and Google users)
+      const payload = {
+        email: existingUser.email,
+        id: existingUser._id,
+        accountType: existingUser.accountType,
+      };
+      const token = jwt.sign(payload, process.env.JWT_SECRET, {
+        expiresIn: "24h",
+      });
+      existingUser.password = undefined;
+      existingUser.token = token;
 
-//     const profileDetails = await Profile.create({
-//       gender: null,
-//       dateOfBirth: null,
-//       about: null,
-//       contactNumber: null,
-//     });
-//     console.log("Profile created:", profileDetails._id);
+      const options = {
+        expires: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000),
+        httpOnly: true,
+      };
+      console.log("Sending success response for existing user");
+      return res.cookie("token", token, options).status(200).json({
+        success: true,
+        token,
+        user: existingUser,
+        message: "Logged in successfully with Google",
+      });
+    }
 
-//     const user = await User.create({
-//       firstName,
-//       lastName,
-//       email,
-//       password: hashedPassword,
-//       authProvider: 'google',
-//       additionalDetails: profileDetails._id,
-//       image: image || `https://api.dicebear.com/5.x/initials/svg?seed=${firstName} ${lastName}`,
-//     });
-//     console.log("User created:", user._id);
+    // User doesn't exist
+    if (mode === 'login') {
+      console.log("User not found during login attempt");
+      return res.status(404).json({
+        success: false,
+        message: "User not found. Please sign up first.",
+      });
+    }
 
-//     // Generate JWT
-//     const payload = {
-//       email: user.email,
-//       id: user._id,
-//       accountType: user.accountType,
-//     };
-//     const token = jwt.sign(payload, process.env.JWT_SECRET, {
-//       expiresIn: "24h",
-//     });
-//     user.token = token;
-//     user.password = undefined;
+    // For signup mode, create new user
+    console.log("Creating new user");
 
-//     const options = {
-//       expires: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000),
-//       httpOnly: true,
-//     };
-//     console.log("Sending success response for new user");
-//     return res.cookie("token", token, options).status(200).json({
-//       success: true,
-//       token,
-//       user,
-//       message: "Account created and logged in successfully with Google",
-//     });
-//   } catch (error) {
-//     console.error("Google Auth Error:", error);
-//     console.error("Error stack:", error.stack);
-//     return res.status(500).json({
-//       success: false,
-//       message: "Google authentication failed",
-//     });
-//   }
-// };
-export const googleAuth = async(req, res)=>{
-  console.log("behechod a hi gya ");
-  return res.json({
-    message: "hello"
-  });
-}
+    // Validate password for signup
+    if (!password || password.length < 8) {
+      return res.status(400).json({
+        success: false,
+        message: "Password must be at least 8 characters long",
+      });
+    }
+
+    if (!/\d/.test(password)) {
+      return res.status(400).json({
+        success: false,
+        message: "Password must include at least one number",
+      });
+    }
+
+    if (!/[!@#$%^&*(),.?":{}|<>]/.test(password)) {
+      return res.status(400).json({
+        success: false,
+        message: "Password must include at least one special character",
+      });
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+    console.log("Password hashed");
+
+    const profileDetails = await Profile.create({
+      gender: null,
+      dateOfBirth: null,
+      about: null,
+      contactNumber: null,
+    });
+    console.log("Profile created:", profileDetails._id);
+
+    const user = await User.create({
+      firstName,
+      lastName,
+      email,
+      password: hashedPassword,
+      authProvider: 'google',
+      additionalDetails: profileDetails._id,
+      image: image || `https://api.dicebear.com/5.x/initials/svg?seed=${firstName} ${lastName}`,
+    });
+    console.log("User created:", user._id);
+
+    // Generate JWT
+    const payload = {
+      email: user.email,
+      id: user._id,
+      accountType: user.accountType,
+    };
+    const token = jwt.sign(payload, process.env.JWT_SECRET, {
+      expiresIn: "24h",
+    });
+    user.token = token;
+    user.password = undefined;
+
+    const options = {
+      expires: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000),
+      httpOnly: true,
+    };
+    console.log("Sending success response for new user");
+    return res.cookie("token", token, options).status(200).json({
+      success: true,
+      token,
+      user,
+      message: "Account created and logged in successfully with Google",
+    });
+  } catch (error) {
+    console.error("Google Auth Error:", error);
+    console.error("Error stack:", error.stack);
+    return res.status(500).json({
+      success: false,
+      message: "Google authentication failed",
+    });
+  }
+};
 
 // Get user by email (for Course Service communication)
 export const getUserByEmail = async (req, res) => {

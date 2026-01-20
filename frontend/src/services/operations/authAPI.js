@@ -9,6 +9,7 @@ const {
   SENDOTP_API,
   SIGNUP_API,
   LOGIN_API,
+  GOOGLE_AUTH_API,
   RESETPASSTOKEN_API,
   RESETPASSWORD_API,
 } = endpoints
@@ -174,11 +175,11 @@ export function googleLogin(email, accessToken, navigate) {
     const toastId = toast.loading("Logging in with Google...");
     dispatch(setLoading(true));
     try {
-      // Replace with your actual backend endpoint for Google login
-      const response = await apiConnector("POST", LOGIN_API, {
+      // Use Google Auth API for Google login
+      const response = await apiConnector("POST", GOOGLE_AUTH_API, {
         email,
         auth0AccessToken: accessToken, // Send Auth0 token to backend
-        mode: "googleLogin", // Indicate Google login
+        mode: "login", // Indicate Google login mode
       });
 
       console.log("GOOGLE LOGIN API RESPONSE............", response);
@@ -199,7 +200,7 @@ export function googleLogin(email, accessToken, navigate) {
       toast.error(error.response?.data?.message || "Google Login Failed");
       // If login fails, you might want to redirect to signup or offer a retry
       // For now, redirect to login page
-      navigate("/login"); 
+      navigate("/login");
     }
     dispatch(setLoading(false));
     toast.dismiss(toastId);
@@ -211,14 +212,12 @@ export function googleSignupFinalize(googleUserData, accessToken, navigate) {
     const toastId = toast.loading("Finalizing Google signup...");
     dispatch(setLoading(true));
     try {
-      // Replace with your actual backend endpoint for Google signup finalization
-      // This endpoint should take Google-provided data and any additional signupData
-      // to create a full user profile in your DB.
-      const response = await apiConnector("POST", SIGNUP_API, {
+      // Use Google Auth API for Google signup
+      const response = await apiConnector("POST", GOOGLE_AUTH_API, {
         ...googleUserData, // email, firstName, lastName, picture, auth0Id
         accountType: googleUserData.accountType || 'Student', // Ensure accountType is set
         auth0AccessToken: accessToken, // Send Auth0 token to backend for verification
-        mode: "googleSignup", // Indicate Google signup
+        mode: "signup", // Indicate Google signup mode
       });
 
       console.log("GOOGLE SIGNUP FINALIZE API RESPONSE............", response);
@@ -227,17 +226,19 @@ export function googleSignupFinalize(googleUserData, accessToken, navigate) {
         throw new Error(response.data.message);
       }
 
-      toast.success("Google Signup Successful! Please verify your email with OTP.");
-      // After signup, the backend might send an OTP, so redirect to OTP verification page
-      // Or if the user is directly logged in, set token and user.
-      navigate("/verify-email"); // Assuming this is your OTP page
-      // You might pass email to pre-fill the OTP page if needed: navigate("/verify-email", { state: { email: googleUserData.email } });
+      toast.success("Google Signup Successful!");
+      // For Google signup, user is directly logged in after account creation
+      dispatch(setToken(response.data.token));
+      dispatch(setUser(response.data.user));
+      localStorage.setItem("token", JSON.stringify(response.data.token));
+      localStorage.setItem("user", JSON.stringify(response.data.user));
+      navigate("/dashboard"); // Redirect to dashboard after successful signup
 
     } catch (error) {
       console.log("GOOGLE SIGNUP FINALIZE API ERROR............", error);
       toast.error(error.response?.data?.message || "Google Signup Failed");
       // If signup fails (e.g., email already exists), redirect to login
-      navigate("/login"); 
+      navigate("/login");
     }
     dispatch(setLoading(false));
     toast.dismiss(toastId);
