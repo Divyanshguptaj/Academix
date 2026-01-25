@@ -1,16 +1,27 @@
 import { useAuth0 } from '@auth0/auth0-react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 import loginBackground from '../../../assets/Images/loginBackground.png';
 
-const AuthTemplate = ({ title, description, imageSrc, showGoogleButton = false, googleState, children }) => {
+const AuthTemplate = ({ title, description, imageSrc, showGoogleButton = false, onGoogleClick, children }) => {
   const { loginWithRedirect } = useAuth0();
+  const location = useLocation();
 
   const handleGoogleClick = () => {
+    // Call parent's callback if provided (e.g., to store accountType)
+    if (onGoogleClick) {
+      onGoogleClick();
+    }
+
+    // Determine if this is a login or signup page
+    const isSignupPage = location.pathname === '/signup';
+    
+    // Store mode in sessionStorage - this is what Auth0Callback will read
+    sessionStorage.setItem('authMode', isSignupPage ? 'signup' : 'login');
+
+    // Redirect to Auth0 login with Google connection
     loginWithRedirect({
-      appState: googleState,
       authorizationParams: {
-        connection: 'google-oauth2', // Skip Auth0 universal login and go directly to Google
-        // prompt: "select_account", // Optional: force account selection
+        connection: 'google-oauth2',
       },
     });
   };
@@ -29,7 +40,7 @@ const AuthTemplate = ({ title, description, imageSrc, showGoogleButton = false, 
           {/* Google Login Button */}
           {showGoogleButton && (
             <button
-              type="button" // ensure it doesn't submit forms
+              type="button"
               onClick={handleGoogleClick}
               className="w-full bg-white text-gray-900 font-medium py-3 px-4 rounded-md hover:bg-gray-100 transition-colors duration-200 flex items-center justify-center gap-3 mt-6 border border-gray-300"
             >

@@ -5,6 +5,7 @@ import Home from './pages/Home';
 import Navbar from './components/common/Navbar';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
+import SetupPassword from './pages/SetupPassword';
 import ForgotPassword from './pages/ForgotPassword';
 import ChangePassword from './pages/ChangePassword';
 import ResendMail from './pages/ResendMail';
@@ -31,6 +32,7 @@ import CourseDetails from './pages/CourseDetails';
 import ContactUsPage from './pages/Contact';
 import Footer from './components/common/Footer';
 import GoogleAuthHandler from './components/core/Auth/GoogleAuthHandler';
+import Auth0Callback from './pages/Auth0Callback';
 
 function App() {
   const location = useLocation();
@@ -44,7 +46,7 @@ function App() {
       domain={process.env.REACT_APP_AUTH0_DOMAIN}
       clientId={process.env.REACT_APP_AUTH0_CLIENT_ID}
       authorizationParams={{
-        redirect_uri: window.location.origin
+        redirect_uri: `${window.location.origin}/auth0/callback`
       }}
     >
       <GoogleAuthHandler />
@@ -57,10 +59,13 @@ function App() {
         {/* Add padding-top so content doesn’t hide behind fixed Navbar */}
         <main className="flex-1 w-full mx-auto px-4 sm:px-6 lg:px-8 py-4 md:py-6 pt-[3.5rem]">
           <Routes>
+            {/* Auth0 Callback */}
+            <Route path="/auth0/callback" element={<Auth0Callback />} />
             {/* Public Routes */}
             <Route path="/" element={<Home />} />
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<Signup />} />
+            <Route path="/setup-password" element={<SetupPassword />} />
             <Route path="/forgotPassword" element={<ForgotPassword />} />
             <Route path="/resendMail" element={<ResendMail />} />
             <Route path="/resetComplete" element={<ResetComplete />} />

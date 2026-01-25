@@ -1,88 +1,80 @@
 import React, { useEffect } from 'react';
 import { useAuth0 } from '@auth0/auth0-react';
-import { useDispatch } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
+import { useDispatch } from 'react-redux';
 import { toast } from 'react-hot-toast';
-import { googleLogin, googleSignupFinalize } from '../services/operations/authAPI'; // New API calls
+import { googleLogin, checkGoogleUserAndLogin } from '../services/operations/authAPI';
 
 const Auth0Callback = () => {
-  const { user, isAuthenticated, isLoading, error, getAccessTokenSilently, loginWithRedirect } = useAuth0();
-  const dispatch = useDispatch();
+  const { user, isAuthenticated, isLoading, error } = useAuth0();
   const navigate = useNavigate();
+  const dispatch = useDispatch();
 
   useEffect(() => {
-    const handleAuthResult = async () => {
-      if (isLoading) {
-        // Still loading Auth0 SDK or user data
-        return;
-      }
-      if (error) {
-        toast.error(`Auth0 Error: ${error.message}`);
-        navigate('/login'); // Redirect to login on error
-        return;
-      }
-      if (isAuthenticated && user) {
+    if (isLoading) return;
+
+    if (error) {
+      console.error('Auth0 Error:', error);
+      toast.error(`Authentication failed: ${error.message}`);
+      navigate('/login');
+      return;
+    }
+
+    if (isAuthenticated && user) {
+      handleAuthSuccess();
+    } else if (!isLoading && !isAuthenticated) {
+      navigate('/login');
+    }
+  }, [isAuthenticated, isLoading, error, user, navigate, dispatch]);
+
+  const handleAuthSuccess = async () => {
+    try {
+      const authMode = sessionStorage.getItem('authMode') || 'login';
+      
+      // Extract user data from Auth0
+      console.log("user", user);
+      const googleUserData = {
+        email: user.email,
+        firstName: user.given_name || user.name?.split(' ')[0] || 'User',
+        lastName: user.family_name || user.name?.split(' ').slice(1).join(' ') || '',
+        picture: user.picture,
+        auth0Id: user.sub,
+      };
+
+      console.log('Auth0 Callback - Mode:', authMode);
+      console.log('Auth0 Callback - User:', googleUserData);
+
+      sessionStorage.removeItem('authMode');
+
+      if (authMode === 'signup') {
+        // Try to login first (in case user already exists)
         try {
-          // Attempt to get the access token for your custom API
-          const accessToken = await getAccessTokenSilently({
-            authorizationParams: {
-              audience: import.meta.env.VITE_AUTH0_AUDIENCE, // Ensure audience is correct
-            },
-          });
+          console.log('Attempting login for signup user...');
+          await checkGoogleUserAndLogin(googleUserData);
           
-          // Access the appState from local storage, as it's not directly in useAuth0
-          // NOTE: Auth0 SDK stores appState in session storage usually.
-          // This is a common workaround if you need direct access after redirect.
-          // Better approach is to rely on backend to process state from Auth0 redirect
-          const appState = JSON.parse(sessionStorage.getItem('auth0.redirect.state') || '{}');
-          const { mode, signupData } = appState;
-
-          const googleUserData = {
-            email: user.email,
-            firstName: user.given_name || (signupData?.firstName || ''),
-            lastName: user.family_name || (signupData?.lastName || ''),
-            picture: user.picture,
-            auth0Id: user.sub, // Auth0 user ID
-          };
-
-          if (mode === 'signup') {
-            // Combine googleUserData with any pre-filled signupData
-            const combinedSignupData = { ...googleUserData, ...signupData };
-            // Dispatch backend call to finalize signup (e.g., store in your DB, send OTP)
-            dispatch(googleSignupFinalize(combinedSignupData, accessToken, navigate));
-          } else if (mode === 'login') {
-            // Dispatch backend call to log in the user
-            dispatch(googleLogin(googleUserData.email, accessToken, navigate));
-          } else {
-            // Default action if no specific mode is set, perhaps just navigate to dashboard
-            toast.success("Logged in successfully with Google!");
-            navigate('/dashboard'); // Or your default logged-in page
-          }
-        } catch (err) {
-          toast.error("Failed to process Google authentication.");
-          console.error("Error processing Auth0 callback:", err);
-          navigate('/login');
+          // User exists - log them in
+          dispatch(googleLogin(googleUserData));
+        } catch (loginErr) {
+          // User doesn't exist - go to password setup
+          toast.dismiss();
+          sessionStorage.setItem('googleUserData', JSON.stringify(googleUserData));
+          navigate('/setup-password', { state: { googleUserData } });
         }
-      } else if (!isLoading && !isAuthenticated) {
-        // If not authenticated and not loading, something went wrong or user cancelled
-        // You might want to automatically redirect them to login if this happens unexpectedly
-        // navigate('/login'); 
+      } else {
+        // Direct login
+        dispatch(googleLogin(googleUserData));
       }
-    };
-
-    handleAuthResult();
-  }, [isAuthenticated, isLoading, user, error, navigate, dispatch, getAccessTokenSilently]);
+    } catch (err) {
+      console.error('Auth callback error:', err);
+      toast.error('Authentication failed. Please try again.');
+      navigate('/login');
+    }
+  };
 
   return (
-    <div className="flex justify-center items-center min-h-screen bg-gray-900">
-      <div className="text-white text-lg">
-        {isLoading ? (
-          <p>Processing Google authentication...</p>
-        ) : error ? (
-          <p>Authentication failed: {error.message}</p>
-        ) : (
-          <p>Redirecting...</p>
-        )}
+    <div className="flex justify-center items-center min-h-screen bg-richblack-900">
+      <div className="text-white text-lg text-center">
+        <p>Processing authentication...</p>
       </div>
     </div>
   );

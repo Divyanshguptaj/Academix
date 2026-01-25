@@ -18,135 +18,76 @@ const AI_SERVICE_URL = process.env.AI_SERVICE_URL || 'http://localhost:4004';
 // Middleware
 app.use(cookieParser());
 app.use(cors({
-  origin: process.env.CORS_ORIGIN || 'http://localhost:3000',
+  origin: [process.env.CORS_ORIGIN, 'http://localhost:3000'],
   credentials: true
 }));
-
-// Debug middleware to log all requests
-app.use((req, res, next) => {
-  console.log(`[${new Date().toISOString()}] ${req.method} ${req.originalUrl}`);
-  next();
-});
 
 // Health check endpoint
 app.get('/', (req, res) => {
   res.json({
     success: true,
     message: 'API Gateway is running',
-    services: {
-      user: USER_SERVICE_URL,
-      course: COURSE_SERVICE_URL,
-      payment: PAYMENT_SERVICE_URL,
-      ai: AI_SERVICE_URL
-    }
+    timestamp: new Date().toISOString()
   });
 });
 
-// Route all requests to appropriate services
+// app.use((req, res, next) => {
+//   console.log('🔥 GATEWAY RECEIVED:', req.method, req.url);
+//   next();
+// });
+
+// Auth routes proxy
 app.use(
-  "/api/v1/auth",
+  '/api/v1/auth',
   createProxyMiddleware({
     target: USER_SERVICE_URL,
     changeOrigin: true,
-    timeout: 30000,
-    proxyTimeout: 30000,
 
-    /**
-     * 🔁 Rewrite:
-     * Incoming: /api/v1/auth/login
-     * Forwarded: /auth/login
-     */
     pathRewrite: (path, req) => {
-      return `/auth${path}`; // path === "/login"
-    },
-
-    /**
-     * 📦 Forward request body
-     */
-    onProxyReq: (proxyReq, req, res) => {
-      if (req.body && Object.keys(req.body).length > 0) {
-        const bodyData = JSON.stringify(req.body);
-        proxyReq.setHeader("Content-Type", "application/json");
-        proxyReq.setHeader("Content-Length", Buffer.byteLength(bodyData));
-        proxyReq.write(bodyData);
-      }
-    },
-
-    /**
-     * 📥 Response log (debug only)
-     */
-    onProxyRes: (proxyRes, req, res) => {
-      console.log(`[GATEWAY] Auth response: ${proxyRes.statusCode}`);
-    },
-
-    /**
-     * ❌ Error handler
-     */
-    onError: (err, req, res) => {
-      console.error("[GATEWAY] Proxy error:", err.message);
-      res.status(500).json({
-        success: false,
-        message: "User service unavailable",
-      });
+      const newPath = `/auth${path}`;
+      console.log('🔁 Rewriting path:', path, '→', newPath);
+      return newPath;
     },
   })
 );
 
+// Profile routes proxy
 app.use('/api/v1/profile', createProxyMiddleware({
   target: USER_SERVICE_URL,
   changeOrigin: true,
-  pathRewrite: {
-    '^/api/v1/profile': '/profile'
-  },
-  onProxyReq: (proxyReq, req, res) => {
-    console.log(`Proxying profile request: ${req.method} ${req.originalUrl}`);
-  }
+  pathRewrite: { '^/api/v1/profile': '/profile' }
 }));
 
+// Course routes proxy
 app.use('/api/v1/course', createProxyMiddleware({
   target: COURSE_SERVICE_URL,
   changeOrigin: true,
-  pathRewrite: {
-    '^/api/v1/course': '/course'
-  },
-  onProxyReq: (proxyReq, req, res) => {
-    console.log(`Proxying course request: ${req.method} ${req.originalUrl}`);
-  }
+  pathRewrite: { '^/api/v1/course': '/course' }
 }));
 
+// Payment routes proxy
 app.use('/api/v1/payment', createProxyMiddleware({
   target: PAYMENT_SERVICE_URL,
   changeOrigin: true,
-  pathRewrite: {
-    '^/api/v1/payment': '/payment'
-  },
-  onProxyReq: (proxyReq, req, res) => {
-    console.log(`Proxying payment request: ${req.method} ${req.originalUrl}`);
-  }
+  pathRewrite: { '^/api/v1/payment': '/payment' }
 }));
 
+// AI routes proxy
 app.use('/api/v1/smart-study', createProxyMiddleware({
   target: AI_SERVICE_URL,
   changeOrigin: true,
-  pathRewrite: {
-    '^/api/v1/smart-study': '/smartStudy'
-  },
-  onProxyReq: (proxyReq, req, res) => {
-    console.log(`Proxying smart-study request: ${req.method} ${req.originalUrl}`);
-  }
+  pathRewrite: { '^/api/v1/smart-study': '/smartStudy' }
 }));
 
-// Contact route (handled locally)
+// Contact routes (handled locally)
 import contactRoutes from './routes/Contact.js';
 app.use('/api/v1/contact', contactRoutes);
 
-// Error handling middleware
+// Error handling
 app.use((err, req, res, next) => {
-  console.error('Gateway Error:', err.stack);
   res.status(500).json({
     success: false,
-    message: 'Gateway error occurred',
-    error: process.env.NODE_ENV === 'development' ? err.message : {}
+    message: 'Gateway error occurred'
   });
 });
 
@@ -158,11 +99,12 @@ app.use('*', (req, res) => {
   });
 });
 
+// Start server
 app.listen(PORT, () => {
-  console.log(`API Gateway running on port ${PORT}`);
-  console.log(`Services:`);
-  console.log(`  User Service: ${USER_SERVICE_URL}`);
-  console.log(`  Course Service: ${COURSE_SERVICE_URL}`);
-  console.log(`  Payment Service: ${PAYMENT_SERVICE_URL}`);
-  console.log(`  AI Service: ${AI_SERVICE_URL}`);
+  console.log(`🚀 API Gateway running on port ${PORT}`);
+  console.log(`📍 Services configured:`);
+  console.log(`   User: ${USER_SERVICE_URL}`);
+  console.log(`   Course: ${COURSE_SERVICE_URL}`);
+  console.log(`   Payment: ${PAYMENT_SERVICE_URL}`);
+  console.log(`   AI: ${AI_SERVICE_URL}`);
 });

@@ -267,148 +267,135 @@ export const changePassword = async (req, res) => {
 
 // Google OAuth User Sync
 export const googleAuth = async (req, res) => {
-  console.log("Google Auth called with body:", req.body);
   try {
-    const { firstName, lastName, email, password, image, mode } = req.body;
-    console.log("Extracted data:", { firstName, lastName, email, password: password ? "present" : "missing", image, mode });
+    const { email, firstName, lastName, password, picture, auth0Id, accountType, mode } = req.body;
 
-    // Validation - require basic fields
-    if (!firstName || !lastName || !email) {
-      console.log("Validation failed: missing required fields");
-      return res.status(403).json({
+    console.log(`Google Auth - Mode: ${mode}, Email: ${email}, Has Password: ${!!password}`);
+
+    // Validation
+    if (!email || !firstName || !lastName) {
+      return res.status(400).json({
         success: false,
-        message: "First name, last name, and email are mandatory",
+        message: "Email, first name, and last name are required",
       });
     }
 
-    // For login mode, password is not required
-    if (mode !== 'login' && !password) {
-      console.log("Validation failed: password required for non-login modes");
-      return res.status(403).json({
-        success: false,
-        message: "Password is required",
-      });
-    }
+    // Check if user exists
+    let user = await User.findOne({ email });
 
-    console.log("Validation passed");
-
-    // Check if user already exists
-    console.log("Checking for existing user with email:", email);
-    const existingUser = await User.findOne({ email });
-    console.log("Existing user found:", existingUser ? "yes" : "no");
-
-    if (existingUser) {
-      console.log("Logging in existing user");
-      // User exists, login them (works for both local and Google users)
+    if (user) {
+      // User exists - login them regardless of mode
+      console.log(`User exists - logging in: ${email}`);
+      
       const payload = {
-        email: existingUser.email,
-        id: existingUser._id,
-        accountType: existingUser.accountType,
+        email: user.email,
+        id: user._id,
+        accountType: user.accountType,
       };
+
       const token = jwt.sign(payload, process.env.JWT_SECRET, {
         expiresIn: "24h",
       });
-      existingUser.password = undefined;
-      existingUser.token = token;
+
+      user.password = undefined;
 
       const options = {
         expires: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000),
         httpOnly: true,
       };
-      console.log("Sending success response for existing user");
+
       return res.cookie("token", token, options).status(200).json({
         success: true,
         token,
-        user: existingUser,
-        message: "Logged in successfully with Google",
+        user: {
+          _id: user._id,
+          email: user.email,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          accountType: user.accountType,
+          image: user.image,
+        },
+        message: mode === 'signup' ? "You already have an account. Logging in..." : "Login successful",
       });
     }
 
-    // User doesn't exist
+    // New user - only allow signup mode
     if (mode === 'login') {
-      console.log("User not found during login attempt");
       return res.status(404).json({
         success: false,
         message: "User not found. Please sign up first.",
       });
     }
 
-    // For signup mode, create new user
-    console.log("Creating new user");
-
-    // Validate password for signup
-    if (!password || password.length < 8) {
+    if (mode !== 'signup' || !password) {
       return res.status(400).json({
         success: false,
-        message: "Password must be at least 8 characters long",
+        message: "Password is required for signup",
       });
     }
 
-    if (!/\d/.test(password)) {
-      return res.status(400).json({
-        success: false,
-        message: "Password must include at least one number",
-      });
-    }
+    console.log(`Creating new user: ${email}`);
 
-    if (!/[!@#$%^&*(),.?":{}|<>]/.test(password)) {
-      return res.status(400).json({
-        success: false,
-        message: "Password must include at least one special character",
-      });
-    }
-
+    // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
-    console.log("Password hashed");
 
+    // Create profile
     const profileDetails = await Profile.create({
       gender: null,
       dateOfBirth: null,
       about: null,
       contactNumber: null,
     });
-    console.log("Profile created:", profileDetails._id);
 
-    const user = await User.create({
+    // Create user
+    user = await User.create({
       firstName,
       lastName,
       email,
       password: hashedPassword,
-      authProvider: 'google',
+      accountType: accountType || 'Student',
       additionalDetails: profileDetails._id,
-      image: image || `https://api.dicebear.com/5.x/initials/svg?seed=${firstName} ${lastName}`,
+      image: picture || `https://api.dicebear.com/5.x/initials/svg?seed=${firstName} ${lastName}`,
     });
-    console.log("User created:", user._id);
 
-    // Generate JWT
+    console.log(`New user created: ${user._id}`);
+
+    // Generate token
     const payload = {
       email: user.email,
       id: user._id,
       accountType: user.accountType,
     };
+
     const token = jwt.sign(payload, process.env.JWT_SECRET, {
       expiresIn: "24h",
     });
-    user.token = token;
+
     user.password = undefined;
 
     const options = {
       expires: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000),
       httpOnly: true,
     };
-    console.log("Sending success response for new user");
+
     return res.cookie("token", token, options).status(200).json({
       success: true,
       token,
-      user,
-      message: "Account created and logged in successfully with Google",
+      user: {
+        _id: user._id,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        accountType: user.accountType,
+        image: user.image,
+      },
+      message: "Account created successfully. Welcome!",
     });
   } catch (error) {
     console.error("Google Auth Error:", error);
-    console.error("Error stack:", error.stack);
     return res.status(500).json({
       success: false,
-      message: "Google authentication failed",
+      message: "Google authentication failed. Please try again.",
     });
   }
 };

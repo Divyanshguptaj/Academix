@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useDispatch } from 'react-redux';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { FaRegEye, FaRegEyeSlash } from 'react-icons/fa';
 import signupImage from '../assets/Images/signupImage.png';
 import { sendOtp } from '../services/operations/authAPI';
@@ -15,18 +15,30 @@ const ACCOUNT_TYPE = {
 const Signup = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
 
   const [accountType, setAccountType] = useState(ACCOUNT_TYPE.STUDENT);
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
-    email: "",
+    email: searchParams.get('email') || "", // Pre-fill email from query params if available
     password: "",
     confirmPassword: "",
   });
 
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+  // Update email if it changes in URL
+  useEffect(() => {
+    const emailParam = searchParams.get('email');
+    if (emailParam) {
+      setFormData((prevData) => ({
+        ...prevData,
+        email: emailParam,
+      }));
+    }
+  }, [searchParams]);
 
   const handleOnChange = (e) => {
     setFormData((prevData) => ({
@@ -40,6 +52,11 @@ const Signup = () => {
   const googleState = {
     mode: 'signup',
     signupData: getSignupData(),
+  };
+
+  const handleGoogleSignup = () => {
+    // Store account type in sessionStorage before redirecting to Google
+    sessionStorage.setItem('accountType', accountType);
   };
 
   const handleOnSubmit = async (e) => {
@@ -91,6 +108,7 @@ const Signup = () => {
       imageSrc={signupImage}
       showGoogleButton={true}
       googleState={googleState}
+      onGoogleClick={() => sessionStorage.setItem('accountType', accountType)}
     >
 
       <form className='w-full mt-5' onSubmit={handleOnSubmit}>

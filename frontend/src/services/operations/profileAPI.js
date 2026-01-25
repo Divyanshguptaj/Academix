@@ -27,9 +27,7 @@ export const fetchUserDetails = (email) => {
 
       return userData;
     } catch (error) {
-      // dispatch(logout(navigate));
       console.error("Error fetching user details:", error);
-      toast.error("Failed to fetch user details.");
     }
   };
 };

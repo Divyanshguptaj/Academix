@@ -170,77 +170,113 @@ export function resetPassword(password, confirmPassword, token, navigate) {
   }
 }
 
-export function googleLogin(email, accessToken, navigate) {
+// Helper function that returns a Promise for error handling in Auth0Callback
+export async function checkGoogleUserAndLogin(userData) {
+  try {
+    const response = await apiConnector("POST", GOOGLE_AUTH_API, {
+      email: userData.email,
+      firstName: userData.firstName,
+      lastName: userData.lastName,
+      picture: userData.picture,
+      auth0Id: userData.auth0Id,
+      mode: "login",
+    });
+
+    console.log("GOOGLE LOGIN RESPONSE:", response);
+
+    if (!response.data.success) {
+      throw new Error(response.data.message);
+    }
+
+    return { success: true, user: response.data.user, token: response.data.token };
+  } catch (error) {
+    console.error("Google login error:", error);
+    throw error; // Throw so caller can catch and handle
+  }
+}
+
+export function googleLogin(userData) {
   return async (dispatch) => {
-    const toastId = toast.loading("Logging in with Google...");
+    const toastId = toast.loading("Logging in...");
     dispatch(setLoading(true));
     try {
-      // Use Google Auth API for Google login
-      const response = await apiConnector("POST", GOOGLE_AUTH_API, {
-        email,
-        auth0AccessToken: accessToken, // Send Auth0 token to backend
-        mode: "login", // Indicate Google login mode
-      });
+      const result = await checkGoogleUserAndLogin(userData);
 
-      console.log("GOOGLE LOGIN API RESPONSE............", response);
-
-      if (!response.data.success) {
-        throw new Error(response.data.message);
-      }
-
-      toast.success("Google Login Successful");
-      dispatch(setToken(response.data.token));
-      dispatch(setUser(response.data.user));
-      localStorage.setItem("token", JSON.stringify(response.data.token));
-      localStorage.setItem("user", JSON.stringify(response.data.user));
-      navigate("/dashboard"); // Redirect to dashboard after successful login
-
+      toast.success("Welcome back User!");
+      dispatch(setToken(result.token));
+      
+      const userImage = result.user?.image
+        ? result.user.image
+        : `https://api.dicebear.com/5.x/initials/svg?seed=${result.user.firstName} ${result.user.lastName}`;
+      
+      dispatch(setUser({ ...result.user, image: userImage }));
+      localStorage.setItem("token", JSON.stringify(result.token));
+      localStorage.setItem("user", JSON.stringify(result.user));
+      
+      setTimeout(() => {
+        window.location.href = "/dashboard/my-profile";
+      }, 500);
     } catch (error) {
-      console.log("GOOGLE LOGIN API ERROR............", error);
-      toast.error(error.response?.data?.message || "Google Login Failed");
-      // If login fails, you might want to redirect to signup or offer a retry
-      // For now, redirect to login page
-      navigate("/login");
+      toast.error(error.response?.data?.message || "Login failed");
+      setTimeout(() => {
+        window.location.href = "/";
+      }, 500);
+    } finally {
+      dispatch(setLoading(false));
+      toast.dismiss(toastId);
     }
-    dispatch(setLoading(false));
-    toast.dismiss(toastId);
   };
 }
 
-export function googleSignupFinalize(googleUserData, accessToken, navigate) {
+export function googleSignupFinalize(userData, navigate) {
   return async (dispatch) => {
-    const toastId = toast.loading("Finalizing Google signup...");
+    const toastId = toast.loading("Creating account...");
     dispatch(setLoading(true));
     try {
-      // Use Google Auth API for Google signup
+      // Call backend Google Auth API
       const response = await apiConnector("POST", GOOGLE_AUTH_API, {
-        ...googleUserData, // email, firstName, lastName, picture, auth0Id
-        accountType: googleUserData.accountType || 'Student', // Ensure accountType is set
-        auth0AccessToken: accessToken, // Send Auth0 token to backend for verification
-        mode: "signup", // Indicate Google signup mode
+        email: userData.email,
+        firstName: userData.firstName,
+        lastName: userData.lastName,
+        password: userData.password,
+        picture: userData.picture,
+        auth0Id: userData.auth0Id,
+        accountType: userData.accountType || 'Student',
+        mode: "signup",
       });
 
-      console.log("GOOGLE SIGNUP FINALIZE API RESPONSE............", response);
+      // console.log("GOOGLE SIGNUP RESPONSE:", response);
 
       if (!response.data.success) {
         throw new Error(response.data.message);
       }
 
-      toast.success("Google Signup Successful!");
-      // For Google signup, user is directly logged in after account creation
+      toast.success(response.data.message || "Signup successful!");
       dispatch(setToken(response.data.token));
-      dispatch(setUser(response.data.user));
+      
+      const userImage = response.data?.user?.image
+        ? response.data.user.image
+        : `https://api.dicebear.com/5.x/initials/svg?seed=${response.data.user.firstName} ${response.data.user.lastName}`;
+      
+      dispatch(setUser({ ...response.data.user, image: userImage }));
       localStorage.setItem("token", JSON.stringify(response.data.token));
       localStorage.setItem("user", JSON.stringify(response.data.user));
-      navigate("/dashboard"); // Redirect to dashboard after successful signup
-
+      
+      // Clear session storage
+      sessionStorage.removeItem('googleUserData');
+      
+      setTimeout(() => {
+        navigate("/dashboard/my-profile");
+      }, 500);
     } catch (error) {
-      console.log("GOOGLE SIGNUP FINALIZE API ERROR............", error);
-      toast.error(error.response?.data?.message || "Google Signup Failed");
-      // If signup fails (e.g., email already exists), redirect to login
-      navigate("/login");
+      console.error("GOOGLE SIGNUP ERROR:", error);
+      setTimeout(() => {
+        navigate("/signup");
+      }, 500);
+      toast.error(error.response?.data?.message || "Signup failed");
+    } finally {
+      dispatch(setLoading(false));
+      toast.dismiss(toastId);
     }
-    dispatch(setLoading(false));
-    toast.dismiss(toastId);
   };
 }
