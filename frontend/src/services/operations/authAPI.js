@@ -109,15 +109,38 @@ export function login(email, password, navigate) {
 }
 
 export function logout(navigate) {
-  return (dispatch) => {
-    dispatch(setToken(null))
-    dispatch(setUser(null))
-    localStorage.clear(); // Clears all stored items
-    // dispatch(resetCart())
-    localStorage.removeItem("token")
-    localStorage.removeItem("user")
-    toast.success("Logged Out")
-    navigate("/")
+  return async (dispatch) => {
+    dispatch(setLoading(true));
+    try {
+      // Call backend to invalidate token
+      const response = await apiConnector("POST", "/api/v1/auth/logout", {});
+
+      if (!response.data.success) {
+        throw new Error(response.data.message);
+      }
+
+      // Clear Redux state
+      dispatch(setToken(null))
+      dispatch(setUser(null))
+
+      // Clear local storage
+      localStorage.removeItem("token")
+      localStorage.removeItem("user")
+
+      toast.success("Logged Out Successfully");
+      navigate("/")
+    } catch (error) {
+      console.error("Logout Error:", error);
+      // Still clear local state even if backend call fails
+      dispatch(setToken(null))
+      dispatch(setUser(null))
+      localStorage.removeItem("token")
+      localStorage.removeItem("user")
+      toast.success("Logged Out (Local)");
+      navigate("/")
+    } finally {
+      dispatch(setLoading(false));
+    }
   }
 }
 

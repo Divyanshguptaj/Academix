@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import { useEffect } from 'react';
 import { useAuth0 } from '@auth0/auth0-react';
 import { useNavigate } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
@@ -32,7 +32,7 @@ const Auth0Callback = () => {
       const authMode = sessionStorage.getItem('authMode') || 'login';
       
       // Extract user data from Auth0
-      console.log("user", user);
+      // console.log("user", user);
       const googleUserData = {
         email: user.email,
         firstName: user.given_name || user.name?.split(' ')[0] || 'User',
@@ -41,8 +41,8 @@ const Auth0Callback = () => {
         auth0Id: user.sub,
       };
 
-      console.log('Auth0 Callback - Mode:', authMode);
-      console.log('Auth0 Callback - User:', googleUserData);
+      // console.log('Auth0 Callback - Mode:', authMode);
+      // console.log('Auth0 Callback - User:', googleUserData);
 
       sessionStorage.removeItem('authMode');
 

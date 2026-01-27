@@ -9,18 +9,27 @@ import Profile from "../models/Profile.js";
 export const sendOTP = async (req, res) => {
   try {
     const { email } = req.body;
-    // console.log(email);
+
+    // Validate email format
+    if (!email || !email.includes('@') || !email.includes('.')) {
+      return res.status(400).json({
+        success: false,
+        message: "Please enter a valid email address",
+      });
+    }
+
     const checkUserPresent = await User.findOne({ email });
     if (checkUserPresent) {
       return res.status(401).json({
         success: false,
-        message: "User already exists! , Please go and try for login ...",
+        message: "An account already exists with this email. Please login instead.",
       });
     }
-    // console.log("check present" , checkUserPresent)
+
     let otp;
     let result;
 
+    // Generate unique OTP
     do {
       otp = otpgenerator.generate(6, {
         upperCaseAlphabets: false,
@@ -31,20 +40,20 @@ export const sendOTP = async (req, res) => {
       result = await OTP.findOne({ otp: otp });
     } while (result);
 
-    // console.log(result)
-    // console.log("OTP generated succesfully",otp);
+    // Store OTP with expiration
     const otpPayload = { email, otp };
     await OTP.create(otpPayload);
-    // console.log(otpPayload);
+
     return res.status(200).json({
       success: true,
-      message: "OTP sent successfully",
+      message: "OTP sent successfully to your email",
       otp,
     });
   } catch (error) {
+    console.error("OTP Generation Error:", error);
     return res.status(500).json({
       success: false,
-      message: "Error occured at generating otp",
+      message: "Failed to generate OTP. Please try again later.",
     });
   }
 };
@@ -66,14 +75,36 @@ export const signUp = async (req, res) => {
     if (!firstName || !lastName || !password || !confirmPassword || !otp) {
       return res.status(403).json({
         success: false,
-        message: "All fields are mandatory...",
+        message: "Please fill in all required fields",
+      });
+    }
+
+    // Password complexity validation
+    if (password.length < 8) {
+      return res.status(400).json({
+        success: false,
+        message: "Password must be at least 8 characters long",
+      });
+    }
+
+    if (!/\d/.test(password)) {
+      return res.status(400).json({
+        success: false,
+        message: "Password must contain at least one number",
+      });
+    }
+
+    if (!/[!@#$%^&*(),.?":{}|<>]/.test(password)) {
+      return res.status(400).json({
+        success: false,
+        message: "Password must contain at least one special character",
       });
     }
 
     if (password !== confirmPassword) {
       return res.status(400).json({
         success: false,
-        message: "Passwords are not same",
+        message: "Passwords do not match",
       });
     }
 
@@ -81,7 +112,7 @@ export const signUp = async (req, res) => {
     if (existingUser) {
       return res.status(400).json({
         success: false,
-        message: "User already exists",
+        message: "An account with this email already exists",
       });
     }
 
@@ -92,14 +123,14 @@ export const signUp = async (req, res) => {
     if (recentOTP.length === 0) {
       return res.status(400).json({
         success: false,
-        message: "Can't fetch otp",
+        message: "OTP verification failed. Please request a new OTP",
       });
     }
 
     if (otp !== recentOTP[0].otp) {
       return res.status(400).json({
         success: false,
-        message: "OTP not matched",
+        message: "Invalid OTP. Please check and try again",
       });
     }
 
@@ -148,63 +179,50 @@ export const login = async (req, res) => {
       });
     }
     
-    console.log("Login attempt - Email:", email, "Password length:", password ? password.length : 0);
-
-    // Test database connection
-    try {
-      await User.findOne({}).limit(1); // Just test if DB is accessible
-      console.log("Database connection test passed");
-    } catch (dbError) {
-      console.error("Database connection error:", dbError);
-      return res.status(500).json({
-        success: false,
-        message: "Database connection failed",
-      });
-    }
-
+    // Check if user exists
     const user = await User.findOne({ email: email });
-    console.log("User query result:", user ? "User found" : "User NOT found");
-    console.log("User details:", user ? { id: user._id, email: user.email, firstName: user.firstName } : null);
-
-    // Let's also check if there are any users in the database
-    const totalUsers = await User.countDocuments();
-    console.log("Total users in database:", totalUsers);
     if (!user) {
       return res.status(400).json({
         success: false,
-        message: "User doesn't exists",
+        message: "No account found with this email address",
       });
     }
-    console.log("kya backchodi chal rahi hai ")
-    //jwt token generation -
-    if (await bcrypt.compare(password, user.password)) {
-      const payload = {
-        email: user.email,
-        id: user._id,
-        accountType: user.accountType,
-      };
-      const token = jwt.sign(payload, process.env.JWT_SECRET, {
-        expiresIn: "24h",
-      });
-      user.token = token;
-      user.password = undefined;
-
-      const options = {
-        expires: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000),
-        httpOnly: true,
-      };
-      return res.cookie("token", token, options).status(200).json({
-        success: true,
-        token,
-        user,
-        message: "Logged and cookie created successfully ...",
-      });
-    } else {
+    // Verify password
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+    if (!isPasswordValid) {
       return res.status(400).json({
         success: false,
-        message: "Password doesn't match",
+        message: "The password you entered is incorrect",
       });
     }
+
+    // Generate JWT token
+    const payload = {
+      email: user.email,
+      id: user._id,
+      accountType: user.accountType,
+    };
+    const token = jwt.sign(payload, process.env.JWT_SECRET, {
+      expiresIn: "24h",
+    });
+
+    // Prepare user data for response (exclude sensitive info)
+    const userData = user.toObject();
+    userData.token = token;
+    delete userData.password;
+
+    // Set cookie options
+    const options = {
+      expires: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000),
+      httpOnly: true,
+    };
+
+    return res.cookie("token", token, options).status(200).json({
+      success: true,
+      token,
+      user: userData,
+      message: "Login successful! Welcome back.",
+    });
   } catch (error) {
     return res.status(500).json({
       success: false,
@@ -270,7 +288,7 @@ export const googleAuth = async (req, res) => {
   try {
     const { email, firstName, lastName, password, picture, auth0Id, accountType, mode } = req.body;
 
-    console.log(`Google Auth - Mode: ${mode}, Email: ${email}, Has Password: ${!!password}`);
+    // console.log(`Google Auth - Mode: ${mode}, Email: ${email}, Has Password: ${!!password}`);
 
     // Validation
     if (!email || !firstName || !lastName) {
@@ -285,7 +303,7 @@ export const googleAuth = async (req, res) => {
 
     if (user) {
       // User exists - login them regardless of mode
-      console.log(`User exists - logging in: ${email}`);
+      // console.log(`User exists - logging in: ${email}`);
       
       const payload = {
         email: user.email,
@@ -327,14 +345,14 @@ export const googleAuth = async (req, res) => {
       });
     }
 
-    if (mode !== 'signup' || !password) {
+    if (mode === 'signup' || !password) {
       return res.status(400).json({
         success: false,
         message: "Password is required for signup",
       });
     }
 
-    console.log(`Creating new user: ${email}`);
+    // console.log(`Creating new user: ${email}`);
 
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
@@ -358,7 +376,7 @@ export const googleAuth = async (req, res) => {
       image: picture || `https://api.dicebear.com/5.x/initials/svg?seed=${firstName} ${lastName}`,
     });
 
-    console.log(`New user created: ${user._id}`);
+    // console.log(`New user created: ${user._id}`);
 
     // Generate token
     const payload = {
