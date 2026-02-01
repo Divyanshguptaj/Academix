@@ -56,7 +56,6 @@ const Auth0Callback = () => {
           dispatch(googleLogin(googleUserData));
         } catch (loginErr) {
           // User doesn't exist - go to password setup
-          toast.dismiss();
           sessionStorage.setItem('googleUserData', JSON.stringify(googleUserData));
           navigate('/setup-password', { state: { googleUserData } });
         }
@@ -66,7 +65,6 @@ const Auth0Callback = () => {
       }
     } catch (err) {
       console.error('Auth callback error:', err);
-      toast.error('Authentication failed. Please try again.');
       navigate('/login');
     }
   };

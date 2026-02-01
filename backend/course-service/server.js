@@ -19,13 +19,18 @@ app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 app.use(cors({
   origin: [
-    "http://localhost:3000",
+    "http://localhost:4000",
     "https://academix-w1rw.onrender.com",
     "https://academix-sigma.vercel.app"
   ],
   methods: "GET,POST,PUT,DELETE",
   credentials: true,
 }));
+
+app.use((req, res, next) => {
+  console.log('🔥 GATEWAY RECEIVED:', req.method, req.url);
+  next();
+});
 
 // Routes
 app.use('/course', courseRoutes);

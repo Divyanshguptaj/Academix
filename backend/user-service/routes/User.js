@@ -1,6 +1,6 @@
 import express from 'express';
 const router = express.Router();
-import {login, signUp, changePassword, sendOTP, getUserByEmail, googleAuth} from '../controllers/Auth.js'
+import {login, signUp, changePassword, sendOTP, getUserByEmail, googleAuth, getInstructorsByIds} from '../controllers/Auth.js'
 import {resetPasswordToken, resetPassword} from '../controllers/ResetPassword.js'
 import { invalidateToken } from '../middlewares/auth.js'
 import { 
@@ -85,6 +85,12 @@ router.get('/user-by-email/:email',
   sanitizeInput, 
   mongoSanitizeMiddleware, 
   getUserByEmail
+);
+
+router.get('/get-instructors-by-ids', 
+  sanitizeInput, 
+  mongoSanitizeMiddleware, 
+  getInstructorsByIds
 );
 
 router.post('/logout', invalidateToken);

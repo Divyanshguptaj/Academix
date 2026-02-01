@@ -6,6 +6,7 @@ import 'react-image-crop/dist/ReactCrop.css'
 import { updateDisplayPicture } from "../../../../services/operations/settingsAPI"
 import { fetchUserDetails } from "../../../../services/operations/profileAPI"
 import IconBtn from "../../../common/IconBtn"
+import { getUserImage, createImageErrorHandler } from "../../../../utils/imageUtils"
 
 // Helper function to create initial crop
 function centerAspectCrop(mediaWidth, mediaHeight, aspect) {
@@ -186,9 +187,11 @@ export default function ChangeProfilePicture() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 rounded-md border-[1px] border-richblack-300 bg-richblack-800 p-4 md:p-8 md:px-12 text-richblack-5 mx-4 md:mx-0">
         <div className="flex items-center gap-x-4">
           <img
-            src={croppedImageUrl || user?.image}
+            src={croppedImageUrl || getUserImage(user)}
             alt={`profile-${user?.firstName}`}
             className="aspect-square w-[60px] sm:w-[78px] rounded-full object-cover border-2 border-richblack-600 flex-shrink-0"
+            onError={createImageErrorHandler(user)}
+            loading="lazy"
           />
           <div className="space-y-2 text-white min-w-0">
             <p className="text-sm sm:text-base">Change Profile Picture</p>

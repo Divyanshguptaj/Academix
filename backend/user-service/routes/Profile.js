@@ -1,7 +1,7 @@
 import express from 'express';
 const router = express.Router();
 
-import {updateProfile, deleteAccount, getAllUsers,getUserDetails, getEnrolledCourses, instructorDetails, updateDisplayPicture, addCourseToUser, removeCourseFromUser, getCourseProgress, updateCourseProgress} from '../controllers/Profile.js'
+import {updateProfile, deleteAccount, getAllUsers,getUserDetails, getEnrolledCourses, instructorDetails, updateDisplayPicture} from '../controllers/Profile.js'
 import { 
   sanitizeInput, 
   handleValidationErrors,
@@ -61,35 +61,5 @@ router.put('/updateDisplayPicture',
   updateDisplayPicture
 );
 
-// Course-related endpoints for Course Service communication
-router.post('/add-course', 
-  sanitizeInput, 
-  mongoSanitizeMiddleware, 
-  validateCourseOperation, 
-  handleValidationErrors, 
-  addCourseToUser
-);
-
-router.post('/remove-course', 
-  sanitizeInput, 
-  mongoSanitizeMiddleware, 
-  validateCourseOperation, 
-  handleValidationErrors, 
-  removeCourseFromUser
-);
-
-router.get('/course-progress/:courseId/:userId', 
-  sanitizeInput, 
-  mongoSanitizeMiddleware, 
-  getCourseProgress
-);
-
-router.post('/update-progress', 
-  sanitizeInput, 
-  mongoSanitizeMiddleware, 
-  validateCourseOperation, 
-  handleValidationErrors, 
-  updateCourseProgress
-);
 
 export default router

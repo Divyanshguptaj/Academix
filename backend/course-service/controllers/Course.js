@@ -74,7 +74,6 @@ export const editCourse = async (req, res) => {
             },
             { new: true }
         )
-        .populate("instructor")
         .populate("category")
         .populate({
             path: "courseContent",
@@ -83,10 +82,34 @@ export const editCourse = async (req, res) => {
             },
         });
 
+        // Get instructor details via user-service
+        let instructorDetails = null;
+        if (updatedCourse.instructor) {
+            try {
+                const instructorResponse = await fetch(
+                    `http://localhost:4001/user/get-instructors-by-ids?ids=${updatedCourse.instructor}&fields=firstName,lastName,image,additionalDetails`
+                );
+                
+                if (instructorResponse.ok) {
+                    const instructorData = await instructorResponse.json();
+                    instructorDetails = instructorData.data && instructorData.data[0];
+                }
+            } catch (error) {
+                console.error("Error fetching instructor details:", error);
+                // Continue without instructor details if user service is unavailable
+            }
+        }
+
+        // Merge instructor details with course data
+        const result = {
+            ...updatedCourse.toObject(),
+            instructor: instructorDetails || updatedCourse.instructor,
+        };
+
         return res.status(200).json({
             success: true,
             message: "Course details updated successfully",
-            data: updatedCourse,
+            data: result,
         });
 
     } catch (error) {
@@ -211,7 +234,7 @@ export const showAllCourses = async (req,res)=>{
             instuctor: true,
             ratingAndReviews: true,
             studentsEnrolled: true,
-        }).populate("instructor").exec();
+        }).exec();
 
         // console.log(allCourses)
 
@@ -238,13 +261,12 @@ export const getCourseDetails = async (req,res)=>{
                 message: "Feilds can't be empty",
             })
         }
+        
+        // 1. Get course details without studentsEnrolled and instructor population (to avoid Mongoose error)
         const courseDetails = await Course.findById(courseId)
-        .populate({path: "studentsEnrolled", populate: {path: 'courseProgress'}})
-        .populate({path: 'instructor',populate:{path:'additionalDetails'},})
         .populate('ratingAndReviews')
         .populate('category')
         .populate({path: 'courseContent',populate:{path: 'subSection'},}).exec();
-        // .populate({path: "studentsEnrolled",populate:{path:'additionalDetails'},});
 
         if(!courseDetails){
             return res.status(400).json({
@@ -252,8 +274,54 @@ export const getCourseDetails = async (req,res)=>{
                 message: "Can't find the course...",
             })
         }
-        const result = {...courseDetails, success: true};
-        // console.log(result)
+
+        // 2. Get instructor details via user-service
+        let instructorDetails = null;
+        if (courseDetails.instructor) {
+            try {
+                const instructorResponse = await fetch(
+                    `http://localhost:4001/user/get-instructors-by-ids?ids=${courseDetails.instructor}&fields=firstName,lastName,image,additionalDetails`
+                );
+                
+                if (instructorResponse.ok) {
+                    const instructorData = await instructorResponse.json();
+                    console.log("Instructor API response:", instructorData);
+                    instructorDetails = instructorData.data && instructorData.data[0];
+                } else {
+                    console.error("Instructor API returned non-ok status:", instructorResponse.status);
+                }
+            } catch (error) {
+                console.error("Error fetching instructor details:", error);
+                // Continue without instructor details if user service is unavailable
+            }
+        }
+
+        // 3. Get enrolled students details via user-service
+        let studentsDetails = [];
+        if (courseDetails.studentsEnrolled && courseDetails.studentsEnrolled.length > 0) {
+            try {
+                const studentsResponse = await fetch(
+                    `http://localhost:4001/user/get-instructors-by-ids?ids=${courseDetails.studentsEnrolled.join(',')}&fields=firstName,lastName,image,additionalDetails`
+                );
+                
+                if (studentsResponse.ok) {
+                    const studentsData = await studentsResponse.json();
+                    studentsDetails = studentsData.data || [];
+                }
+            } catch (error) {
+                console.error("Error fetching students details:", error);
+                // Continue without students details if user service is unavailable
+            }
+        }
+
+        // 4. Merge instructor and students details with course data
+        const result = {
+            ...courseDetails.toObject(),
+            instructor: instructorDetails || courseDetails.instructor,
+            studentsEnrolled: studentsDetails || courseDetails.studentsEnrolled,
+            success: true
+        };
+        
         return res.status(200).json({
             success: true,
             message: "Found course details succesfully...",
@@ -261,9 +329,11 @@ export const getCourseDetails = async (req,res)=>{
         })
 
     } catch (error) {
-        return res.status(400).json({
+        console.error("Error getting course details:", error);
+        return res.status(500).json({
             success: false,
             message: "Can't get course details",
+            error: error.message,
         })
     }
 }
@@ -369,40 +439,6 @@ export const deleteCourse = async (req, res) => {
     }
 };
 
-export const updateCourseProgress = async (req, res) => {
-  try {
-    const { userId, courseId, subSectionId } = req.body;
-
-    if (!userId || !courseId || !subSectionId) {
-      return res.status(400).json({ success: false, message: "Missing required fields" });
-    }
-
-    // Update course progress via User Service API
-    try {
-      const response = await axios.post('http://localhost:4001/profile/update-progress', {
-        userId,
-        courseId,
-        subSectionId
-      });
-
-      return res.status(200).json({
-        success: true,
-        message: "Lecture marked as completed",
-        data: response.data,
-      });
-    } catch (error) {
-      console.error("Error calling User Service for progress update:", error.message);
-      return res.status(500).json({
-        success: false,
-        message: "Error updating course progress"
-      });
-    }
-
-  } catch (error) {
-    console.error("Error updating course progress:", error);
-    return res.status(500).json({ success: false, message: "Internal server error" });
-  }
-};
 
 // Get course details for payment processing (for Payment Service communication)
 export const getCourseDetailsForPayment = async (req, res) => {
@@ -485,3 +521,165 @@ export const enrollStudentInCourse = async (req, res) => {
     });
   }
 };
+
+// Get courses by IDs (for User Service communication)
+export const getCourseByIds = async (req, res) => {
+  try {
+    const { ids } = req.query;
+
+    if (!ids) {
+      return res.status(400).json({
+        success: false,
+        message: "Course IDs are required",
+      });
+    }
+
+    // Split the comma-separated IDs and validate them
+    const courseIds = ids.split(',').map(id => id.trim());
+    
+    // Validate all IDs are valid ObjectIds
+    for (const id of courseIds) {
+      if (!mongoose.Types.ObjectId.isValid(id)) {
+        return res.status(400).json({
+          success: false,
+          message: `Invalid course ID: ${id}`,
+        });
+      }
+    }
+
+    // Fetch courses with populated courseContent and subSection
+    const courses = await Course.find({ _id: { $in: courseIds } })
+      .populate({
+        path: 'courseContent',
+        populate: {
+          path: 'subSection',
+        },
+      })
+      .exec();
+
+    if (!courses || courses.length === 0) {
+      return res.status(200).json({
+        success: true,
+        message: "No courses found for the provided IDs",
+        data: [],
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Courses fetched successfully",
+      data: courses,
+    });
+  } catch (error) {
+    console.error("Error getting courses by IDs:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
+      error: error.message,
+    });
+  }
+};
+
+// Get enrolled students with progress for a course
+export const getEnrolledStudentsWithProgress = async (req, res) => {
+  try {
+    const { courseId } = req.params;
+
+    if (!courseId) {
+      return res.status(400).json({
+        success: false,
+        message: "Course ID is required",
+      });
+    }
+
+    // Validate courseId is a valid ObjectId
+    if (!mongoose.Types.ObjectId.isValid(courseId)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid course ID",
+      });
+    }
+
+    // Get course details without students population
+    const course = await Course.findById(courseId)
+      .populate('category')
+      .populate({
+        path: 'courseContent',
+        populate: {
+          path: 'subSection',
+        },
+      })
+      .exec();
+
+    if (!course) {
+      return res.status(404).json({
+        success: false,
+        message: "Course not found",
+      });
+    }
+
+    // Get enrolled students details via user-service
+    let studentsDetails = [];
+    if (course.studentsEnrolled && course.studentsEnrolled.length > 0) {
+      try {
+        const studentsResponse = await fetch(
+          `http://localhost:4001/user/get-instructors-by-ids?ids=${course.studentsEnrolled.join(',')}&fields=firstName,lastName,image,additionalDetails`
+        );
+        
+        if (studentsResponse.ok) {
+          const studentsData = await studentsResponse.json();
+          studentsDetails = studentsData.data || [];
+        }
+      } catch (error) {
+        console.error("Error fetching students details:", error);
+        // Continue without students details if user service is unavailable
+      }
+    }
+
+    // Get course progress for each student
+    let courseProgressData = [];
+    if (course.studentsEnrolled && course.studentsEnrolled.length > 0) {
+      try {
+        courseProgressData = await CourseProgress.find({
+          courseID: courseId,
+          userId: { $in: course.studentsEnrolled }
+        }).populate('completedVideos');
+      } catch (error) {
+        console.error("Error fetching course progress:", error);
+        // Continue without progress data if CourseProgress model issues occur
+      }
+    }
+
+    // Merge student details with progress data
+    const studentsWithProgress = studentsDetails.map(student => {
+      const progress = courseProgressData.find(cp => cp.userId.toString() === student._id.toString());
+      return {
+        ...student,
+        progress: progress || { completedVideos: [] }
+      };
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: "Enrolled students with progress fetched successfully",
+      data: {
+        course: {
+          _id: course._id,
+          courseName: course.courseName,
+          category: course.category,
+          courseContent: course.courseContent
+        },
+        enrolledStudents: studentsWithProgress,
+        totalEnrolled: course.studentsEnrolled.length
+      },
+    });
+  } catch (error) {
+    console.error("Error getting enrolled students with progress:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
+      error: error.message,
+    });
+  }
+};
+

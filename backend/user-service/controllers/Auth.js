@@ -4,6 +4,7 @@ import otpgenerator from "otp-generator";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import Profile from "../models/Profile.js";
+import mongoose from "mongoose";
 
 //Send OTP -
 export const sendOTP = async (req, res) => {
@@ -345,7 +346,7 @@ export const googleAuth = async (req, res) => {
       });
     }
 
-    if (mode === 'signup' || !password) {
+    if (mode === 'signup' && !password) {
       return res.status(400).json({
         success: false,
         message: "Password is required for signup",
@@ -373,7 +374,7 @@ export const googleAuth = async (req, res) => {
       password: hashedPassword,
       accountType: accountType || 'Student',
       additionalDetails: profileDetails._id,
-      image: picture || `https://api.dicebear.com/5.x/initials/svg?seed=${firstName} ${lastName}`,
+      image: picture ? picture.replace('=s96-c', '=s200-c') : `https://api.dicebear.com/5.x/initials/svg?seed=${firstName} ${lastName}`,
     });
 
     // console.log(`New user created: ${user._id}`);
@@ -448,6 +449,81 @@ export const getUserByEmail = async (req, res) => {
     return res.status(500).json({
       success: false,
       message: "Internal Server Error",
+    });
+  }
+};
+
+// Get instructors by IDs (for Course Service communication)
+export const getInstructorsByIds = async (req, res) => {
+  try {
+    const { ids, fields } = req.query;
+    console.log("Received IDs:", ids);
+    if (!ids) {
+      return res.status(400).json({
+        success: false,
+        message: "Instructor IDs are required",
+      });
+    }
+
+    // Split the comma-separated IDs and validate them
+    const instructorIds = ids.split(',').map(id => id.trim());
+    console.log("Requested instructor IDs:", instructorIds);
+    // Validate all IDs are valid ObjectIds
+    for (const id of instructorIds) {
+      if (!mongoose.Types.ObjectId.isValid(id)) {
+        return res.status(400).json({
+          success: false,
+          message: `Invalid instructor ID: ${id}`,
+        });
+      }
+    }
+    console.log("All instructor IDs are valid.");
+    // Build select query based on fields parameter
+    let selectFields;
+    if (fields) {
+      const requestedFields = fields.split(',').map(field => field.trim());
+      // Only allow safe fields to be selected
+      const allowedFields = ['firstName', 'lastName', 'image', 'additionalDetails'];
+      const validFields = requestedFields.filter(field => allowedFields.includes(field));
+      // Include only the requested safe fields
+      selectFields = validFields.join(' ');
+    } else {
+      // Default selection - exclude sensitive fields
+      selectFields = 'firstName lastName image additionalDetails';
+    }
+    console.log("Select fields:", selectFields);  
+    // First, check if the user exists at all
+    const allUsers = await User.find({ _id: { $in: instructorIds } });
+    console.log("All users found:", allUsers.map(u => ({ id: u._id, accountType: u.accountType, email: u.email })));
+    
+    // Fetch instructors with populated additionalDetails
+    const instructors = await User.find({ 
+      _id: { $in: instructorIds },
+      accountType: 'Instructor'
+    })
+    .select(selectFields)
+    .populate('additionalDetails')
+    .exec();
+    console.log("Fetched instructors:", instructors);
+    if (!instructors || instructors.length === 0) {
+      return res.status(200).json({
+        success: true,
+        message: "No instructors found for the provided IDs",
+        data: [],
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Instructors fetched successfully",
+      data: instructors,
+    });
+  } catch (error) {
+    console.error("Get Instructors by IDs Error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal Server Error",
+      error: error.message,
     });
   }
 };

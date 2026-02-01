@@ -4,6 +4,8 @@ import axios from "axios";
 import mailSender from "../../shared-utils/mailSender.js";
 import mongoose from "mongoose";
 import { paymentSuccessEmail } from "../../shared-utils/mail/templates/paymentSuccessEmail.js";
+import { withRetry, courseService, userService } from "../utils/retryUtils.js";
+import PaymentTransaction from "../models/PaymentTransaction.js";
 
 // Capture the payment and initiate the Razorpay order
 export const capturePayment = async (req, res) => {
@@ -18,6 +20,8 @@ export const capturePayment = async (req, res) => {
     }
 
     let total_amount = 0;
+    const courseDetails = [];
+
     for (const courseObj of courses) {
       let course;
       try {
@@ -33,19 +37,17 @@ export const capturePayment = async (req, res) => {
             });
         }
 
-        // Get course details from Course Service API
-        try {
-          const courseResponse = await axios.get(`http://localhost:4002/course/details/${course_id}`);
-          if (!courseResponse.data.success) {
-            return res
-              .status(404)
-              .json({ success: false, message: "Could not find the Course" });
+        // Get course details from Course Service API with retry logic
+        const courseResponse = await withRetry(async () => {
+          const response = await courseService.get(`/course/details/${course_id}`);
+          if (!response.data.success) {
+            throw new Error("Could not find the Course");
           }
-          course = courseResponse.data.course;
-        } catch (error) {
-          console.error("Error calling Course Service:", error.message);
-          return res.status(500).json({ success: false, message: "Error communicating with Course Service" });
-        }
+          return response;
+        });
+
+        course = courseResponse.data.course;
+        courseDetails.push(course);
 
         // Check if the user is already enrolled
         const uid = new mongoose.Types.ObjectId(userId);
@@ -57,7 +59,7 @@ export const capturePayment = async (req, res) => {
 
         total_amount += course.price;
       } catch (error) {
-        // console.error("Error finding course:", error);
+        console.error("Error finding course:", error);
         return res.status(500).json({ success: false, message: error.message });
       }
     }
@@ -67,13 +69,25 @@ export const capturePayment = async (req, res) => {
       currency: "INR",
       receipt: Math.random(Date.now()).toString(),
     };
+    
     // Initiate the payment using Razorpay
     const paymentResponse = await instance.orders.create(options);
-    // console.log(paymentResponse);
+    
+    // Save transaction to database
+    const transaction = await PaymentTransaction.create({
+      userId,
+      courseIds: courseDetails.map(c => c._id),
+      amount: total_amount,
+      currency: "INR",
+      razorpayOrderId: paymentResponse.id,
+      status: "pending"
+    });
+
     return res.json({
       success: true,
       message: paymentResponse,
-      key: process.env.RAZORPAY_KEY_ID, // ✅ send this to frontend
+      key: process.env.RAZORPAY_KEY_ID,
+      transactionId: transaction._id
     });
   } catch (error) {
     console.error("Error processing payment:", error);
@@ -83,9 +97,8 @@ export const capturePayment = async (req, res) => {
   }
 };
 
-// verify the payment
+// verify the payment with auto-refund on enrollment failure
 export const verifyPayment = async (req, res) => {
-  // console.log("object32");
   try {
     const {
       razorpay_order_id,
@@ -120,13 +133,38 @@ export const verifyPayment = async (req, res) => {
         .json({ success: false, message: "Payment Failed" });
     }
 
-    // Call enrollStudents without sending response here
-    await enrollStudents(courses, userId);
+    // Update transaction status to verified
+    await PaymentTransaction.findOneAndUpdate(
+      { razorpayOrderId: razorpay_order_id },
+      { 
+        razorpayPaymentId: razorpay_payment_id,
+        status: 'verified'
+      }
+    );
 
-    return res.status(200).json({ success: true, message: "Payment Verified" });
+    // Try to enroll with auto-refund on failure
+    await enrollStudentsWithAutoRefund(courses, userId, razorpay_payment_id);
+
+    return res.status(200).json({ 
+      success: true, 
+      message: "Payment Verified and User Enrolled" 
+    });
+    
   } catch (error) {
     console.error("Error verifying payment:", error);
-    return res.status(500).json({ success: false, message: "Server error" });
+    
+    // If error contains refund info, it's already handled
+    if (error.message.includes('auto-refunded')) {
+      return res.status(400).json({ 
+        success: false, 
+        message: error.message 
+      });
+    }
+    
+    return res.status(500).json({ 
+      success: false, 
+      message: "Server error" 
+    });
   }
 };
 
@@ -171,32 +209,153 @@ export const sendPaymentSuccessEmail = async (req, res) => {
   }
 };
 
-// enroll the student in the courses
-const enrollStudents = async (courses, userId) => {
+// enroll the student in the courses with auto-refund on failure
+const enrollStudentsWithAutoRefund = async (courses, userId, razorpayPaymentId) => {
+  const session = await mongoose.startSession();
+  
   try {
-    // Enroll student in courses via Course Service API
-    try {
-      await axios.post('http://localhost:4002/course/enroll', {
-        courses,
-        userId
+    session.startTransaction();
+    
+    // 1. Try to enroll in courses with retry logic
+    await withRetry(async () => {
+      await courseService.post('/course/enroll', {
+        courses, userId
       });
-    } catch (error) {
-      console.error("Error enrolling student via Course Service:", error.message);
-    }
-
-    // Add courses to user's profile via User Service API
-    try {
+    });
+    
+    // 2. Try to add courses to user profile with retry logic
+    await withRetry(async () => {
       for (const course of courses) {
         const courseId = typeof course === "object" ? course.courseId : course;
-        await axios.post('http://localhost:4001/profile/add-course', {
+        await userService.post('/profile/add-course', {
           userId,
           courseId
         });
       }
-    } catch (error) {
-      console.error("Error updating user courses via User Service:", error.message);
+    });
+    
+    // 3. Update transaction status to completed
+    await PaymentTransaction.findOneAndUpdate(
+      { razorpayPaymentId },
+      { status: 'completed' }
+    );
+    
+    await session.commitTransaction();
+    return { success: true };
+    
+  } catch (error) {
+    // CRITICAL: Auto-refund if enrollment fails
+    console.error("Enrollment failed, initiating auto-refund:", error.message);
+    
+    try {
+      await session.abortTransaction();
+      
+      // Initiate refund with Razorpay
+      const refund = await instance.payments.refund(razorpayPaymentId, {
+        notes: { reason: 'Enrollment failed - auto refund' }
+      });
+      
+      // Update transaction status to refunded
+      await PaymentTransaction.findOneAndUpdate(
+        { razorpayPaymentId },
+        { 
+          status: 'refunded',
+          refundId: refund.id,
+          refundReason: 'Enrollment failed'
+        }
+      );
+      
+      console.log("Auto-refund completed:", refund.id);
+      throw new Error(`Payment failed and auto-refunded. Refund ID: ${refund.id}`);
+      
+    } catch (refundError) {
+      console.error("Auto-refund failed:", refundError.message);
+      // If refund fails, mark as failed for manual intervention
+      await PaymentTransaction.findOneAndUpdate(
+        { razorpayPaymentId },
+        { 
+          status: 'failed',
+          errorMessage: `Enrollment failed and auto-refund failed: ${refundError.message}`
+        }
+      );
+      throw new Error(`Enrollment failed and auto-refund failed: ${refundError.message}`);
+    }
+  } finally {
+    session.endSession();
+  }
+};
+
+// Manual refund API for admin use
+export const manualRefund = async (req, res) => {
+  const { transactionId, reason } = req.body;
+  
+  try {
+    const transaction = await PaymentTransaction.findById(transactionId);
+    
+    if (!transaction) {
+      return res.status(404).json({
+        success: false,
+        message: "Transaction not found"
+      });
+    }
+    
+    if (transaction.status === 'refunded') {
+      return res.status(400).json({
+        success: false,
+        message: "Transaction already refunded"
+      });
+    }
+    
+    // Initiate refund with Razorpay
+    const refund = await instance.payments.refund(transaction.razorpayPaymentId, {
+      notes: { reason }
+    });
+    
+    // Update transaction
+    transaction.status = 'refunded';
+    transaction.refundId = refund.id;
+    transaction.refundReason = reason;
+    await transaction.save();
+    
+    // Rollback enrollment
+    await rollbackEnrollment(transaction.courseIds, transaction.userId);
+    
+    return res.json({
+      success: true,
+      message: "Refund processed successfully",
+      refundId: refund.id
+    });
+    
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: "Refund failed: " + error.message
+    });
+  }
+};
+
+// Helper function to rollback enrollment
+const rollbackEnrollment = async (courseIds, userId) => {
+  try {
+    // Remove from courses
+    await withRetry(() => 
+      courseService.post('/course/unenroll', {
+        courses: courseIds,
+        userId
+      })
+    );
+    
+    // Remove from user profile
+    for (const courseId of courseIds) {
+      await withRetry(() =>
+        userService.post('/profile/remove-course', {
+          userId,
+          courseId
+        })
+      );
     }
   } catch (error) {
-    console.error("Error enrolling student:", error);
+    console.error("Rollback failed:", error.message);
+    // Log for manual intervention - don't throw error as refund already processed
   }
 };

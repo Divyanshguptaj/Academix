@@ -31,14 +31,13 @@ app.get('/', (req, res) => {
   });
 });
 
-// app.use((req, res, next) => {
-//   console.log('🔥 GATEWAY RECEIVED:', req.method, req.url);
-//   next();
-// });
+app.use((req, res, next) => {
+  console.log('🔥 GATEWAY RECEIVED:', req.method, req.url);
+  next();
+});
 
 // Auth routes proxy
-app.use(
-  '/api/v1/auth',
+app.use('/api/v1/auth',
   createProxyMiddleware({
     target: USER_SERVICE_URL,
     changeOrigin: true,
@@ -55,14 +54,22 @@ app.use(
 app.use('/api/v1/profile', createProxyMiddleware({
   target: USER_SERVICE_URL,
   changeOrigin: true,
-  pathRewrite: { '^/api/v1/profile': '/profile' }
+  pathRewrite: (path, req) => {
+      const newPath = `/profile${path}`;
+      console.log('🔁 Rewriting path:', path, '→', newPath);
+      return newPath;
+    },
 }));
 
 // Course routes proxy
 app.use('/api/v1/course', createProxyMiddleware({
   target: COURSE_SERVICE_URL,
   changeOrigin: true,
-  pathRewrite: { '^/api/v1/course': '/course' }
+  pathRewrite: (path, req) => {
+      const newPath = `/course${path}`;
+      console.log('🔁 Rewriting path:', path, '→', newPath);
+      return newPath;
+    },
 }));
 
 // Payment routes proxy

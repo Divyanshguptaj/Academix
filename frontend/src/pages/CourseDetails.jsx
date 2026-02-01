@@ -44,14 +44,14 @@ function CourseDetails() {
   // Calculating Avg Review count
   const [avgReviewCount, setAvgReviewCount] = useState(0);
   useEffect(() => {
-    const count = GetAvgRating(response?._doc?.ratingAndReviews);
+    const count = GetAvgRating(response?.data?.ratingAndReviews || response?.ratingAndReviews);
     setAvgReviewCount(count);
   }, [response]);
 
   const [totalNoOfLectures, setTotalNoOfLectures] = useState(0);
   useEffect(() => {
     let lectures = 0;
-    response?._doc?.courseContent?.forEach((sec) => {
+    (response?.data?.courseContent || response?.courseContent)?.forEach((sec) => {
       lectures += sec.subSection.length || 0;
     });
     setTotalNoOfLectures(lectures);
@@ -89,7 +89,7 @@ function CourseDetails() {
     instructor,
     studentsEnrolled,
     createdAt,
-  } = response._doc;
+  } = response.data || response;
 
   // Check if user is enrolled
   const isEnrolled = user && user?.courses?.includes(course_id);
@@ -114,7 +114,7 @@ function CourseDetails() {
 
   const handleAddToCart = () => {
     if (token) {
-      dispatch(addToCart(response._doc));
+      dispatch(addToCart(response.data || response));
       return;
     }
     setConfirmationModal({
@@ -173,7 +173,12 @@ function CourseDetails() {
               
               <div>
                 <p className="text-white text-sm sm:text-base">
-                  Created By : <span className="text-yellow-400 font-medium">{`${instructor.firstName} ${instructor.lastName}`}</span>
+                  Created By : <span className="text-yellow-400 font-medium">
+                    {instructor?.firstName && instructor?.lastName 
+                      ? `${instructor.firstName} ${instructor.lastName}`
+                      : instructor?._id || 'Unknown Instructor'
+                    }
+                  </span>
                 </p>
               </div>
               
@@ -233,7 +238,7 @@ function CourseDetails() {
           {/* Desktop Course Card */}
           <div className="right-[1rem] top-[60px] mx-auto hidden min-h-[600px] w-1/3 max-w-[410px] translate-y-24 md:translate-y-0 lg:absolute lg:block">
             <CourseDetailsCard
-              course={response?._doc}
+              course={response.data || response}
               setConfirmationModal={setConfirmationModal}
               handleBuyCourse={handleBuyCourse}
             />
@@ -246,18 +251,18 @@ function CourseDetails() {
         <div className="mx-auto max-w-maxContentTab lg:mx-0 xl:max-w-[810px]">
           
           {/* What will you learn section */}
-          <div className="my-8 border border-richblack-600 p-4 sm:p-8 rounded-lg">
+          <div className="my-8 border border-richblack-600 p-4 sm:p-6 rounded-lg">
             <h2 className="text-2xl sm:text-3xl font-semibold mb-4">What you'll learn</h2>
-            <div className="mt-5">
+            <div className="mt-4 max-h-[400px] overflow-y-auto">
               <ReactMarkdown
                 components={{
-                  p: ({children}) => <p className="text-richblack-50 leading-relaxed mb-4">{children}</p>,
-                  ul: ({children}) => <ul className="text-richblack-50 leading-relaxed list-disc list-inside space-y-2">{children}</ul>,
-                  ol: ({children}) => <ol className="text-richblack-50 leading-relaxed list-decimal list-inside space-y-2">{children}</ol>,
-                  li: ({children}) => <li className="text-richblack-50">{children}</li>,
-                  h1: ({children}) => <h1 className="text-richblack-5 text-2xl font-bold mb-4">{children}</h1>,
-                  h2: ({children}) => <h2 className="text-richblack-5 text-xl font-semibold mb-3">{children}</h2>,
-                  h3: ({children}) => <h3 className="text-richblack-5 text-lg font-medium mb-2">{children}</h3>,
+                  p: ({children}) => <p className="text-richblack-50 leading-relaxed mb-3 text-sm sm:text-base">{children}</p>,
+                  ul: ({children}) => <ul className="text-richblack-50 leading-relaxed list-disc list-inside space-y-2 text-sm sm:text-base">{children}</ul>,
+                  ol: ({children}) => <ol className="text-richblack-50 leading-relaxed list-decimal list-inside space-y-2 text-sm sm:text-base">{children}</ol>,
+                  li: ({children}) => <li className="text-richblack-50 text-sm sm:text-base">{children}</li>,
+                  h1: ({children}) => <h1 className="text-richblack-5 text-xl sm:text-2xl font-bold mb-3">{children}</h1>,
+                  h2: ({children}) => <h2 className="text-richblack-5 text-lg sm:text-xl font-semibold mb-2">{children}</h2>,
+                  h3: ({children}) => <h3 className="text-richblack-5 text-base sm:text-lg font-medium mb-2">{children}</h3>,
                   strong: ({children}) => <strong className="text-richblack-5 font-semibold">{children}</strong>,
                   em: ({children}) => <em className="text-richblack-100 italic">{children}</em>,
                 }}
@@ -307,25 +312,40 @@ function CourseDetails() {
             {/* Author Details */}
             <div className="mb-12 py-4">
               <h2 className="text-2xl sm:text-[28px] font-semibold mb-4">Author</h2>
-              <div className="flex items-center gap-4 py-4">
-                <img
-                  src={
-                    instructor.image
-                      ? instructor.image
-                      : `https://api.dicebear.com/5.x/initials/svg?seed=${instructor.firstName} ${instructor.lastName}`
-                  }
-                  alt="Author"
-                  className="h-12 w-12 sm:h-14 sm:w-14 rounded-full object-cover border-2 border-richblack-600"
-                />
-                <div>
-                  <p className="text-lg sm:text-xl font-medium text-richblack-5">
-                    {`${instructor.firstName} ${instructor.lastName}`}
-                  </p>
-                  <p className="text-sm text-richblack-300">Instructor</p>
+              {instructor ? (
+                <div className="flex items-center gap-4 py-4">
+                  <img
+                    src={
+                      instructor.image
+                        ? instructor.image
+                        : `https://api.dicebear.com/5.x/initials/svg?seed=${instructor.firstName || 'Unknown'} ${instructor.lastName || 'Instructor'}`
+                    }
+                    alt="Author"
+                    className="h-12 w-12 sm:h-14 sm:w-14 rounded-full object-cover border-2 border-richblack-600"
+                  />
+                  <div>
+                    <p className="text-lg sm:text-xl font-medium text-richblack-5">
+                      {instructor.firstName && instructor.lastName 
+                        ? `${instructor.firstName} ${instructor.lastName}`
+                        : instructor._id || 'Unknown Instructor'
+                      }
+                    </p>
+                    <p className="text-sm text-richblack-300">Instructor</p>
+                  </div>
                 </div>
-              </div>
+              ) : (
+                <div className="flex items-center gap-4 py-4">
+                  <div className="h-12 w-12 sm:h-14 sm:w-14 rounded-full bg-richblack-600 flex items-center justify-center border-2 border-richblack-600">
+                    <span className="text-white text-sm font-medium">?</span>
+                  </div>
+                  <div>
+                    <p className="text-lg sm:text-xl font-medium text-richblack-5">Unknown Instructor</p>
+                    <p className="text-sm text-richblack-300">Instructor</p>
+                  </div>
+                </div>
+              )}
               {instructor?.additionalDetails?.about && (
-                <p className="text-richblack-100 leading-relaxed">
+                <p className="text-richblack-100 leading-relaxed mt-4">
                   {instructor.additionalDetails.about}
                 </p>
               )}
@@ -355,7 +375,7 @@ function CourseDetails() {
                 onClick={handleAddToCart}
                 disabled={isInCart}
               >
-                <BsCartPlus className="text-lg" />
+                <BsCartPlus className="text-lg text-richblack-200" />
               </button>
             </div>
           </div>

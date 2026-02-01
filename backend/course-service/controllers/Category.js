@@ -61,7 +61,7 @@ export const categoryPageDetails = async (req, res) => {
       });
     }
 
-    // Fetch selected category with published courses
+    // 1. Fetch selected category with published courses (without instructor population)
     const selectedCategory = await Category.findById(categoryId)
       .populate({
         path: "courses",
@@ -77,7 +77,43 @@ export const categoryPageDetails = async (req, res) => {
       });
     }
 
-    // Fetch all other categories except the selected one
+    // 2. Extract instructor IDs from courses
+    const instructorIds = selectedCategory.courses.map(course => course.instructor);
+
+    // 3. Call user-service to get instructor details
+    let instructorDetails = [];
+    if (instructorIds.length > 0) {
+      try {
+        const instructorResponse = await fetch(
+          `http://localhost:4001/user/get-instructors-by-ids?ids=${instructorIds.join(',')}&fields=firstName,lastName,image,additionalDetails`
+        );
+        
+        if (instructorResponse.ok) {
+          const instructorData = await instructorResponse.json();
+          instructorDetails = instructorData.data || [];
+        }
+      } catch (error) {
+        console.error("Error fetching instructor details:", error);
+        // Continue without instructor details if user service is unavailable
+      }
+    }
+
+    // 4. Merge instructor details with courses
+    const coursesWithInstructors = selectedCategory.courses.map(course => {
+      const instructor = instructorDetails.find(inst => inst._id.toString() === course.instructor.toString());
+      return {
+        ...course.toObject(),
+        instructor: instructor || course.instructor
+      };
+    });
+
+    // 5. Update selectedCategory with courses that have instructor details
+    const selectedCategoryWithInstructors = {
+      ...selectedCategory.toObject(),
+      courses: coursesWithInstructors
+    };
+
+    // 6. Fetch all other categories except the selected one
     const categoriesExceptSelected = await Category.find({
       _id: { $ne: categoryId },
     });
@@ -95,11 +131,10 @@ export const categoryPageDetails = async (req, res) => {
         .exec();
     }
 
-    // Fetch top-selling courses across all categories
+    // 7. Fetch top-selling courses across all categories (without instructor population)
     const allCategories = await Category.find().populate({
       path: "courses",
       match: { status: "Published" },
-      populate: { path: "instructor" },
     });
 
     const allCourses = allCategories.flatMap((cat) => cat.courses || []);
@@ -110,7 +145,7 @@ export const categoryPageDetails = async (req, res) => {
     return res.status(200).json({
       success: true,
       data: {
-        selectedCategory,
+        selectedCategory: selectedCategoryWithInstructors,
         differentCategory: differentCategory || { name: "", courses: [] },
         mostSellingCourses: mostSellingCourses || [],
       },

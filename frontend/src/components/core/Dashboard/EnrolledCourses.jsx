@@ -1,8 +1,9 @@
-import { useEffect, useState } from "react"
+import { useEffect, useState, useRef } from "react"
 import ProgressBar from "@ramonak/react-progress-bar"
 import { useSelector } from "react-redux"
 import { useNavigate } from "react-router-dom"
 import { getUserEnrolledCourses } from "../../../services/operations/profileAPI"
+import { toast } from "react-hot-toast"
 
 export default function EnrolledCourses(){
   const { token } = useSelector((state) => state.auth)  
@@ -10,20 +11,36 @@ export default function EnrolledCourses(){
   const navigate = useNavigate()
 
   const [enrolledCourses, setEnrolledCourses] = useState(null)
+  const [isLoading, setIsLoading] = useState(true)
+  const isFetchingRef = useRef(false)
 
   const getEnrolledCourses = async () => {
+    // Prevent duplicate API calls
+    if (isFetchingRef.current || !user?._id) {
+      return;
+    }
+
+    isFetchingRef.current = true;
+    setIsLoading(true);
+
     try {
       const res = await getUserEnrolledCourses(user._id, token);
-      console.log(res);
+      console.log("Enrolled Courses Response:", res);
       setEnrolledCourses(res);
     } catch (error) {
       console.log("Could not fetch enrolled courses.")
+      toast.error("Could Not Get Enrolled Courses")
+    } finally {
+      isFetchingRef.current = false;
+      setIsLoading(false);
     }
   };
 
   useEffect(() => {
-    getEnrolledCourses();
-  }, [])
+    if (user?._id) {
+      getEnrolledCourses();
+    }
+  }, [user?._id, token])
 
   return (
     <div className="px-4 py-6 sm:px-0">

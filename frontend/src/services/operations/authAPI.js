@@ -228,9 +228,12 @@ export function googleLogin(userData) {
       toast.success("Welcome back User!");
       dispatch(setToken(result.token));
       
-      const userImage = result.user?.image
+      // Fix: Use the Google user's picture if available, otherwise fallback to DiceBear
+      const userImage = result.user?.image && result.user.image !== 'undefined' 
         ? result.user.image
-        : `https://api.dicebear.com/5.x/initials/svg?seed=${result.user.firstName} ${result.user.lastName}`;
+        : (userData.picture 
+            ? userData.picture 
+            : `https://api.dicebear.com/5.x/initials/svg?seed=${result.user.firstName} ${result.user.lastName}`);
       
       dispatch(setUser({ ...result.user, image: userImage }));
       localStorage.setItem("token", JSON.stringify(result.token));
@@ -277,9 +280,12 @@ export function googleSignupFinalize(userData, navigate) {
       toast.success(response.data.message || "Signup successful!");
       dispatch(setToken(response.data.token));
       
-      const userImage = response.data?.user?.image
+      // Fix: Use the Google user's picture if available, otherwise fallback to DiceBear
+      const userImage = response.data?.user?.image && response.data.user.image !== 'undefined' 
         ? response.data.user.image
-        : `https://api.dicebear.com/5.x/initials/svg?seed=${response.data.user.firstName} ${response.data.user.lastName}`;
+        : (userData.picture 
+            ? userData.picture 
+            : `https://api.dicebear.com/5.x/initials/svg?seed=${response.data.user.firstName} ${response.data.user.lastName}`);
       
       dispatch(setUser({ ...response.data.user, image: userImage }));
       localStorage.setItem("token", JSON.stringify(response.data.token));

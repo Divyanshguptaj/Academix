@@ -1,7 +1,7 @@
 import express from 'express';
 const router = express.Router();
 import { createCategory, findAllCategory, categoryPageDetails } from '../controllers/Category.js'
-import {createCourse, showAllCourses, getCourseDetails, editCourse,getInstructorCourses, deleteCourse,updateCourseProgress, getCourseDetailsForPayment, enrollStudentInCourse} from '../controllers/Course.js'
+import {createCourse, showAllCourses, getCourseDetails, editCourse,getInstructorCourses, deleteCourse, getCourseDetailsForPayment, enrollStudentInCourse, getCourseByIds, getEnrolledStudentsWithProgress} from '../controllers/Course.js'
 import {auth, isAdmin, isStudent, isInstructor} from '../../shared-utils/middlewares/auth.js'
 import {createSection, updateSection, deleteSection} from '../controllers/Section.js'
 import {createSubSection,deleteSubSection, updateSubSection} from '../controllers/Subsection.js'
@@ -9,7 +9,6 @@ import {createRating, getAverageRating, getAllReviews} from '../controllers/Rati
 
 //course -
 router.post('/editCourse', editCourse)
-router.post('/updateCourseProgress', updateCourseProgress)
 router.post('/createCourse', createCourse)
 router.post('/deleteCourse', deleteCourse)
 router.get('/showAllCoures', showAllCourses);
@@ -19,6 +18,12 @@ router.post('/getFullCourseDetails',getCourseDetails);
 // Payment Service communication endpoints
 router.get('/details/:courseId', getCourseDetailsForPayment);
 router.post('/enroll', enrollStudentInCourse);
+
+// User Service communication endpoint for enrolled courses
+router.get('/get-courses-by-ids', getCourseByIds);
+
+// Get enrolled students with progress for a course
+router.get('/getEnrolledStudents/:courseId', getEnrolledStudentsWithProgress);
 
 //section -
 router.post('/createSection',createSection)

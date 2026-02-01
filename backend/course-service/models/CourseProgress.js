@@ -7,7 +7,7 @@ const courseProgressSchema = new mongoose.Schema({
   },
   userId: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: "User",
+    // Note: User model is in user-service, so we store the ID without ref
   },
   completedVideos: [
     {

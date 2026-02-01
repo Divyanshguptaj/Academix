@@ -36,13 +36,11 @@ export async function getUserEnrolledCourses(userId, token) {
   const toastId = toast.loading("Loading...")
   let result = []
   try {
-    // console.log(userId);
     const response = await apiConnector( "GET", `${GET_USER_ENROLLED_COURSES_API}?userId=${userId}`,
       // {
       //   Authorization: `Bearer ${token}`,
       // }
     )
-    // console.log("GET_USER_ENROLLED_COURSES_API API RESPONSE............",response)
 
     if (!response.data.success) {
       throw new Error(response.data.message)
@@ -50,9 +48,10 @@ export async function getUserEnrolledCourses(userId, token) {
     result = response.data.data
   } catch (error) {
     console.log("GET_USER_ENROLLED_COURSES_API API ERROR............", error)
-    toast.error("Could Not Get Enrolled Courses")
+    throw error; // Re-throw the error so the calling component can handle it
+  } finally {
+    toast.dismiss(toastId)
   }
-  toast.dismiss(toastId)
   return result
 }
 

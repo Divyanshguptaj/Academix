@@ -5,6 +5,7 @@ import { formattedDate } from "../../../utils/dateFormatter"
 import IconBtn from "../../common/IconBtn"
 import { useEffect } from "react"
 import { fetchUserDetails } from "../../../services/operations/profileAPI"
+import { getUserImage, createImageErrorHandler } from "../../../utils/imageUtils"
 
 export default function MyProfile() {
   const { user } = useSelector((state) => state.profile)
@@ -35,9 +36,11 @@ export default function MyProfile() {
       <div className="flex flex-col items-start justify-between gap-4 rounded-md border-[1px] border-richblack-700 bg-richblack-800 p-6 sm:flex-row sm:items-center sm:p-8 sm:px-12">
         <div className="flex items-center gap-x-4">
           <img
-            src={user?.image}
+            src={getUserImage(user)}
             alt={`profile-${user?.firstName}`}
             className="aspect-square w-16 rounded-full object-cover sm:w-[78px]"
+            onError={createImageErrorHandler(user)}
+            loading="lazy"
           />
           <div className="space-y-1">
             <p className="text-lg font-semibold text-cyan-400">
