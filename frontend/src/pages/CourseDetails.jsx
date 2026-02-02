@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate, useParams } from "react-router-dom";
@@ -30,16 +30,17 @@ function CourseDetails() {
   const [confirmationModal, setConfirmationModal] = useState(null);
 
   useEffect(() => {
-    (async () => {
+    async function fetchData() {
       try {
         const res = await fetchCourseDetails(courseId);
-        console.log(res); 
+        console.log("Course Details Response: ", res);
         setResponse(res);
       } catch (error) {
         console.log("Could not fetch Course Details");
       }
-    })();
-  }, [courseId]);
+    };
+    fetchData();
+  }, [courseId, user._id, dispatch]);
 
   // Calculating Avg Review count
   const [avgReviewCount, setAvgReviewCount] = useState(0);

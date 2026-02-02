@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from "react";
-import Footer from "../components/common/Footer";
 import { useParams } from "react-router-dom";
 import { apiConnector } from "../services/apiconnector";
 import { categories } from "../services/apis";
@@ -84,7 +83,7 @@ const Catalog = () => {
           <p
             className={`text-white py-2 ${
               active === 1
-                ? "border-b-4 border-b border-b-yellow-600 text-yellow-400"
+                ? "border-b-4 border-b-yellow-600 text-yellow-400"
                 : "text-richblack-300"
             } cursor-pointer w-[150px] flex justify-center items-center`}
             onClick={() => setActive(1)}
@@ -94,7 +93,7 @@ const Catalog = () => {
           <p
             className={`px-4 py-2 w-[150px] flex justify-center items-center text-white ${
               active === 2
-                ? "border-b border-b-yellow-600 text-yellow-400 border-b-4"
+                ? "border-b-yellow-600 text-yellow-400 border-b-4"
                 : "text-richblack-300"
             } cursor-pointer`}
             onClick={() => setActive(2)}

@@ -1,11 +1,7 @@
 import { useEffect, useState } from "react"
 import { useDispatch, useSelector } from "react-redux"
 import { useParams } from "react-router-dom"
-
-import {
-  fetchCourseDetails,
-  getFullDetailsOfCourse,
-} from "../../../../services/operations/courseDetailsAPI"
+import { fetchFullCourseDetails } from "../../../../slices/viewCourseSlice"
 import { setCourse, setEditCourse } from "../../../../slices/courseSlice"
 import RenderSteps from "../AddCourse/RenderSteps"
 
@@ -14,20 +10,25 @@ export default function EditCourse() {
   const { courseId } = useParams()
   const { course } = useSelector((state) => state.course)
   const [loading, setLoading] = useState(false)
-  const { token } = useSelector((state) => state.auth)
+  // const { token } = useSelector((state) => state.auth)
 
   useEffect(() => {
     ;(async () => {
       setLoading(true)
-      const result = await getFullDetailsOfCourse(courseId)
-      if (result) {
-        dispatch(setEditCourse(true))
-        dispatch(setCourse(result))
+      try {
+        const result = await dispatch(fetchFullCourseDetails(courseId)).unwrap()
+        if (result) {
+          dispatch(setEditCourse(true))
+          dispatch(setCourse(result))
+        }
+      } catch (error) {
+        console.error("Failed to fetch course for edit", error)
+      } finally {
+        setLoading(false)
       }
-      setLoading(false)
     })()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [dispatch, courseId])
 
   if (loading) {
     return (

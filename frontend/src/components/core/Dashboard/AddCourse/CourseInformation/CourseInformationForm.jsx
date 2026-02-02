@@ -2,13 +2,10 @@ import { useEffect, useState } from "react"
 import { useForm } from "react-hook-form"
 import { toast } from "react-hot-toast"
 import { HiOutlineCurrencyRupee } from "react-icons/hi"
-import { MdNavigateNext } from "react-icons/md"
+import { MdNavigateNext } from "react-icons/md";
 import { useDispatch, useSelector } from "react-redux"
-import {
-  addCourseDetails,
-  editCourseDetails,
-  fetchCourseCategories,
-} from "../../../../../services/operations/courseDetailsAPI"
+import { addCourseDetails, editCourseDetails } from "../../../../../services/operations/courseDetailsAPI"
+import { fetchCategories } from "../../../../../slices/courseSlice"
 import { setCourse, setStep } from "../../../../../slices/courseSlice"
 import { COURSE_STATUS } from "../../../../../utils/constants"
 import IconBtn from "../../../../common/IconBtn"
@@ -26,20 +23,33 @@ export default function CourseInformationForm() {
   } = useForm()
 
   const dispatch = useDispatch()
-  const { token } = useSelector((state) => state.auth)
+  // const { token } = useSelector((state) => state.auth)
   const { user} = useSelector((state) => state.profile)
   const { course, editCourse } = useSelector((state) => state.course)
+  const storeCategories = useSelector((state) => state.course.categories)
   const [loading, setLoading] = useState(false)
   const [courseCategories, setCourseCategories] = useState([])
 
   useEffect(() => {
     const getCategories = async () => {
       setLoading(true)
-      const categories = await fetchCourseCategories()
-      if (categories.length > 0) {
-        setCourseCategories(categories)
+      try {
+        const categories = await dispatch(fetchCategories()).unwrap()
+        if (categories && categories.length > 0) {
+          setCourseCategories(categories)
+        }
+      } catch (error) {
+        if (error.name !== 'ConditionError') {
+          console.error("Error fetching categories", error)
+        } else {
+          console.debug("Categories fetch condition returned false, using categories from store.")
+          if (storeCategories && storeCategories.length > 0) {
+            setCourseCategories(storeCategories)
+          }
+        }
+      } finally {
+        setLoading(false)
       }
-      setLoading(false)
     }
     
     // if form is in edit mode

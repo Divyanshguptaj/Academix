@@ -1,6 +1,4 @@
 import { toast } from "react-hot-toast"
-// import { updateCompletedLectures } from "../../slices/viewCourseSlice"
-// import { setLoading } from "../../slices/profileSlice";
 import { apiConnector } from "../apiconnector"
 import { courseEndpoints } from "../apis"
 
@@ -31,7 +29,6 @@ export const fetchCourseDetails = async (courseId) => {
     const response = await apiConnector("POST", COURSE_DETAILS_API, {
       courseId,
     })
-    // console.log("COURSE_DETAILS_API API RESPONSE............", response)
 
     if (!response.data.success) {
       throw new Error(response.data.message)
@@ -44,8 +41,6 @@ export const fetchCourseDetails = async (courseId) => {
     toast.error(error.response.data.message);
     return error.response.data
   }
-  //   dispatch(setLoading(false));
-  // return result
 }
 
 // fetching the available course categories
@@ -157,7 +152,6 @@ export const createSubSection = async (data) => {
   return result;
 };
 
-
 // update a section
 export const updateSection = async (data,) => {
   let result = null
@@ -265,7 +259,6 @@ export const fetchInstructorCourses = async (instructorId) => {
 
   return result;
 };
-
 
 // delete a course
 export const deleteCourse = async (data) => {

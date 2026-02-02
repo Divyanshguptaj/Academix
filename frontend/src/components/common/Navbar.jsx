@@ -1,37 +1,43 @@
 import { useEffect, useState } from "react"
 import { AiOutlineMenu, AiOutlineShoppingCart, AiOutlineClose } from "react-icons/ai"
 import { BsChevronDown } from "react-icons/bs"
-import { useSelector } from "react-redux"
+import { useSelector, useDispatch } from "react-redux"
 import { Link, matchPath, useLocation } from "react-router-dom"
 import Logo from '../../assets/Logo/logoAcademix.png'
 import { NavbarLinks } from "../../data/navbar-links"
-import { apiConnector } from "../../services/apiconnector"
-import { categories } from "../../services/apis"
+import { fetchCategories } from "../../slices/courseSlice"
 import { getUserImage, createImageErrorHandler } from "../../utils/imageUtils"
 
 function Navbar() {
   const { token } = useSelector((state) => state.auth)
   const { user } = useSelector((state) => state.profile)
   const { totalItems } = useSelector((state) => state.cart)
+  const storeCategories = useSelector((state) => state.course.categories)
   const location = useLocation()
-
+  const dispatch = useDispatch()
   const [subLinks, setSubLinks] = useState([])
   const [loading, setLoading] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [catalogOpen, setCatalogOpen] = useState(false)
 
   useEffect(() => {
-    ;(async () => {
+    const getCategories = async () => {
       setLoading(true)
       try {
-        const res = await apiConnector("GET", categories.CATEGORIES_API)
-        setSubLinks(res.data.data)
+        const categories = await dispatch(fetchCategories()).unwrap()
+        setSubLinks(categories)
       } catch (error) {
-        console.log("Could not fetch Categories.", error)
+        if (error.name !== 'ConditionError') {
+          console.log("Could not fetch Categories.", error)
+        } else {
+          console.debug("Categories fetch condition returned false, using categories from store.")
+          setSubLinks(storeCategories)
+        }
       }
       setLoading(false)
-    })()
-  }, [])
+    }
+    getCategories()
+  }, [dispatch])
 
   // Close mobile menu on window resize
   useEffect(() => {
