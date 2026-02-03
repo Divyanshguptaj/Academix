@@ -4,6 +4,7 @@ import dotenv from "dotenv";
 import userRoutes from "./routes/User.js";
 import profileRoutes from "./routes/Profile.js";
 import resetPasswordRoutes from "./routes/ResetPassword.js";
+import contactRoutes from "./routes/Contact.js";
 import database from "./config/database.js";
 import mongoose from "mongoose";
 dotenv.config();
@@ -27,6 +28,7 @@ app.use(cookieParser());
 app.use("/auth", userRoutes);
 app.use("/profile", profileRoutes);
 app.use("/resetPassword", resetPasswordRoutes);
+app.use("/contact", contactRoutes);
 
 app.get("/", (req, res) => {
   res.json({ success: true, message: "User Service is running" });
