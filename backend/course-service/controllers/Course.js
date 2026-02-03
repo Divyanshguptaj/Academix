@@ -445,6 +445,8 @@ export const getCourseDetailsForPayment = async (req, res) => {
   try {
     const { courseId } = req.params;
 
+    console.log("🔍 COURSE SERVICE: getCourseDetailsForPayment called with courseId:", courseId);
+
     if (!courseId) {
       return res.status(400).json({
         success: false,
@@ -454,12 +456,22 @@ export const getCourseDetailsForPayment = async (req, res) => {
 
     const course = await Course.findById(courseId).select('_id courseName price studentsEnrolled');
 
+    console.log("🔍 COURSE SERVICE: Course found:", {
+      _id: course?._id,
+      courseName: course?.courseName,
+      price: course?.price,
+      studentsEnrolled: course?.studentsEnrolled?.length || 0
+    });
+
     if (!course) {
+      console.log("🔍 COURSE SERVICE: Course not found for ID:", courseId);
       return res.status(404).json({
         success: false,
         message: "Course not found",
       });
     }
+
+    console.log("🔍 COURSE SERVICE: Returning course details:", course);
 
     return res.status(200).json({
       success: true,

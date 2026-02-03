@@ -1,15 +1,8 @@
 import express from 'express';
 const router = express.Router();
 
-import {updateProfile, deleteAccount, getAllUsers,getUserDetails, getEnrolledCourses, instructorDetails, updateDisplayPicture} from '../controllers/Profile.js'
-import { 
-  sanitizeInput, 
-  handleValidationErrors,
-  mongoSanitizeMiddleware,
-  createRateLimit,
-  validateProfileUpdate,
-  validateCourseOperation
-} from '../middlewares/inputSanitization.js'
+import {updateProfile, deleteAccount, getAllUsers,getUserDetails, getEnrolledCourses, instructorDetails, updateDisplayPicture, addCourseToProfile, removeCourseFromProfile} from '../controllers/Profile.js'
+import { sanitizeInput, handleValidationErrors, mongoSanitizeMiddleware, createRateLimit, validateProfileUpdate } from '../middlewares/inputSanitization.js'
 
 // Rate limiting for profile endpoints
 const profileRateLimit = createRateLimit(10, 15 * 60 * 1000); // 10 attempts per 15 minutes
@@ -61,5 +54,18 @@ router.put('/updateDisplayPicture',
   updateDisplayPicture
 );
 
+router.post('/add-course', 
+  profileRateLimit,
+  sanitizeInput, 
+  mongoSanitizeMiddleware, 
+  addCourseToProfile
+);
+
+router.post('/remove-course', 
+  profileRateLimit,
+  sanitizeInput, 
+  mongoSanitizeMiddleware, 
+  removeCourseFromProfile
+);
 
 export default router

@@ -7,8 +7,8 @@ const MAX_DELAY = parseInt(process.env.RETRY_DELAY_MAX) || 8000;
 
 // Service URLs from environment variables
 const SERVICE_URLS = {
-  courseService: process.env.COURSE_SERVICE_URL || 'http://localhost:4002',
-  userService: process.env.USER_SERVICE_URL || 'http://localhost:4001'
+  courseService: process.env.BASE_URL || 'http://localhost:4000/api/v1',
+  userService: process.env.BASE_URL || 'http://localhost:4000/api/v1'
 };
 
 /**

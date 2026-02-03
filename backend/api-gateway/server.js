@@ -77,9 +77,20 @@ app.use(
     changeOrigin: true,
     pathRewrite: (path, req) => {
       const newPath = `/course${path}`;
-      console.log("🔁 Rewriting path:", path, "→", newPath);
+      console.log("🔍 API GATEWAY: Forwarding course request:", {
+        originalPath: path,
+        rewrittenPath: newPath,
+        target: COURSE_SERVICE_URL
+      });
       return newPath;
     },
+    onProxyReq: (proxyReq, req, res) => {
+      console.log("🔍 API GATEWAY: Proxy request headers:", proxyReq.getHeaders());
+    },
+    onProxyRes: (proxyRes, req, res) => {
+      console.log("🔍 API GATEWAY: Proxy response status:", proxyRes.statusCode);
+      console.log("🔍 API GATEWAY: Proxy response headers:", proxyRes.headers);
+    }
   }),
 );
 

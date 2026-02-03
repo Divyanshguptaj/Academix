@@ -404,3 +404,113 @@ export const updateDisplayPicture = async (req, res) => {
   }
 };
 
+// Add course to user profile
+export const addCourseToProfile = async (req, res) => {
+  try {
+    const { userId, courseId } = req.body;
+
+    if (!userId || !courseId) {
+      return res.status(400).json({
+        success: false,
+        message: "User ID and Course ID are required"
+      });
+    }
+
+    // Validate ObjectId format
+    if (!mongoose.Types.ObjectId.isValid(userId) || !mongoose.Types.ObjectId.isValid(courseId)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid User ID or Course ID format"
+      });
+    }
+
+    // Find user and add course to their courses array
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found"
+      });
+    }
+
+    // Check if course is already enrolled
+    if (user.courses.includes(courseId)) {
+      return res.status(400).json({
+        success: false,
+        message: "User is already enrolled in this course"
+      });
+    }
+
+    // Add course to user's courses array
+    user.courses.push(courseId);
+    await user.save();
+
+    return res.status(200).json({
+      success: true,
+      message: "Course added to user profile successfully",
+      data: user
+    });
+  } catch (error) {
+    console.error("Error adding course to profile:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error"
+    });
+  }
+};
+
+// Remove course from user profile
+export const removeCourseFromProfile = async (req, res) => {
+  try {
+    const { userId, courseId } = req.body;
+
+    if (!userId || !courseId) {
+      return res.status(400).json({
+        success: false,
+        message: "User ID and Course ID are required"
+      });
+    }
+
+    // Validate ObjectId format
+    if (!mongoose.Types.ObjectId.isValid(userId) || !mongoose.Types.ObjectId.isValid(courseId)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid User ID or Course ID format"
+      });
+    }
+
+    // Find user and remove course from their courses array
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found"
+      });
+    }
+
+    // Check if course is enrolled
+    if (!user.courses.includes(courseId)) {
+      return res.status(400).json({
+        success: false,
+        message: "User is not enrolled in this course"
+      });
+    }
+
+    // Remove course from user's courses array
+    user.courses = user.courses.filter(course => course.toString() !== courseId.toString());
+    await user.save();
+
+    return res.status(200).json({
+      success: true,
+      message: "Course removed from user profile successfully",
+      data: user
+    });
+  } catch (error) {
+    console.error("Error removing course from profile:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error"
+    });
+  }
+};
+

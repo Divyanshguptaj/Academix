@@ -7,8 +7,7 @@ import { resetCart } from "../../slices/cartSlice";
 
 const {
   COURSE_PAYMENT_API,
-  COURSE_VERIFY_API,
-  SEND_PAYMENT_SUCCESS_EMAIL_API,
+  COURSE_VERIFY_API
 } = studentEndpoints;
 
 function loadScript(src) {
@@ -44,10 +43,15 @@ export async function buyCourse(
     }
 
     //initiate the order
+    console.log("🔍 FRONTEND: Sending payment request with courses:", courses);
+    console.log("🔍 FRONTEND: User details:", userDetails);
+    
     const orderResponse = await apiConnector("POST", COURSE_PAYMENT_API, {
       courses,
       userDetails,
     });
+    
+    console.log("🔍 FRONTEND: Order response from payment service:", orderResponse);
     
     if (!orderResponse.data.success) {
       throw new Error(orderResponse.data.message);
@@ -66,14 +70,7 @@ export async function buyCourse(
         email: userDetails.email,
       },
       handler: function (response) {
-        //send successful wala mail
-        sendPaymentSuccessEmail(
-          response,
-          userDetails,
-          orderResponse.data.message.amount,
-          token
-        );
-        //verifyPayment
+        console.log("🔍 FRONTEND: Razorpay response received:", response);
         verifyPayment(
           { ...response, courses, userDetails },
           token,
@@ -95,29 +92,11 @@ export async function buyCourse(
   toast.dismiss(toastId);
 }
 
-async function sendPaymentSuccessEmail(response, userDetails, amount, token) {
-  try {
-    await apiConnector(
-      "POST",
-      SEND_PAYMENT_SUCCESS_EMAIL_API,
-      {
-        orderId: response.razorpay_order_id,
-        paymentId: response.razorpay_payment_id,
-        userDetails,
-        amount,
-      }
-      // {
-      //     Authorization: `Bearer ${token}`
-      // }
-    );
-  } catch (error) {
-    console.log("PAYMENT SUCCESS EMAIL ERROR....", error);
-  }
-}
 
 //verify payment
 async function verifyPayment(bodyData, token, navigate, dispatch) {
   const toastId = toast.loading("Verifying Payment....");
+  console.log("🔍 FRONTEND: Verifying payment with data:", bodyData);
   dispatch(setPaymentLoading(true));
   try {
     const response = await apiConnector(
@@ -130,7 +109,7 @@ async function verifyPayment(bodyData, token, navigate, dispatch) {
     if (!response.data.success) {
       throw new Error(response.data.message);
     }
-    toast.success("payment Successful, ypou are addded to the course");
+    toast.success("payment Successful, you are addded to the course");
     navigate("/dashboard/enrolled-courses");
     dispatch(resetCart());
   } catch (error) {
