@@ -1,408 +1,467 @@
 import { instance } from "../config/razorpay.js";
 import crypto from "crypto";
-import axios from "axios";
 import mailSender from "../../shared-utils/mailSender.js";
 import mongoose from "mongoose";
 import { paymentSuccessEmail } from "../../shared-utils/mail/templates/paymentSuccessEmail.js";
 import { withRetry, courseService, userService } from "../utils/retryUtils.js";
 import PaymentTransaction from "../models/PaymentTransaction.js";
 
-// Capture the payment and initiate the Razorpay order
+/**
+ * Step 1: Create Razorpay order
+ * Validates courses, calculates total amount, and creates order
+ */
 export const capturePayment = async (req, res) => {
   try {
     const { courses, userDetails } = req.body;
-    const userId = userDetails._id;
+    const userId = userDetails?._id;
 
-    console.log("🔍 PAYMENT SERVICE: capturePayment called with courses:", courses);
-    console.log("🔍 PAYMENT SERVICE: User ID:", userId);
+    console.log("📝 Payment Service - Initiating payment capture");
+    console.log("User ID:", userId);
+    console.log("Courses to enroll:", courses);
 
+    // Validate input
     if (!courses || courses.length === 0) {
-      return res
-        .status(400)
-        .json({ success: false, message: "Please Provide Course ID" });
+      return res.status(400).json({ 
+        success: false, 
+        message: "No courses provided" 
+      });
     }
 
-    let total_amount = 0;
+    if (!userId || !mongoose.Types.ObjectId.isValid(userId)) {
+      return res.status(400).json({ 
+        success: false, 
+        message: "Invalid user ID" 
+      });
+    }
+
+    let totalAmount = 0;
     const courseDetails = [];
+    const enrolledSet = new Set();
 
+    // Fetch all course details and calculate total
     for (const courseObj of courses) {
-      let course;
       try {
-        // Ensure we're extracting the actual courseId
-        const course_id = courseObj.courseId || courseObj;
+        const courseId = typeof courseObj === 'object' ? courseObj.courseId : courseObj;
 
-        console.log("🔍 PAYMENT SERVICE: Processing course ID:", course_id);
-
-        if (!mongoose.Types.ObjectId.isValid(course_id)) {
-          return res
-            .status(400)
-            .json({
-              success: false,
-              message: `Invalid Course ID: ${course_id}`,
-            });
+        if (!mongoose.Types.ObjectId.isValid(courseId)) {
+          return res.status(400).json({ 
+            success: false, 
+            message: `Invalid Course ID format: ${courseId}` 
+          });
         }
 
-        // Get course details from Course Service API with retry logic
-        console.log("🔍 PAYMENT SERVICE: Calling course service for course:", course_id);
+        // Skip duplicates
+        if (enrolledSet.has(courseId.toString())) {
+          continue;
+        }
+
+        // Fetch course details with retry
         const courseResponse = await withRetry(async () => {
-          const response = await courseService.get(`/course/details/${course_id}`);
-          console.log("🔍 PAYMENT SERVICE: Course service response:", response.data);
-          if (!response.data.success) {
-            throw new Error("Could not find the Course");
-          }
-          return response;
+          return await courseService.get(`/course/details/${courseId}`);
         });
 
-        course = courseResponse.data.course;
-        console.log("🔍 PAYMENT SERVICE: Course details received:", {
-          courseId: course._id,
-          courseName: course.courseName,
-          price: course.price,
-          studentsEnrolled: course.studentsEnrolled?.length || 0
-        });
-        
-        courseDetails.push(course);
-
-        // Check if the user is already enrolled
-        const uid = new mongoose.Types.ObjectId(userId);
-        if (course.studentsEnrolled.includes(uid)) {
-          return res
-            .status(400)
-            .json({ success: false, message: "Student is already Enrolled" });
+        if (!courseResponse.data.success || !courseResponse.data.course) {
+          return res.status(404).json({ 
+            success: false, 
+            message: `Course not found: ${courseId}` 
+          });
         }
 
-        console.log("🔍 PAYMENT SERVICE: Adding course price to total:", course.price);
-        total_amount += course.price;
-        console.log("🔍 PAYMENT SERVICE: Running total:", total_amount);
+        const course = courseResponse.data.course;
+        
+        // Check if already enrolled
+        const userObjectId = new mongoose.Types.ObjectId(userId);
+        if (course.studentsEnrolled?.some(id => id.toString() === userObjectId.toString())) {
+          return res.status(400).json({ 
+            success: false, 
+            message: `Already enrolled in: ${course.courseName}` 
+          });
+        }
+
+        courseDetails.push(course);
+        enrolledSet.add(courseId.toString());
+        totalAmount += course.price || 0;
+        console.log(`✓ Course validated: ${course.courseName} - Price: ${course.price}`);
+
       } catch (error) {
-        console.error("Error finding course:", error);
-        return res.status(500).json({ success: false, message: error.message });
+        console.error("Error processing course:", error.message);
+        return res.status(500).json({ 
+          success: false, 
+          message: `Failed to process course: ${error.message}` 
+        });
       }
     }
 
-    console.log("🔍 PAYMENT SERVICE: Final total amount:", total_amount);
-    console.log("🔍 PAYMENT SERVICE: Converting to paise (multiplying by 100)");
+    if (courseDetails.length === 0) {
+      return res.status(400).json({ 
+        success: false, 
+        message: "No valid courses to process" 
+      });
+    }
 
+    if (totalAmount <= 0) {
+      return res.status(400).json({ 
+        success: false, 
+        message: "Invalid total amount" 
+      });
+    }
+
+    // Create Razorpay order
     const options = {
-      amount: total_amount * 100,
+      amount: Math.round(totalAmount * 100), // Convert to paise
       currency: "INR",
-      receipt: Math.random(Date.now()).toString(),
+      receipt: `receipt_${Date.now()}_${userId.substring(0, 8)}`,
+      notes: {
+        courseCount: courseDetails.length,
+        userId: userId
+      }
     };
+
+    console.log("Creating Razorpay order with amount:", options.amount);
     
-    console.log("🔍 PAYMENT SERVICE: Razorpay order options:", options);
-    
-    // Initiate the payment using Razorpay
-    const paymentResponse = await instance.orders.create(options);
-    console.log("🔍 PAYMENT SERVICE: Razorpay order created:", paymentResponse);
-    
-    // Save transaction to database
+    const razorpayOrder = await instance.orders.create(options);
+    console.log("✓ Razorpay order created:", razorpayOrder.id);
+
+    // Store transaction in database
     const transaction = await PaymentTransaction.create({
       userId,
       courseIds: courseDetails.map(c => c._id),
-      amount: total_amount,
+      amount: totalAmount,
       currency: "INR",
-      razorpayOrderId: paymentResponse.id,
+      razorpayOrderId: razorpayOrder.id,
       status: "pending"
     });
 
-    console.log("🔍 PAYMENT SERVICE: Final response to frontend:", {
+    console.log("✓ Transaction created:", transaction._id);
+
+    return res.status(200).json({
       success: true,
-      message: "Payment initiated successfully",
+      message: "Order created successfully",
       key: process.env.RAZORPAY_KEY_ID,
+      orderId: razorpayOrder.id,
       transactionId: transaction._id,
-      razorpayOrderAmount: paymentResponse.amount,
-      calculatedAmount: total_amount * 100
+      amount: options.amount,
+      currency: "INR"
     });
 
-    return res.json({
-      success: true,
-      message: "Payment initiated successfully",
-      key: process.env.RAZORPAY_KEY_ID,
-      transactionId: transaction._id
-    });
   } catch (error) {
-    console.error("Error processing payment:", error);
-    return res
-      .status(500)
-      .json({ success: false, message: "Could not initiate order." });
+    console.error("❌ Payment capture error:", error.message);
+    return res.status(500).json({ 
+      success: false, 
+      message: "Failed to create order: " + error.message 
+    });
   }
 };
 
-// verify the payment with auto-refund on enrollment failure
+/**
+ * Step 2: Verify payment signature and enroll student
+ * Verifies Razorpay signature, enrolls student, and sends confirmation email
+ */
 export const verifyPayment = async (req, res) => {
   try {
     const {
+      razorpay_order_id,
       razorpay_payment_id,
-      courses,
-      userDetails,
+      razorpay_signature,
+      userDetails
     } = req.body;
-    const userId = userDetails._id;
 
-    console.log("🔍 PAYMENT SERVICE: verifyPayment called with:", {
-      razorpay_payment_id,
-      courses,
-      userId
-    });
+    const userId = userDetails?._id;
+    const userEmail = userDetails?.email;
 
-    if (
-      !razorpay_payment_id ||
-      !courses ||
-      !userId
-    ) {
-      console.log("🔍 PAYMENT SERVICE: Missing required fields for payment verification");
-      return res
-        .status(400)
-        .json({ success: false, message: "Payment Failed - Missing required fields" });
-    }
+    console.log("📝 Payment Service - Verifying payment");
+    console.log("Order ID:", razorpay_order_id);
+    console.log("Payment ID:", razorpay_payment_id);
 
-    console.log("🔍 PAYMENT SERVICE: Verifying payment for payment ID:", razorpay_payment_id);
-    
-    // Verify payment with Razorpay using payment.fetch
-    try {
-      const payment = await instance.payments.fetch(razorpay_payment_id);
-      
-      if (payment.status !== 'captured') {
-        return res
-          .status(400)
-          .json({ success: false, message: "Payment not captured" });
-      }
-
-      console.log("🔍 PAYMENT SERVICE: Payment verified with Razorpay");
-      
-      // Try to enroll with auto-refund on failure
-      await enrollStudentsWithAutoRefund(courses, userId, razorpay_payment_id);
-      console.log("🔍 PAYMENT SERVICE: Enrollment successful");
-      
-      // Automatically send success email after successful enrollment
-      await sendPaymentSuccessEmail({
-        body: {
-          orderId: payment.order_id,
-          paymentId: razorpay_payment_id,
-          amount: payment.amount,
-          userDetails: { _id: userId, email: userDetails.email }
-        }
-      });
-      console.log("🔍 PAYMENT SERVICE: Payment success email sent");
-      
-      return res.status(200).json({ 
-        success: true, 
-        message: "Payment Verified, User Enrolled, and Email Sent" 
-      });
-      
-    } catch (paymentError) {
-      console.error("Payment verification failed:", paymentError);
-      return res
-        .status(400)
-        .json({ success: false, message: "Payment verification failed" });
-    }
-    
-  } catch (error) {
-    console.error("Error verifying payment:", error);
-    
-    // If error contains refund info, it's already handled
-    if (error.message.includes('auto-refunded')) {
+    // Validate input
+    if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature || !userId) {
       return res.status(400).json({ 
         success: false, 
-        message: error.message 
+        message: "Missing required fields for verification" 
       });
     }
-    
+
+    // Verify Razorpay signature
+    const shasum = crypto.createHmac('sha256', process.env.RAZORPAY_SECRET);
+    shasum.update(`${razorpay_order_id}|${razorpay_payment_id}`);
+    const generatedSignature = shasum.digest('hex');
+
+    if (generatedSignature !== razorpay_signature) {
+      console.error("❌ Signature verification failed");
+      console.error("Expected:", generatedSignature);
+      console.error("Received:", razorpay_signature);
+      return res.status(400).json({ 
+        success: false, 
+        message: "Invalid payment signature - Payment declined" 
+      });
+    }
+
+    console.log("✓ Signature verified successfully");
+
+    // Find transaction
+    const transaction = await PaymentTransaction.findOne({
+      razorpayOrderId: razorpay_order_id
+    });
+
+    if (!transaction) {
+      console.error("❌ Transaction not found:", razorpay_order_id);
+      return res.status(404).json({ 
+        success: false, 
+        message: "Transaction not found" 
+      });
+    }
+
+    // Prevent duplicate processing
+    if (transaction.status !== 'pending') {
+      console.log("⚠️  Transaction already processed:", transaction.status);
+      return res.status(400).json({ 
+        success: false, 
+        message: `Transaction already ${transaction.status}` 
+      });
+    }
+
+    // Update transaction with payment ID
+    transaction.razorpayPaymentId = razorpay_payment_id;
+    transaction.status = 'verified';
+    await transaction.save();
+
+    console.log("✓ Transaction verified");
+
+    // Enroll student in courses with automatic rollback on failure
+    try {
+      await enrollStudentInCourses(transaction.courseIds, userId);
+      console.log("✓ Student enrolled in courses");
+
+      // Update transaction to completed
+      transaction.status = 'completed';
+      await transaction.save();
+      console.log("✓ Transaction completed");
+
+      // Send success email asynchronously (don't wait)
+      sendSuccessEmail(razorpay_payment_id, transaction.amount, userEmail).catch(err => {
+        console.warn("Email send failed:", err.message);
+      });
+
+      return res.status(200).json({ 
+        success: true, 
+        message: "Payment verified and enrollment completed",
+        transactionId: transaction._id
+      });
+
+    } catch (enrollmentError) {
+      console.error("❌ Enrollment failed:", enrollmentError.message);
+      
+      // Attempt auto-refund
+      try {
+        console.log("Initiating auto-refund...");
+        await instance.payments.refund(razorpay_payment_id, {
+          notes: { reason: 'Enrollment failed' }
+        });
+        
+        transaction.status = 'refunded';
+        transaction.refundReason = 'Enrollment failed';
+        await transaction.save();
+
+        console.log("✓ Auto-refund issued");
+        
+        return res.status(400).json({ 
+          success: false, 
+          message: "Enrollment failed - refund has been initiated" 
+        });
+
+      } catch (refundError) {
+        console.error("❌ Auto-refund failed:", refundError.message);
+        
+        transaction.status = 'failed';
+        transaction.errorMessage = `Enrollment failed and refund failed: ${refundError.message}`;
+        await transaction.save();
+
+        return res.status(500).json({ 
+          success: false, 
+          message: "Payment verified but enrollment failed - manual intervention required" 
+        });
+      }
+    }
+
+  } catch (error) {
+    console.error("❌ Payment verification error:", error.message);
     return res.status(500).json({ 
       success: false, 
-      message: "Server error" 
+      message: "Verification failed: " + error.message 
     });
   }
 };
 
-// Send Payment Success Email
-export const sendPaymentSuccessEmail = async (req, res) => {
-  const { orderId, paymentId, amount } = req.body;
-  // console.log(req.body);
-  const userId = req.body.userDetails._id;
-  console.log("🔍 PAYMENT SERVICE: Sending payment success email for order ID:", orderId);
-  if (!orderId || !paymentId || !amount || !userId) {
-    return res
-      .status(400)
-      .json({ success: false, message: "Please provide all the details" });
-  }
-  console.log("🔍 PAYMENT SERVICE: Fetching user details for email");
+/**
+ * Manual refund for admin (rollback payment and enrollment)
+ */
+export const refundPayment = async (req, res) => {
   try {
-    // Get user details from User Service API through gateway
-    const BASE_URL = process.env.BASE_URL || 'http://localhost:4000/api/v1';
-    const userResponse = await axios.get(`${BASE_URL}/profile/getUserDetails?email=${req.body.userDetails.email}`);
-    if (!userResponse.data.success) {
-      return res
-        .status(404)
-        .json({ success: false, message: "User not found" });
+    const { transactionId, reason } = req.body;
+
+    if (!transactionId || !reason) {
+      return res.status(400).json({ 
+        success: false, 
+        message: "Transaction ID and reason are required" 
+      });
     }
 
-    const enrolledStudent = userResponse.data.userDetails;
-    console.log("🔍 PAYMENT SERVICE: User details received:", enrolledStudent);
-    await mailSender(
-      enrolledStudent.email,
-      `Payment Received`,
-      paymentSuccessEmail(
-        `${enrolledStudent.firstName} ${enrolledStudent.lastName}`,
-        amount / 100,
-        orderId,
-        paymentId
-      )
-    );
+    const transaction = await PaymentTransaction.findById(transactionId);
+
+    if (!transaction) {
+      return res.status(404).json({ 
+        success: false, 
+        message: "Transaction not found" 
+      });
+    }
+
+    if (transaction.status === 'refunded') {
+      return res.status(400).json({ 
+        success: false, 
+        message: "Transaction already refunded" 
+      });
+    }
+
+    if (!transaction.razorpayPaymentId) {
+      return res.status(400).json({ 
+        success: false, 
+        message: "No payment ID found for refund" 
+      });
+    }
+
+    // Process refund
+    console.log("Processing refund for transaction:", transactionId);
+    const refund = await instance.payments.refund(transaction.razorpayPaymentId, {
+      notes: { reason }
+    });
+
+    transaction.status = 'refunded';
+    transaction.refundId = refund.id;
+    transaction.refundReason = reason;
+    await transaction.save();
+
+    console.log("✓ Refund processed:", refund.id);
+
+    // Unenroll from courses
+    try {
+      await unenrollFromCourses(transaction.courseIds, transaction.userId);
+      console.log("✓ Student unenrolled from courses");
+    } catch (unenrollError) {
+      console.warn("⚠️  Unenrollment failed during refund:", unenrollError.message);
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Refund processed successfully",
+      refundId: refund.id
+    });
+
   } catch (error) {
-    console.log("error in sending mail", error);
-    return res
-      .status(400)
-      .json({ success: false, message: "Could not send email" });
+    console.error("❌ Refund error:", error.message);
+    return res.status(500).json({ 
+      success: false, 
+      message: "Refund failed: " + error.message 
+    });
   }
 };
 
-// enroll the student in the courses with auto-refund on failure
-const enrollStudentsWithAutoRefund = async (courses, userId, razorpayPaymentId) => {
-  const session = await mongoose.startSession();
-  
+/**
+ * Helper: Enroll student in multiple courses
+ */
+const enrollStudentInCourses = async (courseIds, userId) => {
+  if (!courseIds || courseIds.length === 0) {
+    throw new Error("No courses to enroll");
+  }
+
   try {
-    session.startTransaction();
-    // throw new Error("Simulated enrollment failure for testing auto-refund"); // Simulate failure for testing
-    // 1. Try to enroll in courses with retry logic
+    console.log("Enrolling student in courses:", courseIds.length);
+
+    // Enroll in course service
     await withRetry(async () => {
       await courseService.post('/course/enroll', {
-        courses, userId
+        courses: courseIds,
+        userId
       });
     });
-    console.log("🔍 PAYMENT SERVICE: Courses enrollment successful");
-    // 2. Try to add courses to user profile with retry logic
+
+    console.log("✓ Course enrollment successful");
+
+    // Update user profile with each course
     await withRetry(async () => {
-      for (const course of courses) {
-        const courseId = typeof course === "object" ? course.courseId : course;
+      for (const courseId of courseIds) {
         await userService.post('/profile/add-course', {
           userId,
           courseId
         });
       }
     });
-    console.log("🔍 PAYMENT SERVICE: User profile updated with new courses");
-    // 3. Update transaction status to completed
-    await PaymentTransaction.findOneAndUpdate(
-      { razorpayPaymentId },
-      { status: 'completed' }
-    );
-    console.log("🔍 PAYMENT SERVICE: Transaction status updated to completed");
-    await session.commitTransaction();
+
+    console.log("✓ User profile updated");
     return { success: true };
-    
+
   } catch (error) {
-    // CRITICAL: Auto-refund if enrollment fails
-    console.error("Enrollment failed, initiating auto-refund:", error.message);
-    
-    try {
-      await session.abortTransaction();
-      
-      // Initiate refund with Razorpay
-      const refund = await instance.payments.refund(razorpayPaymentId, {
-        notes: { reason: 'Enrollment failed - auto refund' }
-      });
-      console.log("🔍 PAYMENT SERVICE: Refund initiated with Razorpay:", refund);
-      // Update transaction status to refunded
-      await PaymentTransaction.findOneAndUpdate(
-        { razorpayPaymentId },
-        { 
-          status: 'refunded',
-          refundId: refund.id,
-          refundReason: 'Enrollment failed'
-        }
-      );
-      
-      console.log("Auto-refund completed:", refund.id);
-      throw new Error(`Payment failed and auto-refunded. Refund ID: ${refund.id}`);
-      
-    } catch (refundError) {
-      console.error("Auto-refund failed:", refundError.message);
-      // If refund fails, mark as failed for manual intervention
-      await PaymentTransaction.findOneAndUpdate(
-        { razorpayPaymentId },
-        { 
-          status: 'failed',
-          errorMessage: `Enrollment failed and auto-refund failed: ${refundError.message}`
-        }
-      );
-      throw new Error(`Enrollment failed and auto-refund failed: ${refundError.message}`);
-    }
-  } finally {
-    session.endSession();
+    console.error("Enrollment error:", error.message);
+    throw new Error(`Enrollment failed: ${error.message}`);
   }
 };
 
-// Manual refund API for admin use
-export const manualRefund = async (req, res) => {
-  const { transactionId, reason } = req.body;
-  
+/**
+ * Helper: Unenroll student from courses (used during refunds)
+ */
+const unenrollFromCourses = async (courseIds, userId) => {
   try {
-    const transaction = await PaymentTransaction.findById(transactionId);
-    
-    if (!transaction) {
-      return res.status(404).json({
-        success: false,
-        message: "Transaction not found"
-      });
-    }
-    
-    if (transaction.status === 'refunded') {
-      return res.status(400).json({
-        success: false,
-        message: "Transaction already refunded"
-      });
-    }
-    
-    // Initiate refund with Razorpay
-    const refund = await instance.payments.refund(transaction.razorpayPaymentId, {
-      notes: { reason }
-    });
-    
-    // Update transaction
-    transaction.status = 'refunded';
-    transaction.refundId = refund.id;
-    transaction.refundReason = reason;
-    await transaction.save();
-    
-    // Rollback enrollment
-    await rollbackEnrollment(transaction.courseIds, transaction.userId);
-    
-    return res.json({
-      success: true,
-      message: "Refund processed successfully",
-      refundId: refund.id
-    });
-    
-  } catch (error) {
-    return res.status(500).json({
-      success: false,
-      message: "Refund failed: " + error.message
-    });
-  }
-};
+    console.log("Unenrolling student from courses:", courseIds.length);
 
-// Helper function to rollback enrollment
-const rollbackEnrollment = async (courseIds, userId) => {
-  try {
-    // Remove from courses
-    await withRetry(() => 
-      courseService.post('/course/unenroll', {
+    await withRetry(async () => {
+      await courseService.post('/course/unenroll', {
         courses: courseIds,
         userId
-      })
-    );
-    
-    // Remove from user profile
+      });
+    });
+
     for (const courseId of courseIds) {
-      await withRetry(() =>
-        userService.post('/profile/remove-course', {
+      await withRetry(async () => {
+        await userService.post('/profile/remove-course', {
           userId,
           courseId
-        })
-      );
+        });
+      });
     }
+
+    console.log("✓ Unenrollment successful");
+    return { success: true };
+
   } catch (error) {
-    console.error("Rollback failed:", error.message);
-    // Log for manual intervention - don't throw error as refund already processed
+    console.error("Unenrollment error:", error.message);
+    throw error;
+  }
+};
+
+/**
+ * Helper: Send payment success email
+ */
+const sendSuccessEmail = async (paymentId, amount, email) => {
+  try {
+    if (!email) {
+      console.warn("⚠️  No email provided for success notification");
+      return;
+    }
+
+    console.log("📧 Sending payment success email to:", email);
+
+    const emailSubject = "Payment Received - Enrollment Confirmed";
+    const emailBody = paymentSuccessEmail(
+      "Student",
+      amount,
+      paymentId,
+      paymentId
+    );
+
+    await mailSender(email, emailSubject, emailBody);
+    console.log("✓ Success email sent");
+
+  } catch (error) {
+    console.error("Error sending success email:", error.message);
+    // Don't throw - email failure shouldn't block payment flow
   }
 };

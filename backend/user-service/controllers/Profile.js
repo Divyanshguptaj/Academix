@@ -194,7 +194,7 @@ export const getEnrolledCourses = async (req, res) => {
 
     // 2. Call course-service to get course details
     const courseDetailsResponse = await fetch(
-      `http://localhost:4002/api/v1/course/get-courses-by-ids?ids=${courseIds.join(',')}`
+      `http://localhost:4000/api/v1/course/get-courses-by-ids?ids=${courseIds.join(',')}`
     );
     
     if (!courseDetailsResponse.ok) {
