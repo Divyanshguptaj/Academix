@@ -55,8 +55,13 @@ export default function CourseReviewModal({ setReviewModal }) {
         <div className="p-6">
           <div className="flex items-center justify-center gap-x-4">
             <img
-              src={user?.image}
-              alt={user?.firstName + "profile"}
+              src={
+                user?.image ||
+                `https://api.dicebear.com/5.x/initials/svg?seed=${encodeURIComponent(
+                  `${user?.firstName || ""} ${user?.lastName || ""}`
+                )}`
+              }
+              alt={`${user?.firstName || "User"} profile`}
               className="aspect-square w-[50px] rounded-full object-cover"
             />
             <div className="">

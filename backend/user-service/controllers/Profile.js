@@ -514,3 +514,64 @@ export const removeCourseFromProfile = async (req, res) => {
   }
 };
 
+// Add course progress reference to user profile
+export const addCourseProgressToProfile = async (req, res) => {
+  try {
+    const { userId, progressId } = req.body;
+
+    if (!userId || !progressId) {
+      return res.status(400).json({ success: false, message: 'User ID and Progress ID are required' });
+    }
+
+    if (!mongoose.Types.ObjectId.isValid(userId)) {
+      return res.status(400).json({ success: false, message: 'Invalid User ID' });
+    }
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    if (user.courseProgress && user.courseProgress.some(id => id.toString() === progressId.toString())) {
+      return res.status(200).json({ success: true, message: 'Progress already added', data: user });
+    }
+
+    user.courseProgress = user.courseProgress || [];
+    user.courseProgress.push(progressId);
+    await user.save();
+
+    return res.status(200).json({ success: true, message: 'Progress added to user profile', data: user });
+  } catch (error) {
+    console.error('Error adding progress to profile:', error);
+    return res.status(500).json({ success: false, message: 'Internal server error' });
+  }
+};
+
+// Remove course progress reference from user profile
+export const removeCourseProgressFromProfile = async (req, res) => {
+  try {
+    const { userId, progressId } = req.body;
+
+    if (!userId || !progressId) {
+      return res.status(400).json({ success: false, message: 'User ID and Progress ID are required' });
+    }
+
+    if (!mongoose.Types.ObjectId.isValid(userId)) {
+      return res.status(400).json({ success: false, message: 'Invalid User ID' });
+    }
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    user.courseProgress = (user.courseProgress || []).filter(id => id.toString() !== progressId.toString());
+    await user.save();
+
+    return res.status(200).json({ success: true, message: 'Progress removed from user profile', data: user });
+  } catch (error) {
+    console.error('Error removing progress from profile:', error);
+    return res.status(500).json({ success: false, message: 'Internal server error' });
+  }
+};
+

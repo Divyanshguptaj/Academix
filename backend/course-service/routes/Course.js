@@ -1,7 +1,7 @@
 import express from 'express';
 const router = express.Router();
 import { createCategory, findAllCategory, categoryPageDetails } from '../controllers/Category.js'
-import {createCourse, showAllCourses, getCourseDetails, editCourse,getInstructorCourses, deleteCourse, getCourseDetailsForPayment, enrollStudentInCourse, getCourseByIds, getEnrolledStudentsWithProgress} from '../controllers/Course.js'
+import {createCourse, showAllCourses, getCourseDetails, editCourse,getInstructorCourses, deleteCourse, getCourseDetailsForPayment, enrollStudentInCourse, getCourseByIds, getEnrolledStudentsWithProgress, updateCourseProgress} from '../controllers/Course.js'
 import {auth, isAdmin, isStudent, isInstructor} from '../../shared-utils/middlewares/auth.js'
 import {createSection, updateSection, deleteSection} from '../controllers/Section.js'
 import {createSubSection,deleteSubSection, updateSubSection} from '../controllers/Subsection.js'
@@ -11,6 +11,7 @@ import {createRating, getAverageRating, getAllReviews} from '../controllers/Rati
 router.post('/editCourse', editCourse)
 router.post('/createCourse', createCourse)
 router.post('/deleteCourse', deleteCourse)
+router.post('/updateCourseProgress', updateCourseProgress)
 router.get('/showAllCoures', showAllCourses);
 router.get('/getInstructorCourses', getInstructorCourses);
 router.post('/getFullCourseDetails',getCourseDetails);

@@ -1,7 +1,7 @@
 import express from 'express';
 const router = express.Router();
 
-import {updateProfile, deleteAccount, getAllUsers,getUserDetails, getEnrolledCourses, instructorDetails, updateDisplayPicture, addCourseToProfile, removeCourseFromProfile} from '../controllers/Profile.js'
+import {updateProfile, deleteAccount, getAllUsers,getUserDetails, getEnrolledCourses, instructorDetails, updateDisplayPicture, addCourseToProfile, removeCourseFromProfile, addCourseProgressToProfile, removeCourseProgressFromProfile} from '../controllers/Profile.js'
 import { sanitizeInput, handleValidationErrors, mongoSanitizeMiddleware, createRateLimit, validateProfileUpdate } from '../middlewares/inputSanitization.js'
 
 // Rate limiting for profile endpoints
@@ -66,6 +66,20 @@ router.post('/remove-course',
   sanitizeInput, 
   mongoSanitizeMiddleware, 
   removeCourseFromProfile
+);
+
+router.post('/add-course-progress',
+  profileRateLimit,
+  sanitizeInput,
+  mongoSanitizeMiddleware,
+  addCourseProgressToProfile
+);
+
+router.post('/remove-course-progress',
+  profileRateLimit,
+  sanitizeInput,
+  mongoSanitizeMiddleware,
+  removeCourseProgressFromProfile
 );
 
 export default router

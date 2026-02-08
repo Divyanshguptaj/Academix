@@ -3,7 +3,8 @@ import { useDispatch, useSelector } from "react-redux"
 import { useParams } from "react-router-dom"
 import CourseReviewModal from "../components/core/ViewCourse/CourseReviewModal"
 import VideoDetailsSidebar from "../components/core/ViewCourse/VideoDetailsSidebar"
-import { fetchFullCourseDetails, setCompletedLectures, setCourseSectionData, setEntireCourseData, setTotalNoOfLectures } from "../slices/viewCourseSlice"
+import { setCompletedLectures, setCourseSectionData, setEntireCourseData, setTotalNoOfLectures } from "../slices/viewCourseSlice"
+import { getFullDetailsOfCourse } from "../services/operations/courseDetailsAPI"
 import { Outlet } from "react-router-dom"
 export default function ViewCourse() {
   const { courseId } = useParams()
@@ -17,33 +18,36 @@ export default function ViewCourse() {
       console.log("Course ID:", courseId)
       const userId = user._id;
       try {
-        const courseData = await dispatch(fetchFullCourseDetails(courseId)).unwrap()
+
+        const courseData = await getFullDetailsOfCourse(courseId)
         console.log("Course Data here... ", courseData)
         if (courseData) {
-          dispatch(setCourseSectionData(courseData._doc.courseContent))
-          dispatch(setEntireCourseData(courseData._doc))
+          dispatch(setCourseSectionData(courseData.courseContent))
+          dispatch(setEntireCourseData(courseData))
 
-          const studentsEnrolled = courseData._doc.studentsEnrolled;
-          const student = studentsEnrolled.find(student => student._id.toString() === userId);
-          console.log("printing Student", student)
-          if (student) {
-            const courseProgress = student.courseProgress;
-            const progressEntry = courseProgress.find(progress => progress.courseID.toString() === courseData._doc._id.toString());
-
-            if (progressEntry) {
-              console.log("printing progressEntry", progressEntry);
-              dispatch(setCompletedLectures(progressEntry.completedVideos));
-            } else {
-              console.warn("No progress entry found for this course.");
-              dispatch(setCompletedLectures([])); 
-            }
+          // Prefer compact progress data added by course-service: `studentsProgress`
+          const studentsProgress = courseData.studentsProgress || [];
+          const progressEntry = studentsProgress.find(p => p.userId.toString() === userId);
+          if (progressEntry) {
+            dispatch(setCompletedLectures(progressEntry.completedVideos || []));
           } else {
-            console.warn("User is not enrolled in this course.");
-            dispatch(setCompletedLectures([]));
+            // Fallback: if studentsProgress not provided, try to find in studentsEnrolled array (legacy)
+            const studentsEnrolled = courseData.studentsEnrolled || [];
+            const student = studentsEnrolled.find(student => String(student._id) === String(userId));
+            if (student && student.courseProgress) {
+              const legacyProgress = student.courseProgress.find(p => p.courseID && String(p.courseID) === String(courseData._id));
+              if (legacyProgress) {
+                dispatch(setCompletedLectures(legacyProgress.completedVideos || []));
+              } else {
+                dispatch(setCompletedLectures([]));
+              }
+            } else {
+              dispatch(setCompletedLectures([]));
+            }
           }
 
           let lectures = 0
-          courseData?._doc?.courseContent?.forEach((sec) => {
+          courseData?.courseContent?.forEach((sec) => {
             lectures += sec.subSection.length
           })
           console.log(lectures)

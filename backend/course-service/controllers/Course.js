@@ -5,6 +5,7 @@ import SubSection from "../models/SubSection.js"
 import { uploadImagetoCloudinary } from '../../shared-utils/imageUploader.js'
 import axios from 'axios'
 import mongoose from 'mongoose'
+import CourseProgress from '../models/CourseProgress.js'
 
 import dotenv from 'dotenv';
 dotenv.config();
@@ -314,12 +315,27 @@ export const getCourseDetails = async (req,res)=>{
             }
         }
 
+        // 3b. Get course progress entries for enrolled students from local CourseProgress model
+        let studentsProgress = [];
+        try {
+          if (courseDetails.studentsEnrolled && courseDetails.studentsEnrolled.length > 0) {
+            studentsProgress = await CourseProgress.find({
+              courseID: courseId,
+              userId: { $in: courseDetails.studentsEnrolled }
+            }).lean();
+          }
+        } catch (err) {
+          console.error('Error fetching course progress entries:', err);
+          studentsProgress = [];
+        }
         // 4. Merge instructor and students details with course data
         const result = {
-            ...courseDetails.toObject(),
-            instructor: instructorDetails || courseDetails.instructor,
-            studentsEnrolled: studentsDetails || courseDetails.studentsEnrolled,
-            success: true
+          ...courseDetails.toObject(),
+          instructor: instructorDetails || courseDetails.instructor,
+          // keep existing students details if available, but also include a compact progress list
+          studentsEnrolled: studentsDetails || courseDetails.studentsEnrolled,
+          studentsProgress: studentsProgress,
+          success: true
         };
         
         return res.status(200).json({
@@ -438,7 +454,6 @@ export const deleteCourse = async (req, res) => {
         });
     }
 };
-
 
 // Get course details for payment processing (for Payment Service communication)
 export const getCourseDetailsForPayment = async (req, res) => {
@@ -695,3 +710,58 @@ export const getEnrolledStudentsWithProgress = async (req, res) => {
   }
 };
 
+export const updateCourseProgress = async (req, res) => {
+  try {
+    const { userId, courseId, subSectionId } = req.body;
+
+    if (!userId || !courseId || !subSectionId) {
+      return res.status(400).json({ success: false, message: "Missing required fields" });
+    }
+
+    // Validate ObjectId formats
+    if (!mongoose.Types.ObjectId.isValid(userId) || !mongoose.Types.ObjectId.isValid(courseId) || !mongoose.Types.ObjectId.isValid(subSectionId)) {
+      return res.status(400).json({ success: false, message: "Invalid id format" });
+    }
+
+    // Find the user's progress for this course (unique per user+course)
+    let progress = await CourseProgress.findOne({ courseID: courseId, userId });
+
+    // If progress doesn't exist, create a new entry
+    if (!progress) {
+      progress = new CourseProgress({
+        courseID: courseId,
+        userId,
+        completedVideos: [],
+      });
+    }
+
+    // Ensure completedVideos contains the subSectionId
+    const subIdStr = subSectionId.toString();
+    const alreadyCompleted = progress.completedVideos.some(id => id.toString() === subIdStr);
+    if (!alreadyCompleted) {
+      progress.completedVideos.push(subSectionId);
+      await progress.save();
+      // Notify user-service to add this progress reference to the user's profile
+      try {
+        await axios.post('http://localhost:4001/profile/add-course-progress', {
+          userId,
+          progressId: progress._id
+        });
+      } catch (err) {
+        console.error('Failed to notify user-service about progress:', err.message || err);
+        // don't fail the request if user-service is down
+      }
+    }
+
+    // Return the updated progress object
+    return res.status(200).json({
+      success: true,
+      message: "Lecture marked as completed",
+      progress,
+    });
+
+  } catch (error) {
+    console.error("Error updating course progress:", error);
+    return res.status(500).json({ success: false, message: "Internal server error" });
+  }
+};

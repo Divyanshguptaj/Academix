@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate, useParams } from "react-router-dom";
 import "video-react/dist/video-react.css";
@@ -155,12 +155,14 @@ const VideoDetails = () => {
   };
 
   const handleLectureCompletion = async () => {
+    
     setLoading(true);
-    console.log("object");
     const res = await markLectureAsComplete(
       { courseId: courseId, subSectionId: subSectionId, userId: user._id },
       token
     );
+    console.log("markLectureAsComplete result:", res);
+    
     if (res) {
       dispatch(updateCompletedLectures(subSectionId));
     }
@@ -177,28 +179,37 @@ const VideoDetails = () => {
             className="h-48 sm:h-64 md:h-80 lg:h-96 w-full rounded-md object-cover"
           />
         ) : (
-          <div className="relative aspect-video">
+          <div className="relative aspect-video z-0">
             <Player
               ref={playerRef}
               aspectRatio="16:9"
               playsInline
               onEnded={() => setVideoEnded(true)}
               src={videoData?.videoURL}
-              className="w-full h-full"
+              className="w-full h-full z-0"
             >
               <BigPlayButton position="center" />
               {/* Render When Video Ends */}
               {videoEnded && (
                 <div className="absolute inset-0 z-10 flex items-center justify-center p-4 bg-gradient-to-t from-black via-black/70 to-black/10 backdrop-blur-sm">
                   <div className="text-center space-y-4 w-full max-w-md">
+                    {/* Debug: Check if button should be rendered */}
+                    {console.log("Rendering video ended overlay")}
+                    {console.log("completedLectures.includes(subSectionId):", completedLectures.includes(subSectionId))}
+                    
                     {/* Mark as completed */}
                     {!completedLectures.includes(subSectionId) && (
-                      <IconBtn
+                      <button
                         disabled={loading}
-                        onClick={() => (onclick = handleLectureCompletion)}
-                        text={!loading ? "✅ Mark as Completed" : "Loading..."}
-                        customClasses="text-sm sm:text-lg w-full sm:w-auto px-5 py-2 rounded-xl bg-green-600 hover:bg-green-500 text-white font-medium shadow-md transition-all duration-300 hover:scale-105"
-                      />
+                        onClick={() => {
+                          console.log("=== BUTTON CLICKED ===");
+                          console.log("Button clicked!");
+                          handleLectureCompletion();
+                        }}
+                        className="m-5 text-sm sm:text-lg w-full sm:w-auto px-5 py-2 rounded-xl bg-green-600 hover:bg-green-500 text-white font-medium shadow-md transition-all duration-300 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed z-50 relative"
+                      >
+                        {!loading ? "✅ Mark as Completed" : "Loading..."}
+                      </button>
                     )}
 
                     {/* Rewatch */}
