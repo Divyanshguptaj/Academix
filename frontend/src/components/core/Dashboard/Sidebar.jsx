@@ -2,7 +2,7 @@ import { useState } from "react";
 import { VscSignOut, VscSettingsGear } from "react-icons/vsc";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
-import { sidebarLinks } from "../../../data/dashboard-links";
+import { sidebarLinks, getSidebarLinksForRole } from "../../../data/dashboard-links";
 import { logout } from "../../../services/operations/authAPI";
 import ConfirmationModal from "../../common/ConfirmationModal";
 import SidebarLink from "./SidebarLink";
@@ -27,11 +27,11 @@ export default function Sidebar() {
       <div className="flex h-[calc(100vh-3.5rem)] min-w-[60px] lg:min-w-[220px] flex-col border-r border-richblack-700 bg-richblack-800 py-10 justify-between">
         {/* Top links */}
         <div className="flex flex-col">
-          {sidebarLinks.map((link) => {
-            if (user?.accountType === "Student" && (link.id === 2 || link.id === 3 || link.id === 4)) return null;
-            if (user?.accountType === "Instructor" && (link.id === 5 || link.id === 6)) return null;
-            return <SidebarLink key={link.id} link={link} iconName={link.icon} />;
-          })}
+          {sidebarLinks
+            .filter(link => link.allowedRoles.includes(user?.accountType || ''))
+            .map((link) => (
+              <SidebarLink key={link.id} link={link} iconName={link.icon} />
+            ))}
         </div>
 
         {/* Bottom section (settings + logout) */}

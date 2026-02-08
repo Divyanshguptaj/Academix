@@ -1,5 +1,5 @@
 import jwt from 'jsonwebtoken'
-import User from '../models/User.js'
+import User from '../../user-service/models/User.js'
 
 export const authenticateToken = async (req, res, next) => {
   try {
@@ -63,26 +63,6 @@ export const authenticateAdmin = async (req, res, next) => {
     res.status(500).json({
       success: false,
       message: 'Admin authentication failed'
-    })
-  }
-}
-
-export const authenticateInstructor = async (req, res, next) => {
-  try {
-    await authenticateToken(req, res, () => {
-      if (req.user.accountType !== 'Instructor' && req.user.accountType !== 'Admin') {
-        return res.status(403).json({
-          success: false,
-          message: 'Instructor access required'
-        })
-      }
-      next()
-    })
-  } catch (error) {
-    console.error('Instructor authentication error:', error)
-    res.status(500).json({
-      success: false,
-      message: 'Instructor authentication failed'
     })
   }
 }

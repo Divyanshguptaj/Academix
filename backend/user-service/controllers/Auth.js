@@ -527,3 +527,62 @@ export const getInstructorsByIds = async (req, res) => {
     });
   }
 };
+
+// Submit Instructor Application
+export const submitInstructorApplication = async (req, res) => {
+  try {
+    const { qualifications, experience, expertise, bio, portfolio } = req.body;
+    const userId = req.user.id;
+
+    // Validation
+    if (!qualifications || !experience || !expertise || !bio) {
+      return res.status(400).json({
+        success: false,
+        message: "All fields are required"
+      });
+    }
+
+    // Check if user already has an application
+    const existingApplication = await InstructorApplication.findOne({ userId });
+    if (existingApplication) {
+      return res.status(400).json({
+        success: false,
+        message: "You have already submitted an instructor application"
+      });
+    }
+
+    // Check if user is already an instructor
+    const user = await User.findById(userId);
+    if (user.accountType === 'Instructor' || user.accountType === 'Admin') {
+      return res.status(400).json({
+        success: false,
+        message: "You already have instructor privileges"
+      });
+    }
+
+    // Create application
+    const application = await InstructorApplication.create({
+      userId,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      email: user.email,
+      qualifications,
+      experience,
+      expertise: Array.isArray(expertise) ? expertise : expertise.split(',').map(item => item.trim()),
+      bio,
+      portfolio: portfolio || undefined
+    });
+
+    res.status(201).json({
+      success: true,
+      message: "Instructor application submitted successfully",
+      data: application
+    });
+  } catch (error) {
+    console.error("Submit instructor application error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to submit instructor application"
+    });
+  }
+};

@@ -24,6 +24,15 @@ import Instructor from './components/core/Dashboard/InstructorDashboard/Instruct
 import SmartStudyCompanion from './components/core/Dashboard/SmartStudyCompanion';
 import AIStudyAssistant from './components/core/Dashboard/AIStudyAssistant';
 import TextToVideoSummarizer from './components/core/Dashboard/TextToVideoSummarizer';
+
+// Admin Components
+import AdminDashboardOverview from './components/core/Admin/AdminDashboardOverview';
+import UserManagement from './components/core/Admin/UserManagement';
+import InstructorManagement from './components/core/Admin/InstructorManagement';
+import CourseManagement from './components/core/Admin/CourseManagement';
+import RefundManagement from './components/core/Admin/RefundManagement';
+import AnalyticsDashboard from './components/core/Admin/AnalyticsDashboard';
+import AdminSettings from './components/core/Admin/AdminSettings';
 import About from './pages/About';
 import Catalog from './pages/Catalog';
 import ViewCourse from "./pages/ViewCourse";
@@ -95,9 +104,26 @@ function App() {
               <Route path="enrolled-courses" element={<EnrolledCourses />} />
               <Route path="smart-study" element={<SmartStudyCompanion />} />
               <Route path="ai-study-assistant" element={<AIStudyAssistant />} />
-
               <Route path="text-to-video-summarizer" element={<TextToVideoSummarizer />} />
-              <Route path="/dashboard/edit-course/:courseId" element={<EditCourse />} />
+              <Route path="edit-course/:courseId" element={<EditCourse />} />
+            </Route>
+
+            {/* Admin Routes - Uses same Dashboard component with role-based access */}
+            <Route
+              path="/admin"
+              element={
+                <div className="w-screen m-0">
+                  <DashBoard />
+                </div>
+              }
+            >
+              <Route path="dashboard" element={<AdminDashboardOverview />} />
+              <Route path="users" element={<UserManagement />} />
+              <Route path="instructors" element={<InstructorManagement />} />
+              <Route path="courses" element={<CourseManagement />} />
+              <Route path="refunds" element={<RefundManagement />} />
+              <Route path="analytics" element={<AnalyticsDashboard />} />
+              <Route path="settings" element={<AdminSettings />} />
             </Route>
 
             {/* Course View */}

@@ -9,6 +9,7 @@ export const endpoints = {
   GOOGLE_AUTH_API: API_GATEWAY_URL + "/auth/google-auth",
   RESETPASSTOKEN_API: API_GATEWAY_URL + "/auth/reset-password-token",
   RESETPASSWORD_API: API_GATEWAY_URL + "/auth/reset-password",
+  SUBMIT_INSTRUCTOR_APPLICATION: API_GATEWAY_URL + "/auth/submit-instructor-application",
 }
 
 // PROFILE ENDPOINTS (Routed through API Gateway to User Service)
@@ -83,4 +84,30 @@ export const smartStudyEndpoints = {
   TEXT_TO_VIDEO_SUMMARIZER_API: API_GATEWAY_URL + "/smart-study/textToVideoSummarizer",
   GENERATE_JSON2_VIDEO_API: API_GATEWAY_URL + "/smart-study/generateJson2Video",
   CHECK_JSON2_STATUS_API: API_GATEWAY_URL + "/smart-study/checkJson2Status",
+}
+
+// ADMIN API ENDPOINTS (Routed through API Gateway to User Service)
+export const adminEndpoints = {
+  ADMIN_DASHBOARD_STATS: API_GATEWAY_URL + "/admin/dashboard-stats",
+  GET_ALL_USERS: API_GATEWAY_URL + "/admin/users",
+  UPDATE_USER_STATUS: API_GATEWAY_URL + "/admin/users/:id/status",
+  GET_USER_DETAILS: API_GATEWAY_URL + "/admin/users/:id/details",
+  
+  GET_ALL_INSTRUCTORS: API_GATEWAY_URL + "/admin/instructors",
+  APPROVE_INSTRUCTOR: API_GATEWAY_URL + "/admin/instructors/:id/approve",
+  REVOKE_INSTRUCTOR: API_GATEWAY_URL + "/admin/instructors/:id/revoke",
+  GET_INSTRUCTOR_APPLICATIONS: API_GATEWAY_URL + "/admin/instructor-applications",
+  
+  GET_ALL_COURSES: API_GATEWAY_URL + "/admin/courses",
+  APPROVE_COURSE: API_GATEWAY_URL + "/admin/courses/:id/approve",
+  REJECT_COURSE: API_GATEWAY_URL + "/admin/courses/:id/reject",
+  GET_COURSE_ANALYTICS: API_GATEWAY_URL + "/admin/courses/:id/analytics",
+  
+  GET_REFUND_REQUESTS: API_GATEWAY_URL + "/admin/refunds",
+  PROCESS_REFUND: API_GATEWAY_URL + "/admin/refunds/:id/process",
+  REJECT_REFUND: API_GATEWAY_URL + "/admin/refunds/:id/reject",
+  GET_REFUND_ANALYTICS: API_GATEWAY_URL + "/admin/refunds/analytics",
+  
+  GET_ANALYTICS: API_GATEWAY_URL + "/admin/analytics",
+  EXPORT_DATA: API_GATEWAY_URL + "/admin/export",
 }
