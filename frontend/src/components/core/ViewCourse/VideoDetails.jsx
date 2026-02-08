@@ -16,8 +16,7 @@ const VideoDetails = () => {
   const dispatch = useDispatch();
   const { token } = useSelector((state) => state.auth);
   const { user } = useSelector((state) => state.profile);
-  const { courseSectionData, courseEntireData, completedLectures } =
-    useSelector((state) => state.viewCourse);
+  const { courseSectionData, courseEntireData, completedLectures } = useSelector((state) => state.viewCourse);
 
   const [videoData, setVideoData] = useState([]);
   const [previewSource, setPreviewSource] = useState("");
@@ -190,7 +189,7 @@ const VideoDetails = () => {
               <BigPlayButton position="center" />
               {/* Render When Video Ends */}
               {videoEnded && (
-                <div className="absolute inset-0 z-10 flex items-center justify-center p-4 bg-gradient-to-t from-black via-black/70 via-black/40 to-black/10 backdrop-blur-sm">
+                <div className="absolute inset-0 z-10 flex items-center justify-center p-4 bg-gradient-to-t from-black via-black/70 to-black/10 backdrop-blur-sm">
                   <div className="text-center space-y-4 w-full max-w-md">
                     {/* Mark as completed */}
                     {!completedLectures.includes(subSectionId) && (

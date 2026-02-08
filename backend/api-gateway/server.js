@@ -155,9 +155,4 @@ app.use("*", (req, res) => {
 // Start server
 app.listen(PORT, () => {
   console.log(`🚀 API Gateway running on port ${PORT}`);
-  console.log(`📍 Services configured:`);
-  console.log(`   User: ${USER_SERVICE_URL}`);
-  console.log(`   Course: ${COURSE_SERVICE_URL}`);
-  console.log(`   Payment: ${PAYMENT_SERVICE_URL}`);
-  console.log(`   AI: ${AI_SERVICE_URL}`);
 });

@@ -3,6 +3,7 @@ import crypto from "crypto";
 import mailSender from "../../shared-utils/mailSender.js";
 import mongoose from "mongoose";
 import { paymentSuccessEmail } from "../../shared-utils/mail/templates/paymentSuccessEmail.js";
+import { paymentFailureEmail } from "../../shared-utils/mail/templates/paymentFailureEmail.js";
 import { withRetry, courseService, userService } from "../utils/retryUtils.js";
 import PaymentTransaction from "../models/PaymentTransaction.js";
 
@@ -114,7 +115,8 @@ export const capturePayment = async (req, res) => {
       notes: {
         courseCount: courseDetails.length,
         userId: userId
-      }
+      },
+      payment_capture: 1
     };
 
     console.log("Creating Razorpay order with amount:", options.amount);
@@ -254,15 +256,36 @@ export const verifyPayment = async (req, res) => {
       // Attempt auto-refund
       try {
         console.log("Initiating auto-refund...");
-        await instance.payments.refund(razorpay_payment_id, {
-          notes: { reason: 'Enrollment failed' }
+        console.log("Razorpay instance:", !!instance);
+        console.log("Refund method:", typeof instance?.payments?.refund);
+        console.log("Payment ID for refund:", razorpay_payment_id);
+        // console.log(amount, transaction.amount, reason);
+        const payment = await instance.payments.fetch(razorpay_payment_id);
+        console.log("🔍 Razorpay payment status:", payment.status);
+
+        const refund = await withRetry(async () => {
+          return await instance.payments.refund(razorpay_payment_id, {
+            notes: { reason: 'Enrollment failed' }
+          });
         });
         
         transaction.status = 'refunded';
         transaction.refundReason = 'Enrollment failed';
+        transaction.refundId = refund.id;
         await transaction.save();
 
         console.log("✓ Auto-refund issued");
+
+        // Send failure email with refund notification
+        sendFailureEmail(
+          razorpay_payment_id, 
+          transaction.amount, 
+          razorpay_order_id, 
+          userEmail, 
+          refund.id
+        ).catch(err => {
+          console.warn("❌ Failure email send failed:", err.message);
+        });
         
         return res.status(400).json({ 
           success: false, 
@@ -463,5 +486,35 @@ const sendSuccessEmail = async (paymentId, amount, email) => {
   } catch (error) {
     console.error("Error sending success email:", error.message);
     // Don't throw - email failure shouldn't block payment flow
+  }
+};
+
+/**
+ * Helper: Send payment failure email with refund notification
+ */
+const sendFailureEmail = async (paymentId, amount, orderId, email, refundId) => {
+  try {
+    if (!email) {
+      console.warn("⚠️  No email provided for failure notification");
+      return;
+    }
+
+    console.log("📧 Sending payment failure email to:", email);
+
+    const emailSubject = "Payment Failed - Refund Initiated";
+    const emailBody = paymentFailureEmail(
+      "Student",
+      amount,
+      orderId,
+      paymentId,
+      refundId
+    );
+
+    await mailSender(email, emailSubject, emailBody);
+    console.log("✓ Failure email sent");
+
+  } catch (error) {
+    console.error("Error sending failure email:", error.message);
+    // Don't throw - email failure shouldn't block refund flow
   }
 };

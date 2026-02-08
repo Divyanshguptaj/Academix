@@ -254,7 +254,7 @@ export const showAllCourses = async (req,res)=>{
 export const getCourseDetails = async (req,res)=>{
     try {
         const {courseId} = req.body;
-        // console.log("courseID", courseId)
+        console.log("courseID", courseId)
         if(!courseId){
             return res.status(400).json({
                 success: false,
