@@ -26,7 +26,9 @@ export default function CourseManagement() {
     try {
       setLoading(true)
       const response = await apiConnector("GET", adminEndpoints.GET_ALL_COURSES)
-      setCourses(response.data.data)
+      // Defensive: ensure we always set an array
+      const list = response?.data?.data || []
+      setCourses(Array.isArray(list) ? list : [])
     } catch (error) {
       console.error("Error fetching courses:", error)
       setError("Failed to load courses")
@@ -40,8 +42,9 @@ export default function CourseManagement() {
       const endpoint = action === "approve" 
         ? adminEndpoints.APPROVE_COURSE.replace(":id", courseId)
         : adminEndpoints.REJECT_COURSE.replace(":id", courseId)
-      
-      await apiConnector("PUT", endpoint, {})
+
+      // Course service expects POST for approve/reject
+      await apiConnector("POST", endpoint, {})
       fetchCourses() // Refresh the list
     } catch (error) {
       console.error("Error updating course status:", error)
@@ -51,12 +54,19 @@ export default function CourseManagement() {
 
   const filteredAndSortedCourses = courses
     .filter(course => {
-      const matchesSearch = course.courseName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           course.instructor?.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           course.instructor?.lastName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           course.category?.toLowerCase().includes(searchTerm.toLowerCase())
+      const lowerSearch = searchTerm.toLowerCase()
+      const instructorFirst = course.instructor?.firstName || ''
+      const instructorLast = course.instructor?.lastName || ''
+      const categoryStr = typeof course.category === 'string' ? course.category : (course.category?.name || '')
+      const matchesSearch = (
+        (course.courseName || '').toLowerCase().includes(lowerSearch) ||
+        instructorFirst.toLowerCase().includes(lowerSearch) ||
+        instructorLast.toLowerCase().includes(lowerSearch) ||
+        categoryStr.toLowerCase().includes(lowerSearch)
+      )
       const matchesStatus = statusFilter === "all" || course.status === statusFilter
-      const matchesCategory = categoryFilter === "all" || course.category === categoryFilter
+      const courseCategory = typeof course.category === 'string' ? course.category : (course.category?.name || '')
+      const matchesCategory = categoryFilter === "all" || courseCategory === categoryFilter
       return matchesSearch && matchesStatus && matchesCategory
     })
     .sort((a, b) => {
@@ -78,7 +88,15 @@ export default function CourseManagement() {
       return sortOrder === "asc" ? aValue - bValue : bValue - aValue
     })
 
-  const uniqueCategories = [...new Set(courses.map(course => course.category).filter(Boolean))]
+  const uniqueCategories = [...new Set(courses.map(course => {
+    if (typeof course.category === 'string') {
+      return course.category;
+    } else if (course.category && course.category.name) {
+      return course.category.name;
+    }
+    return null;
+  }).filter(Boolean))]
+
 
   if (user?.accountType !== "Admin") {
     return (
@@ -245,7 +263,7 @@ export default function CourseManagement() {
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
                       <FaTag className="mr-1" />
-                      {course.category || "Uncategorized"}
+                      {typeof course.category === 'string' ? course.category : (course.category?.name || "Uncategorized")}
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">

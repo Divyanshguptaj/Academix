@@ -136,6 +136,58 @@ app.use(
   }),
 );
 
+app.use(
+  "/api/v1/admin/payment",
+  createProxyMiddleware({
+    target: PAYMENT_SERVICE_URL,
+    changeOrigin: true,
+    pathRewrite: (path, req) => {
+      const newPath = `/admin${path}`;
+      console.log("🔁 Rewriting path:", path, "→", newPath);
+      return newPath;
+    },
+  }),
+);
+
+app.use(
+  "/api/v1/admin/user",
+  createProxyMiddleware({
+    target: USER_SERVICE_URL,
+    changeOrigin: true,
+    pathRewrite: (path, req) => {
+      const newPath = `/admin${path}`;
+      console.log("🔁 Rewriting path:", path, "→", newPath);
+      return newPath;
+    },
+  }),
+);
+
+app.use(
+  "/api/v1/admin/course",
+  createProxyMiddleware({
+    target: COURSE_SERVICE_URL,
+    changeOrigin: true,
+    pathRewrite: (path, req) => {
+      const newPath = `/admin${path}`;
+      console.log("🔁 Rewriting path:", path, "→", newPath);
+      return newPath;
+    },
+  }),
+);
+
+app.use(
+  "/api/v1/admin/ai",
+  createProxyMiddleware({
+    target: AI_SERVICE_URL,
+    changeOrigin: true,
+    pathRewrite: (path, req) => {
+      const newPath = `/admin${path}`;
+      console.log("🔁 Rewriting path:", path, "→", newPath);
+      return newPath;
+    },
+  }),
+);
+
 // Error handling
 app.use((err, req, res, next) => {
   res.status(500).json({

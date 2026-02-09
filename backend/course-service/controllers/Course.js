@@ -765,3 +765,152 @@ export const updateCourseProgress = async (req, res) => {
     return res.status(500).json({ success: false, message: "Internal server error" });
   }
 };
+
+// ----------------------- Admin endpoints -----------------------
+export const adminListCourses = async (req, res) => {
+  try {
+    console.log("Admin list courses called with query:", req.query);
+    console.log("Authenticated user:");
+    const { status, page = 1, limit = 20, search } = req.query;
+    const filter = {};
+    if (status) filter.status = status;
+    if (search) filter.courseName = { $regex: search, $options: 'i' };
+
+    const skip = (Number(page) - 1) * Number(limit);
+
+    const [total, courses] = await Promise.all([
+      Course.countDocuments(filter),
+      Course.find(filter)
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(Number(limit))
+        .populate('category')
+        .populate({ path: 'courseContent', populate: { path: 'subSection' } }),
+    ]);
+
+    return res.status(200).json({
+      success: true,
+      message: 'Admin course list fetched successfully',
+      total,
+      page: Number(page),
+      limit: Number(limit),
+      data: courses,
+    });
+  } catch (error) {
+    console.error('Error in adminListCourses:', error);
+    return res.status(500).json({ success: false, message: 'Internal server error' });
+  }
+};
+
+export const approveCourse = async (req, res) => {
+  try {
+    const courseId = req.body.courseId || req.params.id;
+    if (!courseId || !mongoose.Types.ObjectId.isValid(courseId)) {
+      return res.status(400).json({ success: false, message: 'Valid courseId is required' });
+    }
+
+    const course = await Course.findByIdAndUpdate(
+      courseId,
+      { status: 'Published' },
+      { new: true }
+    ).populate('category');
+
+    if (!course) {
+      return res.status(404).json({ success: false, message: 'Course not found' });
+    }
+
+    return res.status(200).json({ success: true, message: 'Course approved', data: course });
+  } catch (error) {
+    console.error('Error approving course:', error);
+    return res.status(500).json({ success: false, message: 'Internal server error' });
+  }
+};
+
+export const rejectCourse = async (req, res) => {
+  try {
+    const courseId = req.body.courseId || req.params.id;
+    if (!courseId || !mongoose.Types.ObjectId.isValid(courseId)) {
+      return res.status(400).json({ success: false, message: 'Valid courseId is required' });
+    }
+
+    const course = await Course.findByIdAndUpdate(
+      courseId,
+      { status: 'Draft' },
+      { new: true }
+    ).populate('category');
+
+    if (!course) {
+      return res.status(404).json({ success: false, message: 'Course not found' });
+    }
+
+    return res.status(200).json({ success: true, message: 'Course rejected (moved to Draft)', data: course });
+  } catch (error) {
+    console.error('Error rejecting course:', error);
+    return res.status(500).json({ success: false, message: 'Internal server error' });
+  }
+};
+
+export const getCourseAnalytics = async (req, res) => {
+  try {
+    const courseId = req.params.courseId || req.params.id;
+    if (!courseId || !mongoose.Types.ObjectId.isValid(courseId)) {
+      return res.status(400).json({ success: false, message: 'Valid courseId is required' });
+    }
+
+    const course = await Course.findById(courseId)
+      .populate({ path: 'courseContent', populate: { path: 'subSection' } })
+      .exec();
+
+    if (!course) return res.status(404).json({ success: false, message: 'Course not found' });
+
+    const totalEnrolled = (course.studentsEnrolled && course.studentsEnrolled.length) || 0;
+    const price = course.price || 0;
+    const revenue = price * totalEnrolled;
+
+    // Count total lectures (subsections)
+    let totalLectures = 0;
+    if (course.courseContent && course.courseContent.length > 0) {
+      totalLectures = course.courseContent.reduce((acc, section) => {
+        const subs = section.subSection || [];
+        return acc + subs.length;
+      }, 0);
+    }
+
+    // Fetch progress entries for this course
+    const progressEntries = await CourseProgress.find({ courseID: courseId, userId: { $in: course.studentsEnrolled } }).lean();
+
+    // compute per-student completion and average completion
+    let perStudent = [];
+    let avgCompletion = 0;
+
+    if (totalEnrolled > 0 && totalLectures > 0) {
+      perStudent = progressEntries.map(p => {
+        const completed = (p.completedVideos && p.completedVideos.length) || 0;
+        const completionPct = Math.min(100, Math.round((completed / totalLectures) * 100));
+        return { userId: p.userId, completed, completionPct };
+      });
+
+      if (perStudent.length > 0) {
+        avgCompletion = Math.round(perStudent.reduce((s, x) => s + x.completionPct, 0) / perStudent.length);
+      } else {
+        avgCompletion = 0;
+      }
+    }
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        courseId: course._id,
+        courseName: course.courseName,
+        totalEnrolled,
+        revenue,
+        totalLectures,
+        averageCompletionRate: avgCompletion, // percentage
+        perStudentProgress: perStudent,
+      },
+    });
+  } catch (error) {
+    console.error('Error getting course analytics:', error);
+    return res.status(500).json({ success: false, message: 'Internal server error' });
+  }
+};

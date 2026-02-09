@@ -8,7 +8,7 @@ export const sidebarLinks = [
         name: "My Profile",
         path: '/dashboard/my-profile',
         icon: 'VscAccount',
-        allowedRoles: [ACCOUNT_TYPE.STUDENT, ACCOUNT_TYPE.INSTRUCTOR, ACCOUNT_TYPE.ADMIN],
+        allowedRoles: [ACCOUNT_TYPE.STUDENT, ACCOUNT_TYPE.INSTRUCTOR],
     },
     {
         id: 2,
@@ -29,21 +29,21 @@ export const sidebarLinks = [
         name: "Smart Study Companion",
         path: '/dashboard/smart-study',
         icon: 'VscBook',
-        allowedRoles: [ACCOUNT_TYPE.STUDENT, ACCOUNT_TYPE.INSTRUCTOR, ACCOUNT_TYPE.ADMIN],
+        allowedRoles: [ACCOUNT_TYPE.STUDENT, ACCOUNT_TYPE.INSTRUCTOR],
     },
     {
         id: 5,
         name: "AI Study Assistant",
         path: '/dashboard/ai-study-assistant',
         icon: 'VscHubot',
-        allowedRoles: [ACCOUNT_TYPE.STUDENT, ACCOUNT_TYPE.INSTRUCTOR, ACCOUNT_TYPE.ADMIN],
+        allowedRoles: [ACCOUNT_TYPE.STUDENT, ACCOUNT_TYPE.INSTRUCTOR],
     },
     {
         id: 6,
         name: "Text to Video Summarizer",
         path: '/dashboard/text-to-video-summarizer',
         icon: 'BiVideo',
-        allowedRoles: [ACCOUNT_TYPE.STUDENT, ACCOUNT_TYPE.INSTRUCTOR, ACCOUNT_TYPE.ADMIN],
+        allowedRoles: [ACCOUNT_TYPE.STUDENT, ACCOUNT_TYPE.INSTRUCTOR],
     },
 
     // Instructor Links
@@ -52,21 +52,21 @@ export const sidebarLinks = [
         name: "Instructors",
         path: '/dashboard/instructor',
         icon: 'VscProject',
-        allowedRoles: [ACCOUNT_TYPE.INSTRUCTOR, ACCOUNT_TYPE.ADMIN],
+        allowedRoles: [ACCOUNT_TYPE.INSTRUCTOR],
     },
     {
         id: 8,
         name: "My Courses",
         path: '/dashboard/instructor-courses',
         icon: 'VscVm',
-        allowedRoles: [ACCOUNT_TYPE.INSTRUCTOR, ACCOUNT_TYPE.ADMIN],
+        allowedRoles: [ACCOUNT_TYPE.INSTRUCTOR],
     },
     {
         id: 9,
         name: "Add Courses",
         path: '/dashboard/add-courses',
         icon: 'VscAdd',
-        allowedRoles: [ACCOUNT_TYPE.INSTRUCTOR, ACCOUNT_TYPE.ADMIN],
+        allowedRoles: [ACCOUNT_TYPE.INSTRUCTOR],
     },
 
     // Admin Links

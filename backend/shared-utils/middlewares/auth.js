@@ -3,6 +3,8 @@ import 'dotenv/config';
 
 export const auth = async (req, res, next) => {
     try {
+        console.log("Authenticating request...")
+        console.log("Cookies:", req.cookies, req.token);
         let token = req.cookies.token || req.body.token;
 
         if (!token && req.header("Authorization")) {
@@ -19,6 +21,7 @@ export const auth = async (req, res, next) => {
         try {
             const decode = jwt.verify(token, process.env.JWT_SECRET);
             req.user = decode;
+            console.log("Authenticated user:", decode);
             next();
         } catch (error) {
             return res.status(400).json({

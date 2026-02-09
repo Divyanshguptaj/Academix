@@ -2,7 +2,7 @@ import express from 'express';
 const router = express.Router();
 import {login, signUp, changePassword, sendOTP, getUserByEmail, googleAuth, getInstructorsByIds, submitInstructorApplication} from '../controllers/Auth.js'
 import {resetPasswordToken, resetPassword} from '../controllers/ResetPassword.js'
-import { invalidateToken } from '../middlewares/auth.js'
+import { invalidateToken, authenticateToken, authenticateInstructor } from '../middlewares/auth.js'
 import { 
   sanitizeInput, 
   validateSignup, 
@@ -44,6 +44,7 @@ router.post('/changepassword',
   mongoSanitizeMiddleware, 
   validatePasswordChange, 
   handleValidationErrors, 
+  authenticateToken,  // Add authentication middleware
   changePassword
 );
 
@@ -84,21 +85,27 @@ router.post('/google-auth',
 router.get('/user-by-email/:email', 
   sanitizeInput, 
   mongoSanitizeMiddleware, 
+  authenticateToken,  // Add authentication middleware
   getUserByEmail
 );
 
 router.get('/get-instructors-by-ids', 
   sanitizeInput, 
   mongoSanitizeMiddleware, 
+  authenticateToken,  // Add authentication middleware
   getInstructorsByIds
 );
 
-router.post('/logout', invalidateToken);
+router.post('/logout', 
+  authenticateToken,  // Add authentication middleware
+  invalidateToken
+);
 
 // Instructor Application Route
 router.post('/submit-instructor-application', 
   sanitizeInput, 
   mongoSanitizeMiddleware, 
+  authenticateToken,  // Add authentication middleware
   submitInstructorApplication
 );
 

@@ -3,6 +3,7 @@ import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import dotenv from 'dotenv';
 import courseRoutes from './routes/Course.js';
+import adminRoutes from './routes/admin.js';
 import database from './config/database.js';
 
 dotenv.config();
@@ -34,6 +35,8 @@ app.use((req, res, next) => {
 
 // Routes
 app.use('/course', courseRoutes);
+// Mount admin routes at top-level so gateway variants (/admin/...) are accepted
+app.use('/admin', adminRoutes);
 
 // Health check
 app.get('/', (req, res) => {

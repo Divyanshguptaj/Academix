@@ -1,5 +1,6 @@
 import User from "../models/User.js";
 import OTP from "../models/OTP.js";
+import InstructorApplication from "../models/InstructorApplication.js";
 import otpgenerator from "otp-generator";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";

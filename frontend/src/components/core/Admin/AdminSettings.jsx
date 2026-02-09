@@ -1,6 +1,6 @@
 import { useState } from "react"
 import { useSelector } from "react-redux"
-import { FaCog, FaUserShield, FaLock, FaBell, FaTrash, FaSave } from "react-icons/fa"
+import { FaCog, FaLock, FaBell, FaTrash, FaSave, FaMoneyBillWave } from "react-icons/fa"
 
 export default function AdminSettings() {
   const { user } = useSelector((state) => state.profile)

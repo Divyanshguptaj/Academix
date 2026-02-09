@@ -86,28 +86,31 @@ export const smartStudyEndpoints = {
   CHECK_JSON2_STATUS_API: API_GATEWAY_URL + "/smart-study/checkJson2Status",
 }
 
-// ADMIN API ENDPOINTS (Routed through API Gateway to User Service)
+// ADMIN API ENDPOINTS (Routed through API Gateway with dynamic service routing)
 export const adminEndpoints = {
-  ADMIN_DASHBOARD_STATS: API_GATEWAY_URL + "/admin/dashboard-stats",
-  GET_ALL_USERS: API_GATEWAY_URL + "/admin/users",
-  UPDATE_USER_STATUS: API_GATEWAY_URL + "/admin/users/:id/status",
-  GET_USER_DETAILS: API_GATEWAY_URL + "/admin/users/:id/details",
+  // User Service Admin Endpoints
+  ADMIN_DASHBOARD_STATS: API_GATEWAY_URL + "/admin/user/dashboard-stats",
+  GET_ALL_USERS: API_GATEWAY_URL + "/admin/user/users",
+  UPDATE_USER_STATUS: API_GATEWAY_URL + "/admin/user/users/:id/status",
+  GET_USER_DETAILS: API_GATEWAY_URL + "/admin/user/users/:id/details",
+  GET_ALL_INSTRUCTORS: API_GATEWAY_URL + "/admin/user/instructors",
+  APPROVE_INSTRUCTOR: API_GATEWAY_URL + "/admin/user/instructors/:id/approve",
+  REVOKE_INSTRUCTOR: API_GATEWAY_URL + "/admin/user/instructors/:id/revoke",
+  GET_INSTRUCTOR_APPLICATIONS: API_GATEWAY_URL + "/admin/user/instructor-applications",
   
-  GET_ALL_INSTRUCTORS: API_GATEWAY_URL + "/admin/instructors",
-  APPROVE_INSTRUCTOR: API_GATEWAY_URL + "/admin/instructors/:id/approve",
-  REVOKE_INSTRUCTOR: API_GATEWAY_URL + "/admin/instructors/:id/revoke",
-  GET_INSTRUCTOR_APPLICATIONS: API_GATEWAY_URL + "/admin/instructor-applications",
+  // Course Service Admin Endpoints
+  GET_ALL_COURSES: API_GATEWAY_URL + "/admin/course/admin",
+  APPROVE_COURSE: API_GATEWAY_URL + "/admin/course/admin/approve",
+  REJECT_COURSE: API_GATEWAY_URL + "/admin/course/admin/reject",
+  GET_COURSE_ANALYTICS: API_GATEWAY_URL + "/admin/course/admin/analytics",
   
-  GET_ALL_COURSES: API_GATEWAY_URL + "/admin/courses",
-  APPROVE_COURSE: API_GATEWAY_URL + "/admin/courses/:id/approve",
-  REJECT_COURSE: API_GATEWAY_URL + "/admin/courses/:id/reject",
-  GET_COURSE_ANALYTICS: API_GATEWAY_URL + "/admin/courses/:id/analytics",
+  // Payment Service Admin Endpoints
+  GET_REFUND_REQUESTS: API_GATEWAY_URL + "/admin/payment/refunds",
+  PROCESS_REFUND: API_GATEWAY_URL + "/admin/payment/refunds/:id/process",
+  REJECT_REFUND: API_GATEWAY_URL + "/admin/payment/refunds/:id/reject",
+  GET_REFUND_ANALYTICS: API_GATEWAY_URL + "/admin/payment/refunds/analytics",
   
-  GET_REFUND_REQUESTS: API_GATEWAY_URL + "/admin/refunds",
-  PROCESS_REFUND: API_GATEWAY_URL + "/admin/refunds/:id/process",
-  REJECT_REFUND: API_GATEWAY_URL + "/admin/refunds/:id/reject",
-  GET_REFUND_ANALYTICS: API_GATEWAY_URL + "/admin/refunds/analytics",
-  
-  GET_ANALYTICS: API_GATEWAY_URL + "/admin/analytics",
-  EXPORT_DATA: API_GATEWAY_URL + "/admin/export",
+  // AI Service Admin Endpoints
+  GET_ANALYTICS: API_GATEWAY_URL + "/admin/ai/analytics",
+  EXPORT_DATA: API_GATEWAY_URL + "/admin/ai/export",
 }
