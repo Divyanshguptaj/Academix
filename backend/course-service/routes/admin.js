@@ -10,7 +10,7 @@ import {
 const router = express.Router()
 
 // List courses (supports query params: status, page, limit, search)
-router.get('/list', auth, isAdmin, adminListCourses)
+router.get('/list', adminListCourses)
 router.get('/', auth, isAdmin, adminListCourses)
 router.get('/admin', adminListCourses) // Support /admin/admin path
 

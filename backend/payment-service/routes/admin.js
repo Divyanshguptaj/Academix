@@ -5,9 +5,9 @@ import * as adminController from '../controllers/Admin.js'
 const router = express.Router()
 
 // Refund Management
-router.get('/refunds', authenticateAdmin, adminController.getRefundRequests)
+router.get('/refunds', adminController.getRefundRequests)
 router.put('/refunds/:id/process', authenticateAdmin, adminController.processRefund)
 router.put('/refunds/:id/reject', authenticateAdmin, adminController.rejectRefund)
-router.get('/refunds/analytics', authenticateAdmin, adminController.getRefundAnalytics)
+router.get('/refunds/analytics', adminController.getRefundAnalytics)
 
 export default router

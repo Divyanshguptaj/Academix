@@ -240,7 +240,7 @@ export default function AdminDashboardOverview() {
         </div>
 
         {/* Quick Actions */}
-        <div className="bg-richblack-800 rounded-2xl p-6 md:p-8 border border-richblack-700 shadow-xl">
+        {/* <div className="bg-richblack-800 rounded-2xl p-6 md:p-8 border border-richblack-700 shadow-xl">
           <h2 className="text-2xl font-bold text-richblack-200 mb-6 flex items-center gap-3">
             <div className="w-1 h-8 bg-gradient-to-b from-yellow-400 to-yellow-600 rounded-full"></div>
             Quick Actions
@@ -261,7 +261,7 @@ export default function AdminDashboardOverview() {
               </button>
             ))}
           </div>
-        </div>
+        </div> */}
 
         {/* Recent Activity */}
         {stats?.recentActivity && stats.recentActivity.length > 0 && (

@@ -1,27 +1,124 @@
 import User from '../models/User.js'
 import InstructorApplication from '../models/InstructorApplication.js'
-import Profile from '../models/Profile.js'
-import mongoose from 'mongoose'
 
 // Admin Dashboard Stats
 export const getDashboardStats = async (req, res) => {
   try {
-    const stats = {
-      totalUsers: await User.countDocuments(),
-      studentCount: await User.countDocuments({ accountType: 'Student' }),
-      instructorCount: await User.countDocuments({ accountType: 'Instructor' }),
-      adminCount: await User.countDocuments({ accountType: 'Admin' }),
-      totalCourses: 0, // This will be populated by course service
+    // Get user statistics
+    const totalUsers = await User.countDocuments();
+    const studentCount = await User.countDocuments({ accountType: 'Student' });
+    const instructorCount = await User.countDocuments({ accountType: 'Instructor' });
+    const adminCount = await User.countDocuments({ accountType: 'Admin' });
+    const pendingInstructorApplications = await InstructorApplication.countDocuments({ status: 'pending' });
+
+    // Fetch course statistics from Course Service
+    let courseStats = {
+      totalCourses: 0,
       publishedCourses: 0,
       draftCourses: 0,
-      pendingActions: 0,
-      pendingInstructorApplications: await InstructorApplication.countDocuments({ status: 'pending' }),
-      pendingCourseApprovals: 0, // This will be populated by course service
-      pendingRefundRequests: 0, // This will be populated by payment service
-      recentActivity: [], // This will be populated by activity logs
-      totalRevenue: 0, // This will be populated by payment service
-      monthlyRevenue: 0, // This will be populated by payment service
-      pendingRevenue: 0 // This will be populated by payment service
+      pendingCourseApprovals: 0
+    };
+    
+    try {
+      const courseResponse = await fetch('http://localhost:4002/admin/list');
+      // console.log("Course service response status:", courseResponse);
+      if (courseResponse.ok) {
+        const courseData = await courseResponse.json();
+        if (courseData.success && courseData.data) {
+          const courses = Array.isArray(courseData.data) ? courseData.data : [];
+          courseStats.totalCourses = courses.length;
+          courseStats.publishedCourses = courses.filter(c => c.status === 'Published').length;
+          courseStats.draftCourses = courses.filter(c => c.status === 'Draft').length;
+          courseStats.pendingCourseApprovals = courses.filter(c => c.status === 'Pending').length;
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching course stats:', error);
+    }
+
+    // Fetch revenue statistics from Payment Service
+    let revenueStats = {
+      totalRevenue: 0,
+      monthlyRevenue: 0,
+      pendingRevenue: 0
+    };
+    
+    try {
+      const paymentResponse = await fetch('http://localhost:4003/admin/refunds/analytics');
+      console.log("Payment service response status:", paymentResponse);
+      if (paymentResponse.ok) {
+        const paymentData = await paymentResponse.json();
+        if (paymentData.success && paymentData.data) {
+          revenueStats.totalRevenue = paymentData.data.totalRevenue || 0;
+          revenueStats.monthlyRevenue = paymentData.data.monthlyRevenue || 0;
+          revenueStats.pendingRevenue = paymentData.data.pendingRevenue || 0;
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching revenue stats:', error);
+    }
+
+    // Fetch refund statistics from Payment Service
+    let refundStats = {
+      pendingRefundRequests: 0
+    };
+    
+    try {
+      const refundResponse = await fetch('http://localhost:4003/admin/refunds');
+      if (refundResponse.ok) {
+        const refundData = await refundResponse.json();
+        if (refundData.success && refundData.data) {
+          const refunds = Array.isArray(refundData.data) ? refundData.data : [];
+          refundStats.pendingRefundRequests = refunds.filter(r => r.status === 'pending').length;
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching refund stats:', error);
+    }
+
+    // Calculate total pending actions
+    const pendingActions = pendingInstructorApplications + courseStats.pendingCourseApprovals + refundStats.pendingRefundRequests;
+
+    // Create recent activity (mock data for now, would come from activity logs)
+    const recentActivity = [
+      {
+        action: "New User Registered",
+        description: "5 new students joined today",
+        timestamp: new Date().toISOString()
+      },
+      {
+        action: "Course Published",
+        description: "Advanced React course published",
+        timestamp: new Date(Date.now() - 3600000).toISOString() // 1 hour ago
+      },
+      {
+        action: "Instructor Approved",
+        description: "John Doe approved as instructor",
+        timestamp: new Date(Date.now() - 7200000).toISOString() // 2 hours ago
+      },
+      {
+        action: "Refund Processed",
+        description: "Refund request #1234 processed",
+        timestamp: new Date(Date.now() - 10800000).toISOString() // 3 hours ago
+      }
+    ];
+
+    const stats = {
+      totalUsers,
+      studentCount,
+      instructorCount,
+      adminCount,
+      totalCourses: courseStats.totalCourses,
+      publishedCourses: courseStats.publishedCourses,
+      draftCourses: courseStats.draftCourses,
+      pendingActions,
+      pendingInstructorApplications,
+      pendingCourseApprovals: courseStats.pendingCourseApprovals,
+      pendingRefundRequests: refundStats.pendingRefundRequests,
+      recentActivity,
+      totalRevenue: revenueStats.totalRevenue,
+      monthlyRevenue: revenueStats.monthlyRevenue,
+      pendingRevenue: revenueStats.pendingRevenue
     }
 
     res.status(200).json({

@@ -29,7 +29,8 @@ app.use(cors({
 
 // Routes
 app.use('/smartStudy', smartStudyRoutes);
-app.use('/admin', require('./routes/admin.js'));
+import adminRoutes from './routes/admin.js';
+app.use('/admin', adminRoutes);
 
 // Health check
 app.get('/', (req, res) => {

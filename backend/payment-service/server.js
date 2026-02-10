@@ -4,6 +4,7 @@ import cookieParser from 'cookie-parser';
 import dotenv from 'dotenv';
 import paymentRoutes from './routes/Payments.js';
 import database from './config/database.js';
+import adminRoutes from './routes/admin.js';
 
 dotenv.config();
 
@@ -28,6 +29,7 @@ app.use(cors({
 
 // Routes
 app.use('/payment', paymentRoutes);
+app.use('/admin', adminRoutes);
 
 // Health check
 app.get('/', (req, res) => {

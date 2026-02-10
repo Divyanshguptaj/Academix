@@ -117,6 +117,7 @@ function App() {
                 </div>
               }
             >
+              <Route path="my-profile" element={<AdminDashboardOverview />} />
               <Route path="dashboard" element={<AdminDashboardOverview />} />
               <Route path="users" element={<UserManagement />} />
               <Route path="instructors" element={<InstructorManagement />} />

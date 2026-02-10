@@ -2,7 +2,7 @@ import RefundRequest from '../models/RefundRequest.js'
 import User from '../../user-service/models/User.js'
 import Course from '../../course-service/models/Course.js'
 import PaymentTransaction from '../models/PaymentTransaction.js'
-import { capturePayment, refundPayment } from '../utils/razorpay.js'
+import { capturePayment, refundPayment } from './Payments.js'
 
 // Refund Management
 export const getRefundRequests = async (req, res) => {
@@ -32,13 +32,13 @@ export const getRefundRequests = async (req, res) => {
       })
     )
 
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
       data: enrichedRequests
     })
   } catch (error) {
     console.error('Get refund requests error:', error)
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: 'Failed to fetch refund requests'
     })
@@ -156,7 +156,9 @@ export const rejectRefund = async (req, res) => {
 }
 
 export const getRefundAnalytics = async (req, res) => {
+  console.log("Fetching comprehensive analytics...")
   try {
+    // Calculate Refund Statistics
     const totalRefunds = await RefundRequest.countDocuments()
     const pendingRefunds = await RefundRequest.countDocuments({ status: 'pending' })
     const approvedRefunds = await RefundRequest.countDocuments({ status: 'approved' })
@@ -171,7 +173,39 @@ export const getRefundAnalytics = async (req, res) => {
       { $group: { _id: null, total: { $sum: '$amount' } } }
     ])
 
+    // Calculate Revenue Statistics
+    const totalRevenue = await PaymentTransaction.aggregate([
+      { $match: { status: 'completed' } },
+      { $group: { _id: null, total: { $sum: '$amount' } } }
+    ])
+    
+    const pendingRevenue = await PaymentTransaction.aggregate([
+      { $match: { status: 'pending' } },
+      { $group: { _id: null, total: { $sum: '$amount' } } }
+    ])
+
+    // Calculate Monthly Revenue (current month)
+    const now = new Date()
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
+    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1)
+    
+    const monthlyRevenue = await PaymentTransaction.aggregate([
+      { 
+        $match: { 
+          status: 'completed',
+          createdAt: { $gte: startOfMonth, $lt: endOfMonth }
+        } 
+      },
+      { $group: { _id: null, total: { $sum: '$amount' } } }
+    ])
+
     const analytics = {
+      // Revenue Analytics
+      totalRevenue: totalRevenue[0]?.total || 0,
+      monthlyRevenue: monthlyRevenue[0]?.total || 0,
+      pendingRevenue: pendingRevenue[0]?.total || 0,
+      
+      // Refund Analytics
       totalRequests: totalRefunds,
       pendingRequests: pendingRefunds,
       approvedRequests: approvedRefunds,
@@ -181,16 +215,17 @@ export const getRefundAnalytics = async (req, res) => {
       approvalRate: totalRefunds > 0 ? Math.round((approvedRefunds / totalRefunds) * 100) : 0,
       rejectionRate: totalRefunds > 0 ? Math.round((rejectedRefunds / totalRefunds) * 100) : 0
     }
-
-    res.status(200).json({
+    
+    console.log("Comprehensive analytics calculated:", analytics)
+    return res.status(200).json({
       success: true,
       data: analytics
     })
   } catch (error) {
-    console.error('Get refund analytics error:', error)
-    res.status(500).json({
+    console.error('Get comprehensive analytics error:', error)
+    return res.status(500).json({
       success: false,
-      message: 'Failed to fetch refund analytics'
+      message: 'Failed to fetch analytics'
     })
   }
 }

@@ -221,7 +221,7 @@ export default function UserManagement() {
                           {user.firstName} {user.lastName}
                         </div>
                         <div className="text-sm text-richblack-400">
-                          Joined {format(new Date(user.createdAt), "MMM dd, yyyy")}
+                          Joined {user.createdAt ? format(new Date(user.createdAt), "MMM dd, yyyy") : "Unknown"}
                         </div>
                       </div>
                     </div>
