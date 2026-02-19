@@ -194,7 +194,7 @@ export const getEnrolledCourses = async (req, res) => {
 
     // 2. Call course-service to get course details
     const courseDetailsResponse = await fetch(
-      `http://localhost:4000/api/v1/course/get-courses-by-ids?ids=${courseIds.join(',')}`
+      `${process.env.API_GATEWAY_URL}/api/v1/course/get-courses-by-ids?ids=${courseIds.join(',')}`
     );
     
     if (!courseDetailsResponse.ok) {
@@ -212,7 +212,7 @@ export const getEnrolledCourses = async (req, res) => {
 
     // 3. Call course-service to get progress data for this user
     const progressResponse = await fetch(
-      `http://localhost:4002/api/v1/course/get-enrolled-students-with-progress?courseId=${courseIds.join(',')}`
+      `${process.env.COURSE_SERVICE_URL}/api/v1/course/get-enrolled-students-with-progress?courseId=${courseIds.join(',')}`
     );
     
     let progressData = [];

@@ -1,10 +1,10 @@
 import express from 'express';
 import { contactUsController } from '../controllers/Contact.js';
-import { 
-  sanitizeInput, 
+import {
+  sanitizeInput,
   mongoSanitizeMiddleware,
   createRateLimit
-} from '../middlewares/inputSanitization.js';
+} from '../../shared-utils/middlewares/inputSanitization.js';
 
 const router = express.Router();
 

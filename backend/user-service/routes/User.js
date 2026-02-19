@@ -2,20 +2,20 @@ import express from 'express';
 const router = express.Router();
 import {login, signUp, changePassword, sendOTP, getUserByEmail, googleAuth, getInstructorsByIds, submitInstructorApplication} from '../controllers/Auth.js'
 import {resetPasswordToken, resetPassword} from '../controllers/ResetPassword.js'
-import { invalidateToken, authenticateToken, authenticateInstructor } from '../middlewares/auth.js'
-import { 
-  sanitizeInput, 
-  validateSignup, 
-  validateLogin, 
-  validatePasswordChange, 
-  validateOTP, 
-  validateGoogleAuth, 
-  validatePasswordReset, 
+import { invalidateToken, authenticateToken, authenticateInstructor } from '../../shared-utils/middlewares/auth.js'
+import {
+  sanitizeInput,
+  validateSignup,
+  validateLogin,
+  validatePasswordChange,
+  validateOTP,
+  validateGoogleAuth,
+  validatePasswordReset,
   validatePasswordResetConfirm,
   handleValidationErrors,
   mongoSanitizeMiddleware,
   createRateLimit
-} from '../middlewares/inputSanitization.js'
+} from '../../shared-utils/middlewares/inputSanitization.js'
 
 // Rate limiting for auth endpoints
 const authRateLimit = createRateLimit(5, 15 * 60 * 1000); // 5 attempts per 15 minutes

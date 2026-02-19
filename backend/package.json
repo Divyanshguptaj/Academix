@@ -1,0 +1,33 @@
+{
+  "name": "academix-backend",
+  "version": "1.0.0",
+  "description": "Academix microservices backend - npm workspaces",
+  "private": true,
+  "workspaces": [
+    "user-service",
+    "course-service",
+    "payment-service",
+    "ai-service",
+    "shared-utils"
+  ],
+  "scripts": {
+    "dev": "concurrently \"npm run dev --workspace=user-service\" \"npm run dev --workspace=course-service\" \"npm run dev --workspace=payment-service\" \"npm run dev --workspace=ai-service\"",
+    "start": "concurrently \"npm start --workspace=user-service\" \"npm start --workspace=course-service\" \"npm start --workspace=payment-service\" \"npm start --workspace=ai-service\"",
+    "install:all": "npm install",
+    "clean": "rm -rf node_modules */node_modules"
+  },
+  "dependencies": {
+    "axios": "^1.7.9",
+    "cookie-parser": "^1.4.7",
+    "cors": "^2.8.5",
+    "dotenv": "^16.6.1",
+    "express": "^4.22.1",
+    "express-fileupload": "^1.5.2",
+    "jsonwebtoken": "^9.0.2",
+    "mongoose": "^8.9.1"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2",
+    "nodemon": "^3.1.9"
+  }
+}

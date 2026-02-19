@@ -20,7 +20,7 @@ export const getDashboardStats = async (req, res) => {
     };
     
     try {
-      const courseResponse = await fetch('http://localhost:4002/admin/list');
+      const courseResponse = await fetch('${process.env.COURSE_SERVICE_URL}/admin/list');
       // console.log("Course service response status:", courseResponse);
       if (courseResponse.ok) {
         const courseData = await courseResponse.json();
@@ -44,7 +44,7 @@ export const getDashboardStats = async (req, res) => {
     };
     
     try {
-      const paymentResponse = await fetch('http://localhost:4003/admin/refunds/analytics');
+      const paymentResponse = await fetch('${process.env.PAYMENT_SERVICE_URL}/admin/refunds/analytics');
       console.log("Payment service response status:", paymentResponse);
       if (paymentResponse.ok) {
         const paymentData = await paymentResponse.json();
@@ -64,7 +64,7 @@ export const getDashboardStats = async (req, res) => {
     };
     
     try {
-      const refundResponse = await fetch('http://localhost:4003/admin/refunds');
+      const refundResponse = await fetch('${process.env.PAYMENT_SERVICE_URL}/admin/refunds');
       if (refundResponse.ok) {
         const refundData = await refundResponse.json();
         if (refundData.success && refundData.data) {

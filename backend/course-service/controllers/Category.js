@@ -85,7 +85,7 @@ export const categoryPageDetails = async (req, res) => {
     if (instructorIds.length > 0) {
       try {
         const instructorResponse = await fetch(
-          `http://localhost:4001/user/get-instructors-by-ids?ids=${instructorIds.join(',')}&fields=firstName,lastName,image,additionalDetails`
+          `${process.env.USER_SERVICE_URL}/user/get-instructors-by-ids?ids=${instructorIds.join(',')}&fields=firstName,lastName,image,additionalDetails`
         );
         
         if (instructorResponse.ok) {

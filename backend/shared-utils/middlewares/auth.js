@@ -1,95 +1,131 @@
-import jwt from 'jsonwebtoken';
-import 'dotenv/config';
+import jwt from 'jsonwebtoken'
+import User from '../../user-service/models/User.js'
 
-export const auth = async (req, res, next) => {
-    try {
-        console.log("Authenticating request...")
-        console.log("Cookies:", req.cookies, req.token);
-        let token = req.cookies.token || req.body.token;
-
-        if (!token && req.header("Authorization")) {
-            token = req.header("Authorization").replace("Bearer", "").trim();
-        }
-
-        if (!token) {
-            return res.status(400).json({
-                success: false,
-                message: "Token missing",
-            });
-        }
-
-        try {
-            const decode = jwt.verify(token, process.env.JWT_SECRET);
-            req.user = decode;
-            console.log("Authenticated user:", decode);
-            next();
-        } catch (error) {
-            return res.status(400).json({
-                success: false,
-                message: "Token is Invalid",
-            });
-        }
-    } catch (error) {
-        return res.status(400).json({
-            success: false,
-            message: "Something went wrong while validating Token",
-        });
+// Base authentication - validates JWT and loads user from DB
+export const authenticateToken = async (req, res, next) => {
+  try {
+    // Multi-source token extraction (cookies → body → header)
+    let token = req.cookies?.token || req.body?.token
+    const authHeader = req.headers['authorization']
+    if (!token && authHeader) {
+      token = authHeader.replace('Bearer', '').trim()
     }
-};
 
-//isStudent
-export const isStudent = async (req, res, next)=>{
-    try{
-        console.log("here")
-        if(req.user.accountType !== "Student"){
-            return res.status(400).json({
-                success: false,
-                message: "This is a protected route for students only",
-            })
-        }
-        next();
-    }catch(error){
-        return res.status(400).json({
-            success: false,
-            message: "User role can't verified , please try again later",
-        })
+    if (!token) {
+      return res.status(401).json({
+        success: false,
+        message: 'Access token required'
+      })
     }
+
+    // Verify JWT
+    const decoded = jwt.verify(token, process.env.JWT_SECRET)
+
+    // Validate user exists in database (not just JWT verification!)
+    const user = await User.findById(decoded.id).select('-password')
+    if (!user) {
+      return res.status(401).json({
+        success: false,
+        message: 'Invalid token - user not found'
+      })
+    }
+
+    req.user = user
+    next()
+  } catch (error) {
+    if (error.name === 'JsonWebTokenError') {
+      return res.status(401).json({ success: false, message: 'Invalid token' })
+    }
+    if (error.name === 'TokenExpiredError') {
+      return res.status(401).json({ success: false, message: 'Token expired' })
+    }
+    console.error('Authentication error:', error)
+    res.status(500).json({ success: false, message: 'Authentication failed' })
+  }
 }
 
-//isInstructor
-export const isInstructor = async (req, res, next)=>{
-    try{
-        // console.log(req.user)
-        if(req.user.accountType !== "Instructor"){
-            return res.status(400).json({
-                success: false,
-                message: "This is a protected route for Instructor only",
-            })
-        }
-        next();
-        // console.log("instructor")
-    }catch(error){
-        return res.status(400).json({
-            success: false,
-            message: "User role can't verified , please try again later",
+// Admin-only access
+export const authenticateAdmin = async (req, res, next) => {
+  try {
+    await authenticateToken(req, res, () => {
+      if (req.user.accountType !== 'Admin') {
+        return res.status(403).json({
+          success: false,
+          message: 'Admin access required'
         })
-    }
+      }
+      next()
+    })
+  } catch (error) {
+    console.error('Admin authentication error:', error)
+    res.status(500).json({ success: false, message: 'Admin authentication failed' })
+  }
 }
 
-//isAdmin
-export const isAdmin = async (req, res, next)=>{
-    try{
-        if(req.user.accountType !== "Admin"){
-            return res.status(400).json({
-                success: false,
-                message: "This is a protected route for Admin only",
-            })
-        }
-        next();
-    }catch(error){
-        return res.status(400).json({
-            success: false,
-            message: "User role can't verified , please try again later",
+// Student-only access
+export const authenticateStudent = async (req, res, next) => {
+  try {
+    await authenticateToken(req, res, () => {
+      if (req.user.accountType !== 'Student') {
+        return res.status(403).json({
+          success: false,
+          message: 'Student access required'
         })
-    }
+      }
+      next()
+    })
+  } catch (error) {
+    console.error('Student authentication error:', error)
+    res.status(500).json({ success: false, message: 'Student authentication failed' })
+  }
 }
+
+// Instructor OR Admin access
+export const authenticateInstructor = async (req, res, next) => {
+  try {
+    await authenticateToken(req, res, () => {
+      if (req.user.accountType !== 'Instructor' && req.user.accountType !== 'Admin') {
+        return res.status(403).json({
+          success: false,
+          message: 'Instructor access required'
+        })
+      }
+      next()
+    })
+  } catch (error) {
+    console.error('Instructor authentication error:', error)
+    res.status(500).json({ success: false, message: 'Instructor authentication failed' })
+  }
+}
+
+// Token invalidation for logout
+export const invalidateToken = async (req, res, next) => {
+  try {
+    const authHeader = req.headers['authorization']
+    const token = authHeader && authHeader.split(' ')[1]
+
+    if (!token) {
+      return res.status(401).json({ success: false, message: 'No token provided for logout' })
+    }
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET)
+
+    // Note: True invalidation requires a blacklist (future enhancement)
+    return res.status(200).json({ success: true, message: 'Token invalidated successfully' })
+  } catch (error) {
+    if (error.name === 'JsonWebTokenError') {
+      return res.status(401).json({ success: false, message: 'Invalid token provided' })
+    }
+    if (error.name === 'TokenExpiredError') {
+      return res.status(401).json({ success: false, message: 'Token has already expired' })
+    }
+    console.error('Token invalidation error:', error)
+    res.status(500).json({ success: false, message: 'Token invalidation failed' })
+  }
+}
+
+// Legacy aliases for backward compatibility
+export const auth = authenticateToken
+export const isAdmin = authenticateAdmin
+export const isStudent = authenticateStudent
+export const isInstructor = authenticateInstructor

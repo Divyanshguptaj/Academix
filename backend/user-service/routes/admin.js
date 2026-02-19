@@ -1,5 +1,5 @@
 import express from 'express'
-import { authenticateAdmin, authenticateToken } from '../middlewares/auth.js'
+import { authenticateAdmin, authenticateToken } from '../../shared-utils/middlewares/auth.js'
 import * as adminController from '../controllers/Admin.js'
 
 const router = express.Router()

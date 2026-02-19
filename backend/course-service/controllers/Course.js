@@ -88,7 +88,7 @@ export const editCourse = async (req, res) => {
         if (updatedCourse.instructor) {
             try {
                 const instructorResponse = await fetch(
-                    `http://localhost:4001/user/get-instructors-by-ids?ids=${updatedCourse.instructor}&fields=firstName,lastName,image,additionalDetails`
+                    `${process.env.USER_SERVICE_URL}/user/get-instructors-by-ids?ids=${updatedCourse.instructor}&fields=firstName,lastName,image,additionalDetails`
                 );
                 
                 if (instructorResponse.ok) {
@@ -140,7 +140,7 @@ export const createCourse = async (req, res) => {
         // Find instructor details via User Service API
         let instructorDetails;
         try {
-            const userResponse = await axios.get(`http://localhost:4001/auth/user-by-email/${email}`);
+            const userResponse = await axios.get(`${process.env.USER_SERVICE_URL}/auth/user-by-email/${email}`);
             if (!userResponse.data.success) {
                 return res.status(400).json({
                     success: false,
@@ -187,7 +187,7 @@ export const createCourse = async (req, res) => {
 
             // Update instructor by adding the new course via User Service API
             try {
-                await axios.post('http://localhost:4001/profile/add-course', {
+                await axios.post('${process.env.USER_SERVICE_URL}/profile/add-course', {
                     userId: instructorDetails._id,
                     courseId: newCourse._id
                 });
@@ -281,7 +281,7 @@ export const getCourseDetails = async (req,res)=>{
         if (courseDetails.instructor) {
             try {
                 const instructorResponse = await fetch(
-                    `http://localhost:4001/user/get-instructors-by-ids?ids=${courseDetails.instructor}&fields=firstName,lastName,image,additionalDetails`
+                    `${process.env.USER_SERVICE_URL}/user/get-instructors-by-ids?ids=${courseDetails.instructor}&fields=firstName,lastName,image,additionalDetails`
                 );
                 
                 if (instructorResponse.ok) {
@@ -302,7 +302,7 @@ export const getCourseDetails = async (req,res)=>{
         if (courseDetails.studentsEnrolled && courseDetails.studentsEnrolled.length > 0) {
             try {
                 const studentsResponse = await fetch(
-                    `http://localhost:4001/user/get-instructors-by-ids?ids=${courseDetails.studentsEnrolled.join(',')}&fields=firstName,lastName,image,additionalDetails`
+                    `${process.env.USER_SERVICE_URL}/user/get-instructors-by-ids?ids=${courseDetails.studentsEnrolled.join(',')}&fields=firstName,lastName,image,additionalDetails`
                 );
                 
                 if (studentsResponse.ok) {
@@ -422,7 +422,7 @@ export const deleteCourse = async (req, res) => {
 
         // Remove course from instructor's course list via User Service API
         try {
-            await axios.post('http://localhost:4001/profile/remove-course', {
+            await axios.post('${process.env.USER_SERVICE_URL}/profile/remove-course', {
                 userId: course.instructor,
                 courseId: courseId
             });
@@ -650,7 +650,7 @@ export const getEnrolledStudentsWithProgress = async (req, res) => {
     if (course.studentsEnrolled && course.studentsEnrolled.length > 0) {
       try {
         const studentsResponse = await fetch(
-          `http://localhost:4001/user/get-instructors-by-ids?ids=${course.studentsEnrolled.join(',')}&fields=firstName,lastName,image,additionalDetails`
+          `${process.env.USER_SERVICE_URL}/user/get-instructors-by-ids?ids=${course.studentsEnrolled.join(',')}&fields=firstName,lastName,image,additionalDetails`
         );
         
         if (studentsResponse.ok) {
@@ -743,7 +743,7 @@ export const updateCourseProgress = async (req, res) => {
       await progress.save();
       // Notify user-service to add this progress reference to the user's profile
       try {
-        await axios.post('http://localhost:4001/profile/add-course-progress', {
+        await axios.post('${process.env.USER_SERVICE_URL}/profile/add-course-progress', {
           userId,
           progressId: progress._id
         });

@@ -2,8 +2,8 @@ import express from 'express';
 const router = express.Router();
 
 import {updateProfile, deleteAccount, getAllUsers,getUserDetails, getEnrolledCourses, instructorDetails, updateDisplayPicture, addCourseToProfile, removeCourseFromProfile, addCourseProgressToProfile, removeCourseProgressFromProfile} from '../controllers/Profile.js'
-import { authenticateToken, authenticateAdmin, authenticateInstructor } from '../middlewares/auth.js'
-import { sanitizeInput, handleValidationErrors, mongoSanitizeMiddleware, createRateLimit, validateProfileUpdate } from '../middlewares/inputSanitization.js'
+import { authenticateToken, authenticateAdmin, authenticateInstructor } from '../../shared-utils/middlewares/auth.js'
+import { sanitizeInput, handleValidationErrors, mongoSanitizeMiddleware, createRateLimit, validateProfileUpdate } from '../../shared-utils/middlewares/inputSanitization.js'
 
 // Rate limiting for profile endpoints
 const profileRateLimit = createRateLimit(10, 15 * 60 * 1000); // 10 attempts per 15 minutes
