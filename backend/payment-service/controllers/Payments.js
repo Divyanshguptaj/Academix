@@ -4,7 +4,7 @@ import mailSender from "../../shared-utils/mailSender.js";
 import mongoose from "mongoose";
 import { paymentSuccessEmail } from "../../shared-utils/mail/templates/paymentSuccessEmail.js";
 import { paymentFailureEmail } from "../../shared-utils/mail/templates/paymentFailureEmail.js";
-import { withRetry, courseService, userService } from "../utils/retryUtils.js";
+import { withRetry, courseService, userService } from "../utils/serviceClients.js";
 import PaymentTransaction from "../models/PaymentTransaction.js";
 
 /**

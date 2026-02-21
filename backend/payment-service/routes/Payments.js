@@ -2,15 +2,15 @@ import express from "express"
 const router = express.Router()
 
 import { capturePayment, verifyPayment, refundPayment } from '../controllers/Payments.js'
-import { auth, isInstructor, isStudent, isAdmin } from '../../shared-utils/middlewares/auth.js'
+import { authorize } from '../../shared-utils/middlewares/auth.js'
 
-// Initiate payment order
-router.post("/capturePayment", /*auth, isStudent,*/ capturePayment);
+// Initiate payment order - students only
+router.post("/capturePayment", authorize('Student'), capturePayment);
 
-// Verify payment signature and complete enrollment
-router.post("/verifyPayment", /*auth, isStudent,*/ verifyPayment);
+// Verify payment signature and complete enrollment - students only
+router.post("/verifyPayment", authorize('Student'), verifyPayment);
 
-// Manual refund for admin
-router.post("/refund", /*auth, isAdmin,*/ refundPayment);
+// Manual refund - admin only
+router.post("/refund", authorize('Admin'), refundPayment);
 
 export default router

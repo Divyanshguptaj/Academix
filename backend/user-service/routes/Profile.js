@@ -2,7 +2,7 @@ import express from 'express';
 const router = express.Router();
 
 import {updateProfile, deleteAccount, getAllUsers,getUserDetails, getEnrolledCourses, instructorDetails, updateDisplayPicture, addCourseToProfile, removeCourseFromProfile, addCourseProgressToProfile, removeCourseProgressFromProfile} from '../controllers/Profile.js'
-import { authenticateToken, authenticateAdmin, authenticateInstructor } from '../../shared-utils/middlewares/auth.js'
+import { authenticateToken, authorize } from '../../shared-utils/middlewares/auth.js'
 import { sanitizeInput, handleValidationErrors, mongoSanitizeMiddleware, createRateLimit, validateProfileUpdate } from '../../shared-utils/middlewares/inputSanitization.js'
 
 // Rate limiting for profile endpoints
@@ -36,7 +36,7 @@ router.get('/getEnrolledCourses',
 router.get('/getAllUsers', 
   sanitizeInput, 
   mongoSanitizeMiddleware, 
-  authenticateAdmin,  // Admin only
+  authorize('Admin'),
   getAllUsers
 );
 
@@ -50,7 +50,7 @@ router.get('/getUserDetails',
 router.get('/instructorDashboard', 
   sanitizeInput, 
   mongoSanitizeMiddleware, 
-  authenticateInstructor,  // Instructor only
+  authorize('Instructor', 'Admin'),
   instructorDetails
 );
 

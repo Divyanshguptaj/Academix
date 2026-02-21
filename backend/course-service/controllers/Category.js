@@ -1,4 +1,5 @@
 import Category from '../models/Category.js';
+import { userService } from '../utils/serviceClients.js'
 
 export const createCategory = async (req, res) =>{
     try{
@@ -84,16 +85,12 @@ export const categoryPageDetails = async (req, res) => {
     let instructorDetails = [];
     if (instructorIds.length > 0) {
       try {
-        const instructorResponse = await fetch(
-          `${process.env.USER_SERVICE_URL}/user/get-instructors-by-ids?ids=${instructorIds.join(',')}&fields=firstName,lastName,image,additionalDetails`
-        );
-        
-        if (instructorResponse.ok) {
-          const instructorData = await instructorResponse.json();
-          instructorDetails = instructorData.data || [];
-        }
+        const instructorResponse = await userService.get('/user/get-instructors-by-ids', {
+          params: { ids: instructorIds.join(','), fields: 'firstName,lastName,image,additionalDetails' },
+        });
+        instructorDetails = instructorResponse.data?.data || [];
       } catch (error) {
-        console.error("Error fetching instructor details:", error);
+        console.error("Error fetching instructor details:", error.message);
         // Continue without instructor details if user service is unavailable
       }
     }

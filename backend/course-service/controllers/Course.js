@@ -3,8 +3,8 @@ import Category from '../models/Category.js'
 import Section from "../models/Section.js"
 import SubSection from "../models/SubSection.js"
 import { uploadImagetoCloudinary } from '../../shared-utils/imageUploader.js'
-import axios from 'axios'
 import mongoose from 'mongoose'
+import { userService } from '../utils/serviceClients.js'
 import CourseProgress from '../models/CourseProgress.js'
 
 import dotenv from 'dotenv';
@@ -87,16 +87,12 @@ export const editCourse = async (req, res) => {
         let instructorDetails = null;
         if (updatedCourse.instructor) {
             try {
-                const instructorResponse = await fetch(
-                    `${process.env.USER_SERVICE_URL}/user/get-instructors-by-ids?ids=${updatedCourse.instructor}&fields=firstName,lastName,image,additionalDetails`
-                );
-                
-                if (instructorResponse.ok) {
-                    const instructorData = await instructorResponse.json();
-                    instructorDetails = instructorData.data && instructorData.data[0];
-                }
+                const instructorResponse = await userService.get('/user/get-instructors-by-ids', {
+                    params: { ids: updatedCourse.instructor, fields: 'firstName,lastName,image,additionalDetails' },
+                });
+                instructorDetails = instructorResponse.data?.data?.[0];
             } catch (error) {
-                console.error("Error fetching instructor details:", error);
+                console.error("Error fetching instructor details:", error.message);
                 // Continue without instructor details if user service is unavailable
             }
         }
@@ -140,7 +136,7 @@ export const createCourse = async (req, res) => {
         // Find instructor details via User Service API
         let instructorDetails;
         try {
-            const userResponse = await axios.get(`${process.env.USER_SERVICE_URL}/auth/user-by-email/${email}`);
+            const userResponse = await userService.get(`/auth/user-by-email/${email}`);
             if (!userResponse.data.success) {
                 return res.status(400).json({
                     success: false,
@@ -187,9 +183,9 @@ export const createCourse = async (req, res) => {
 
             // Update instructor by adding the new course via User Service API
             try {
-                await axios.post('${process.env.USER_SERVICE_URL}/profile/add-course', {
+                await userService.post('/profile/add-course', {
                     userId: instructorDetails._id,
-                    courseId: newCourse._id
+                    courseId: newCourse._id,
                 });
             } catch (error) {
                 console.error("Error updating instructor courses:", error.message);
@@ -280,19 +276,13 @@ export const getCourseDetails = async (req,res)=>{
         let instructorDetails = null;
         if (courseDetails.instructor) {
             try {
-                const instructorResponse = await fetch(
-                    `${process.env.USER_SERVICE_URL}/user/get-instructors-by-ids?ids=${courseDetails.instructor}&fields=firstName,lastName,image,additionalDetails`
-                );
-                
-                if (instructorResponse.ok) {
-                    const instructorData = await instructorResponse.json();
-                    console.log("Instructor API response:", instructorData);
-                    instructorDetails = instructorData.data && instructorData.data[0];
-                } else {
-                    console.error("Instructor API returned non-ok status:", instructorResponse.status);
-                }
+                const instructorResponse = await userService.get('/user/get-instructors-by-ids', {
+                    params: { ids: courseDetails.instructor, fields: 'firstName,lastName,image,additionalDetails' },
+                });
+                console.log("Instructor API response:", instructorResponse.data);
+                instructorDetails = instructorResponse.data?.data?.[0];
             } catch (error) {
-                console.error("Error fetching instructor details:", error);
+                console.error("Error fetching instructor details:", error.message);
                 // Continue without instructor details if user service is unavailable
             }
         }
@@ -301,16 +291,12 @@ export const getCourseDetails = async (req,res)=>{
         let studentsDetails = [];
         if (courseDetails.studentsEnrolled && courseDetails.studentsEnrolled.length > 0) {
             try {
-                const studentsResponse = await fetch(
-                    `${process.env.USER_SERVICE_URL}/user/get-instructors-by-ids?ids=${courseDetails.studentsEnrolled.join(',')}&fields=firstName,lastName,image,additionalDetails`
-                );
-                
-                if (studentsResponse.ok) {
-                    const studentsData = await studentsResponse.json();
-                    studentsDetails = studentsData.data || [];
-                }
+                const studentsResponse = await userService.get('/user/get-instructors-by-ids', {
+                    params: { ids: courseDetails.studentsEnrolled.join(','), fields: 'firstName,lastName,image,additionalDetails' },
+                });
+                studentsDetails = studentsResponse.data?.data || [];
             } catch (error) {
-                console.error("Error fetching students details:", error);
+                console.error("Error fetching students details:", error.message);
                 // Continue without students details if user service is unavailable
             }
         }
@@ -422,9 +408,9 @@ export const deleteCourse = async (req, res) => {
 
         // Remove course from instructor's course list via User Service API
         try {
-            await axios.post('${process.env.USER_SERVICE_URL}/profile/remove-course', {
+            await userService.post('/profile/remove-course', {
                 userId: course.instructor,
-                courseId: courseId
+                courseId: courseId,
             });
         } catch (error) {
             console.error("Error removing course from instructor:", error.message);
@@ -649,16 +635,12 @@ export const getEnrolledStudentsWithProgress = async (req, res) => {
     let studentsDetails = [];
     if (course.studentsEnrolled && course.studentsEnrolled.length > 0) {
       try {
-        const studentsResponse = await fetch(
-          `${process.env.USER_SERVICE_URL}/user/get-instructors-by-ids?ids=${course.studentsEnrolled.join(',')}&fields=firstName,lastName,image,additionalDetails`
-        );
-        
-        if (studentsResponse.ok) {
-          const studentsData = await studentsResponse.json();
-          studentsDetails = studentsData.data || [];
-        }
+        const studentsResponse = await userService.get('/user/get-instructors-by-ids', {
+          params: { ids: course.studentsEnrolled.join(','), fields: 'firstName,lastName,image,additionalDetails' },
+        });
+        studentsDetails = studentsResponse.data?.data || [];
       } catch (error) {
-        console.error("Error fetching students details:", error);
+        console.error("Error fetching students details:", error.message);
         // Continue without students details if user service is unavailable
       }
     }
@@ -743,9 +725,9 @@ export const updateCourseProgress = async (req, res) => {
       await progress.save();
       // Notify user-service to add this progress reference to the user's profile
       try {
-        await axios.post('${process.env.USER_SERVICE_URL}/profile/add-course-progress', {
+        await userService.post('/profile/add-course-progress', {
           userId,
-          progressId: progress._id
+          progressId: progress._id,
         });
       } catch (err) {
         console.error('Failed to notify user-service about progress:', err.message || err);

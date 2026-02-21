@@ -9,7 +9,6 @@
     "dev": "nodemon server.js"
   },
   "dependencies": {
-    "razorpay": "^2.9.5",
     "shared-utils": "file:../shared-utils"
   }
 }

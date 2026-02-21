@@ -4,6 +4,7 @@ import mongoose from "mongoose";
 import User from "../models/User.js";
 import jwt from "jsonwebtoken";
 import cloudinary from 'cloudinary';
+import { courseService } from '../utils/serviceClients.js'
 
 export const getUserDetails = async (req, res) => {
   try {
@@ -193,15 +194,11 @@ export const getEnrolledCourses = async (req, res) => {
     }
 
     // 2. Call course-service to get course details
-    const courseDetailsResponse = await fetch(
-      `${process.env.API_GATEWAY_URL}/api/v1/course/get-courses-by-ids?ids=${courseIds.join(',')}`
-    );
-    
-    if (!courseDetailsResponse.ok) {
-      throw new Error(`Course service error: ${courseDetailsResponse.status}`);
-    }
-    
-    const courseDetails = await courseDetailsResponse.json();
+    const courseDetailsResponse = await courseService.get('/course/get-courses-by-ids', {
+      params: { ids: courseIds.join(',') },
+    });
+
+    const courseDetails = courseDetailsResponse.data;
 
     if (!courseDetails.success || !courseDetails.data) {
       return res.status(500).json({
@@ -211,16 +208,15 @@ export const getEnrolledCourses = async (req, res) => {
     }
 
     // 3. Call course-service to get progress data for this user
-    const progressResponse = await fetch(
-      `${process.env.COURSE_SERVICE_URL}/api/v1/course/get-enrolled-students-with-progress?courseId=${courseIds.join(',')}`
-    );
-    
     let progressData = [];
-    if (progressResponse.ok) {
-      const progressResult = await progressResponse.json();
-      if (progressResult.success) {
-        progressData = progressResult.data.enrolledStudents || [];
+    try {
+      const progressResponse = await courseService.get(`/course/getEnrolledStudents/${courseIds[0]}`);
+      if (progressResponse.data?.success) {
+        progressData = progressResponse.data.data?.enrolledStudents || [];
       }
+    } catch (err) {
+      // Non-fatal — continue without progress data
+      console.error('Error fetching progress:', err.message);
     }
 
     // 4. Calculate progress and return complete data

@@ -129,6 +129,16 @@ export const signUp = async (req, res) => {
       });
     }
 
+    // Safety check: OTP must be within 5 minutes (TTL index handles auto-deletion,
+    // but this guards the race-condition window before MongoDB TTL runs)
+    const OTP_EXPIRY_MS = 5 * 60 * 1000;
+    if (Date.now() - new Date(recentOTP[0].createdAt).getTime() > OTP_EXPIRY_MS) {
+      return res.status(400).json({
+        success: false,
+        message: "OTP has expired. Please request a new one",
+      });
+    }
+
     if (otp !== recentOTP[0].otp) {
       return res.status(400).json({
         success: false,
@@ -203,6 +213,7 @@ export const login = async (req, res) => {
       email: user.email,
       id: user._id,
       accountType: user.accountType,
+      tokenVersion: user.tokenVersion,
     };
     const token = jwt.sign(payload, process.env.JWT_SECRET, {
       expiresIn: "24h",
@@ -311,6 +322,7 @@ export const googleAuth = async (req, res) => {
         email: user.email,
         id: user._id,
         accountType: user.accountType,
+        tokenVersion: user.tokenVersion,
       };
 
       const token = jwt.sign(payload, process.env.JWT_SECRET, {
@@ -385,6 +397,7 @@ export const googleAuth = async (req, res) => {
       email: user.email,
       id: user._id,
       accountType: user.accountType,
+      tokenVersion: user.tokenVersion,
     };
 
     const token = jwt.sign(payload, process.env.JWT_SECRET, {

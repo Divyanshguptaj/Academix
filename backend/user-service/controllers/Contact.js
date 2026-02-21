@@ -21,7 +21,7 @@ export const contactUsController = async (req, res) => {
     `;
 
     await mailSender(
-      "divyansh.gupta.engineer@gmail.com", // Your receiving admin/support email
+      process.env.ADMIN_MAIL,
       "New Contact Us Message from StudyNotion",
       emailBody
     );

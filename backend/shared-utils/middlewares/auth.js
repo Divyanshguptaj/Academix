@@ -30,6 +30,14 @@ export const authenticateToken = async (req, res, next) => {
       })
     }
 
+    // Check token version - invalidated if user has logged out since this token was issued
+    if (decoded.tokenVersion !== undefined && decoded.tokenVersion !== user.tokenVersion) {
+      return res.status(401).json({
+        success: false,
+        message: 'Session has been invalidated. Please log in again.'
+      })
+    }
+
     req.user = user
     next()
   } catch (error) {
@@ -44,88 +52,34 @@ export const authenticateToken = async (req, res, next) => {
   }
 }
 
-// Admin-only access
-export const authenticateAdmin = async (req, res, next) => {
-  try {
-    await authenticateToken(req, res, () => {
-      if (req.user.accountType !== 'Admin') {
-        return res.status(403).json({
-          success: false,
-          message: 'Admin access required'
-        })
-      }
-      next()
-    })
-  } catch (error) {
-    console.error('Admin authentication error:', error)
-    res.status(500).json({ success: false, message: 'Admin authentication failed' })
-  }
+// Role-based authorization factory.
+// Usage: authorize('Student'), authorize('Admin'), authorize('Instructor', 'Admin')
+export const authorize = (...roles) => async (req, res, next) => {
+  await authenticateToken(req, res, () => {
+    if (!roles.includes(req.user.accountType)) {
+      return res.status(403).json({
+        success: false,
+        message: `Access restricted. Required role: ${roles.join(' or ')}`
+      })
+    }
+    next()
+  })
 }
 
-// Student-only access
-export const authenticateStudent = async (req, res, next) => {
+// Token invalidation for logout - increments tokenVersion so all existing tokens
+// for this user stop working immediately
+export const invalidateToken = async (req, res) => {
   try {
-    await authenticateToken(req, res, () => {
-      if (req.user.accountType !== 'Student') {
-        return res.status(403).json({
-          success: false,
-          message: 'Student access required'
-        })
-      }
-      next()
-    })
+    // req.user is set by authenticateToken middleware that runs before this
+    await User.findByIdAndUpdate(req.user._id, { $inc: { tokenVersion: 1 } })
+
+    // Clear the cookie as well
+    res.clearCookie('token')
+
+    return res.status(200).json({ success: true, message: 'Logged out successfully' })
   } catch (error) {
-    console.error('Student authentication error:', error)
-    res.status(500).json({ success: false, message: 'Student authentication failed' })
-  }
-}
-
-// Instructor OR Admin access
-export const authenticateInstructor = async (req, res, next) => {
-  try {
-    await authenticateToken(req, res, () => {
-      if (req.user.accountType !== 'Instructor' && req.user.accountType !== 'Admin') {
-        return res.status(403).json({
-          success: false,
-          message: 'Instructor access required'
-        })
-      }
-      next()
-    })
-  } catch (error) {
-    console.error('Instructor authentication error:', error)
-    res.status(500).json({ success: false, message: 'Instructor authentication failed' })
-  }
-}
-
-// Token invalidation for logout
-export const invalidateToken = async (req, res, next) => {
-  try {
-    const authHeader = req.headers['authorization']
-    const token = authHeader && authHeader.split(' ')[1]
-
-    if (!token) {
-      return res.status(401).json({ success: false, message: 'No token provided for logout' })
-    }
-
-    const decoded = jwt.verify(token, process.env.JWT_SECRET)
-
-    // Note: True invalidation requires a blacklist (future enhancement)
-    return res.status(200).json({ success: true, message: 'Token invalidated successfully' })
-  } catch (error) {
-    if (error.name === 'JsonWebTokenError') {
-      return res.status(401).json({ success: false, message: 'Invalid token provided' })
-    }
-    if (error.name === 'TokenExpiredError') {
-      return res.status(401).json({ success: false, message: 'Token has already expired' })
-    }
     console.error('Token invalidation error:', error)
-    res.status(500).json({ success: false, message: 'Token invalidation failed' })
+    res.status(500).json({ success: false, message: 'Logout failed' })
   }
 }
 
-// Legacy aliases for backward compatibility
-export const auth = authenticateToken
-export const isAdmin = authenticateAdmin
-export const isStudent = authenticateStudent
-export const isInstructor = authenticateInstructor

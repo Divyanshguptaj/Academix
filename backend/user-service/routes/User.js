@@ -2,7 +2,7 @@ import express from 'express';
 const router = express.Router();
 import {login, signUp, changePassword, sendOTP, getUserByEmail, googleAuth, getInstructorsByIds, submitInstructorApplication} from '../controllers/Auth.js'
 import {resetPasswordToken, resetPassword} from '../controllers/ResetPassword.js'
-import { invalidateToken, authenticateToken, authenticateInstructor } from '../../shared-utils/middlewares/auth.js'
+import { invalidateToken, authenticateToken } from '../../shared-utils/middlewares/auth.js'
 import {
   sanitizeInput,
   validateSignup,

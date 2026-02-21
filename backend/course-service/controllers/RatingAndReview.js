@@ -73,7 +73,7 @@ export const getAverageRating = async (req,res)=>{
             {
                 $group:{
                     _id: null,
-                    getAverageRating: {$avg:'$rating'}
+                    averageRating: {$avg:'$rating'}
                 }
             }
         ])

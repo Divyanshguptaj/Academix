@@ -1,5 +1,6 @@
 import User from '../models/User.js'
 import InstructorApplication from '../models/InstructorApplication.js'
+import { courseService, paymentService } from '../utils/serviceClients.js'
 
 // Admin Dashboard Stats
 export const getDashboardStats = async (req, res) => {
@@ -20,20 +21,17 @@ export const getDashboardStats = async (req, res) => {
     };
     
     try {
-      const courseResponse = await fetch('${process.env.COURSE_SERVICE_URL}/admin/list');
-      // console.log("Course service response status:", courseResponse);
-      if (courseResponse.ok) {
-        const courseData = await courseResponse.json();
-        if (courseData.success && courseData.data) {
-          const courses = Array.isArray(courseData.data) ? courseData.data : [];
-          courseStats.totalCourses = courses.length;
-          courseStats.publishedCourses = courses.filter(c => c.status === 'Published').length;
-          courseStats.draftCourses = courses.filter(c => c.status === 'Draft').length;
-          courseStats.pendingCourseApprovals = courses.filter(c => c.status === 'Pending').length;
-        }
+      const courseResponse = await courseService.get('/admin/list');
+      const courseData = courseResponse.data;
+      if (courseData.success && courseData.data) {
+        const courses = Array.isArray(courseData.data) ? courseData.data : [];
+        courseStats.totalCourses = courses.length;
+        courseStats.publishedCourses = courses.filter(c => c.status === 'Published').length;
+        courseStats.draftCourses = courses.filter(c => c.status === 'Draft').length;
+        courseStats.pendingCourseApprovals = courses.filter(c => c.status === 'Pending').length;
       }
     } catch (error) {
-      console.error('Error fetching course stats:', error);
+      console.error('Error fetching course stats:', error.message);
     }
 
     // Fetch revenue statistics from Payment Service
@@ -44,18 +42,15 @@ export const getDashboardStats = async (req, res) => {
     };
     
     try {
-      const paymentResponse = await fetch('${process.env.PAYMENT_SERVICE_URL}/admin/refunds/analytics');
-      console.log("Payment service response status:", paymentResponse);
-      if (paymentResponse.ok) {
-        const paymentData = await paymentResponse.json();
-        if (paymentData.success && paymentData.data) {
-          revenueStats.totalRevenue = paymentData.data.totalRevenue || 0;
-          revenueStats.monthlyRevenue = paymentData.data.monthlyRevenue || 0;
-          revenueStats.pendingRevenue = paymentData.data.pendingRevenue || 0;
-        }
+      const paymentResponse = await paymentService.get('/admin/refunds/analytics');
+      const paymentData = paymentResponse.data;
+      if (paymentData.success && paymentData.data) {
+        revenueStats.totalRevenue = paymentData.data.totalRevenue || 0;
+        revenueStats.monthlyRevenue = paymentData.data.monthlyRevenue || 0;
+        revenueStats.pendingRevenue = paymentData.data.pendingRevenue || 0;
       }
     } catch (error) {
-      console.error('Error fetching revenue stats:', error);
+      console.error('Error fetching revenue stats:', error.message);
     }
 
     // Fetch refund statistics from Payment Service
@@ -64,16 +59,14 @@ export const getDashboardStats = async (req, res) => {
     };
     
     try {
-      const refundResponse = await fetch('${process.env.PAYMENT_SERVICE_URL}/admin/refunds');
-      if (refundResponse.ok) {
-        const refundData = await refundResponse.json();
-        if (refundData.success && refundData.data) {
-          const refunds = Array.isArray(refundData.data) ? refundData.data : [];
-          refundStats.pendingRefundRequests = refunds.filter(r => r.status === 'pending').length;
-        }
+      const refundResponse = await paymentService.get('/admin/refunds');
+      const refundData = refundResponse.data;
+      if (refundData.success && refundData.data) {
+        const refunds = Array.isArray(refundData.data) ? refundData.data : [];
+        refundStats.pendingRefundRequests = refunds.filter(r => r.status === 'pending').length;
       }
     } catch (error) {
-      console.error('Error fetching refund stats:', error);
+      console.error('Error fetching refund stats:', error.message);
     }
 
     // Calculate total pending actions

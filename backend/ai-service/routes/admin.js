@@ -1,10 +1,10 @@
 import express from 'express';
-import { authenticateAdmin } from '../../shared-utils/middlewares/auth.js';
+import { authorize } from '../../shared-utils/middlewares/auth.js';
 
 const router = express.Router();
 
 // Analytics endpoint for AI service
-router.get('/analytics', authenticateAdmin, (req, res) => {
+router.get('/analytics', authorize('Admin'), (req, res) => {
   try {
     // Mock analytics data - in a real implementation, this would gather actual usage metrics
     const analytics = {
@@ -37,7 +37,7 @@ router.get('/analytics', authenticateAdmin, (req, res) => {
 });
 
 // Export data endpoint for AI service
-router.get('/export', authenticateAdmin, (req, res) => {
+router.get('/export', authorize('Admin'), (req, res) => {
   try {
     // Mock export data - in a real implementation, this would export actual usage data
     const exportData = {

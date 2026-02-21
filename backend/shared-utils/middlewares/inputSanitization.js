@@ -35,8 +35,9 @@ export const mongoSanitizeMiddleware = mongoSanitize({
   }
 })
 
-// Create rate limiter for different endpoints
-export const createRateLimit = (windowMs = 15 * 60 * 1000, max = 100) => {
+// Create rate limiter — params: max requests, window in ms
+// e.g. createRateLimit(5, 15 * 60 * 1000) → 5 requests per 15 minutes
+export const createRateLimit = (max = 100, windowMs = 15 * 60 * 1000) => {
   return rateLimit({
     windowMs,
     max,
@@ -49,7 +50,10 @@ export const createRateLimit = (windowMs = 15 * 60 * 1000, max = 100) => {
   })
 }
 
-// Validation rules for profile updates
+// ─── Validation rule sets ─────────────────────────────────────────────────────
+// Each array can be spread directly into a route: router.post('/path', ...validateSignup, handler)
+// or passed as a single middleware array: router.post('/path', validateSignup, handler)
+
 export const validateProfileUpdate = [
   body('email').optional().isEmail().withMessage('Invalid email format'),
   body('firstName').optional().isLength({ min: 1, max: 50 }).withMessage('First name must be 1-50 characters'),
@@ -61,7 +65,6 @@ export const validateProfileUpdate = [
   handleValidationErrors
 ]
 
-// Validation rules for signup
 export const validateSignup = [
   body('firstName').notEmpty().withMessage('First name is required').isLength({ min: 1, max: 50 }),
   body('lastName').notEmpty().withMessage('Last name is required').isLength({ min: 1, max: 50 }),
@@ -71,31 +74,56 @@ export const validateSignup = [
   handleValidationErrors
 ]
 
-// Validation rules for login
 export const validateLogin = [
   body('email').notEmpty().withMessage('Email is required').isEmail().withMessage('Invalid email format'),
   body('password').notEmpty().withMessage('Password is required'),
   handleValidationErrors
 ]
 
-// Validation rules for contact form
+// Validates the email sent to /reset-password-token to request a reset link
+export const validatePasswordReset = [
+  body('email').notEmpty().withMessage('Email is required').isEmail().withMessage('Invalid email format'),
+  handleValidationErrors
+]
+
+// Validates the new password submitted to /reset-password
+export const validatePasswordResetConfirm = [
+  body('password').notEmpty().withMessage('Password is required').isLength({ min: 8 }).withMessage('Password must be at least 8 characters'),
+  body('confirmPassword').notEmpty().withMessage('Confirm password is required').custom((value, { req }) => {
+    if (value !== req.body.password) throw new Error('Passwords do not match')
+    return true
+  }),
+  handleValidationErrors
+]
+
+// Validates current + new password for logged-in users changing their password
+export const validatePasswordChange = [
+  body('oldPassword').notEmpty().withMessage('Current password is required'),
+  body('newPassword').notEmpty().withMessage('New password is required').isLength({ min: 8 }).withMessage('New password must be at least 8 characters'),
+  body('confirmNewPassword').notEmpty().withMessage('Confirm password is required').custom((value, { req }) => {
+    if (value !== req.body.newPassword) throw new Error('Passwords do not match')
+    return true
+  }),
+  handleValidationErrors
+]
+
+// Validates the email field when requesting an OTP
+export const validateOTP = [
+  body('email').notEmpty().withMessage('Email is required').isEmail().withMessage('Invalid email format'),
+  handleValidationErrors
+]
+
+// Validates the Google credential token from the OAuth flow
+export const validateGoogleAuth = [
+  body('credential').notEmpty().withMessage('Google credential token is required'),
+  handleValidationErrors
+]
+
 export const validateContactForm = [
   body('firstName').notEmpty().withMessage('First name is required').isLength({ min: 1, max: 50 }),
   body('lastName').notEmpty().withMessage('Last name is required').isLength({ min: 1, max: 50 }),
   body('email').notEmpty().withMessage('Email is required').isEmail().withMessage('Invalid email format'),
   body('message').notEmpty().withMessage('Message is required').isLength({ min: 10, max: 1000 }).withMessage('Message must be 10-1000 characters'),
   body('phoneNo').optional().matches(/^[0-9]{10}$/).withMessage('Phone number must be 10 digits'),
-  handleValidationErrors
-]
-
-// Validation rules for password reset
-export const validatePasswordReset = [
-  body('password').notEmpty().withMessage('Password is required').isLength({ min: 8 }).withMessage('Password must be at least 8 characters'),
-  body('confirmPassword').notEmpty().withMessage('Confirm password is required').custom((value, { req }) => {
-    if (value !== req.body.password) {
-      throw new Error('Passwords do not match')
-    }
-    return true
-  }),
   handleValidationErrors
 ]

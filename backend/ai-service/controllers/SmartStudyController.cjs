@@ -14,6 +14,14 @@ if (!JSON2VIDEO_API_KEY) {
   throw new Error("JSON2VIDEO_API_KEY is not set. Add it to your .env");
 }
 
+// Model names — change here to update across all functions
+const GEMINI_FLASH_MODEL = "gemini-2.0-flash";
+const GEMINI_PRO_MODEL = "gemini-2.5-pro";
+
+// Max characters of extracted text sent to Gemini per request
+const MAX_TEXT_LENGTH_SUMMARY = 15000;
+const MAX_TEXT_LENGTH_CHAT = 20000;
+
 exports.generateJson2Video = async (req, res) => {
   try {
     const rawPrompt = req.body?.textPrompt;
@@ -34,10 +42,7 @@ exports.generateJson2Video = async (req, res) => {
     }
 
     // Step 1: Use Gemini to generate comprehensive 2-minute video script
-    console.log(
-      "Generating comprehensive 2-minute video script with Gemini..."
-    );
-    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+    const model = genAI.getGenerativeModel({ model: GEMINI_FLASH_MODEL });
 
     const geminiPrompt = `Create a comprehensive 2-minute educational video script about: "${textPrompt}"
 
@@ -92,8 +97,6 @@ Important guidelines:
     // Clean up any markdown code blocks
     scriptText = scriptText.replace(/```json\s*/g, "").replace(/```\s*/g, "");
 
-    console.log("Gemini response received, parsing...");
-
     const videoScript = JSON.parse(scriptText);
 
     if (!videoScript.scenes || videoScript.scenes.length < 8) {
@@ -101,9 +104,6 @@ Important guidelines:
         "Invalid script format from Gemini - needs at least 8 scenes"
       );
     }
-
-    // Step 2: Use verified Unsplash images as backgrounds
-    console.log("Selecting background images...");
 
     // Use a curated list of verified working Unsplash images in portrait orientation
     const verifiedUnsplashImages = [
@@ -384,7 +384,6 @@ Important guidelines:
     });
 
     // Step 4: Send to JSON2Video API
-    console.log("Sending comprehensive video to JSON2Video API...");
     const { data } = await axios.post(
       "https://api.json2video.com/v2/movies",
       movie,
@@ -396,13 +395,9 @@ Important guidelines:
       }
     );
 
-    // console.log("JSON2Video API response:", JSON.stringify(data, null, 2));
-    // console.log("Extracted operationId:", data.project || data.id);
-
     return res.status(200).json({
       success: true,
-      message:
-        "Comprehensive 2-minute educational video generation started successfully",
+      message: "Comprehensive 2-minute educational video generation started successfully",
       operationId: data.project || data.id || "unknown",
       videoScript: {
         title: videoScript.title,
@@ -441,16 +436,14 @@ exports.textToVideoSummarizer = async (req, res) => {
       });
     }
 
-    console.log("Processing text to video summarizer");
-
-    const maxTextLength = 15000; // Increased for better context
+    const maxTextLength = MAX_TEXT_LENGTH_SUMMARY;
     const truncatedText =
       text.length > maxTextLength
         ? text.substring(0, maxTextLength) +
           "... (text truncated for processing)"
         : text;
 
-    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+    const model = genAI.getGenerativeModel({ model: GEMINI_FLASH_MODEL });
 
     const prompt = `You are an AI educational content creator specialized in creating comprehensive video scripts from text content. Analyze the following text and create a detailed 2-minute video script that fully explains the concepts to viewers.
 
@@ -684,7 +677,7 @@ exports.generateSummary = async (req, res) => {
 
     // Choose model (flash = fast/cheap, pro = best reasoning)
     // const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
-    const model = genAI.getGenerativeModel({ model: "gemini-2.5-pro" });
+    const model = genAI.getGenerativeModel({ model: GEMINI_PRO_MODEL });
 
     // Chunk → summarize each → merge
     const chunks = chunkText(text, 12000);
@@ -736,7 +729,7 @@ exports.chatWithDocument = async (req, res) => {
     }
 
     // Limit the document text to fit within token limits
-    const maxTextLength = 20000; // Adjust based on model's limits
+    const maxTextLength = MAX_TEXT_LENGTH_CHAT;
     const truncatedText =
       documentText.length > maxTextLength
         ? documentText.substring(0, maxTextLength) + "..."

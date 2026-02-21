@@ -1,5 +1,5 @@
 import express from 'express'
-import { auth, isAdmin } from '../../shared-utils/middlewares/auth.js'
+import { authorize } from '../../shared-utils/middlewares/auth.js'
 import {
   adminListCourses,
   approveCourse,
@@ -11,24 +11,24 @@ const router = express.Router()
 
 // List courses (supports query params: status, page, limit, search)
 router.get('/list', adminListCourses)
-router.get('/', auth, isAdmin, adminListCourses)
+router.get('/', authorize('Admin'), adminListCourses)
 router.get('/admin', adminListCourses) // Support /admin/admin path
 
 // Approve / reject (support body { courseId } or URL param)
-router.post('/approve', auth, isAdmin, approveCourse)
-router.post('/reject', auth, isAdmin, rejectCourse)
-router.post('/:id/approve', auth, isAdmin, approveCourse)
-router.post('/:id/reject', auth, isAdmin, rejectCourse)
+router.post('/approve', authorize('Admin'), approveCourse)
+router.post('/reject', authorize('Admin'), rejectCourse)
+router.post('/:id/approve', authorize('Admin'), approveCourse)
+router.post('/:id/reject', authorize('Admin'), rejectCourse)
 
 // Support for /admin/admin/approve and /admin/admin/reject paths
-router.post('/admin/approve', auth, isAdmin, approveCourse)
-router.post('/admin/reject', auth, isAdmin, rejectCourse)
+router.post('/admin/approve', authorize('Admin'), approveCourse)
+router.post('/admin/reject', authorize('Admin'), rejectCourse)
 
 // Analytics
-router.get('/analytics/:courseId', auth, isAdmin, getCourseAnalytics)
-router.get('/:id/analytics', auth, isAdmin, getCourseAnalytics)
+router.get('/analytics/:courseId', authorize('Admin'), getCourseAnalytics)
+router.get('/:id/analytics', authorize('Admin'), getCourseAnalytics)
 
 // Support for /admin/admin/analytics path
-router.get('/admin/analytics/:courseId', auth, isAdmin, getCourseAnalytics)
+router.get('/admin/analytics/:courseId', authorize('Admin'), getCourseAnalytics)
 
 export default router

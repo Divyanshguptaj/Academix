@@ -51,6 +51,10 @@ const userSchema = new mongoose.Schema({
     resetPasswordExpires:{
         type: Date,
     },
+    tokenVersion: {
+        type: Number,
+        default: 0,
+    },
     courseProgress:[
         {
             type: mongoose.Schema.Types.ObjectId,

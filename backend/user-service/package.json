@@ -1,7 +1,7 @@
 {
   "name": "user-service",
   "version": "1.0.0",
-  "description": "User management microservice",
+  "description": "User authentication and profile microservice",
   "main": "server.js",
   "type": "module",
   "scripts": {
@@ -9,11 +9,6 @@
     "dev": "nodemon server.js"
   },
   "dependencies": {
-    "bcryptjs": "^3.0.2",
-    "cloudinary": "^2.8.0",
-    "express-mongo-sanitize": "^2.2.0",
-    "express-validator": "^7.3.1",
-    "otp-generator": "^4.0.1",
     "shared-utils": "file:../shared-utils"
   }
 }
