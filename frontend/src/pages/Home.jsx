@@ -1,79 +1,87 @@
-import {FaArrowRight} from 'react-icons/fa';
-import {Link} from 'react-router-dom';
-import CTAButton from '../components/core/HomePage/Button';
-import HiglightedText from '../components/core/HomePage/HiglightedText';
-import CodeBlocks from '../components/core/HomePage/CodeBlocks';
-import Banner from '../assets/Images/banner.mp4';
-import TimelineSection from '../components/core/HomePage/TimelineSection';
-import LearningLanguageSection from '../components/core/HomePage/LearningLanguageSection';
-import BecomeInstructor from '../components/core/HomePage/BecomeInstructor';
-import ExploreMore from '../components/core/HomePage/ExploreMore';
-import ReviewSlider from '../components/common/ReviewSlider';
+import { FaArrowRight } from "react-icons/fa";
+import { Link } from "react-router-dom";
+import CTAButton from "../components/core/HomePage/Button";
+import HiglightedText from "../components/core/HomePage/HiglightedText";
+import CodeBlocks from "../components/core/HomePage/CodeBlocks";
+import Banner from "../assets/Images/banner.mp4";
+import TimelineSection from "../components/core/HomePage/TimelineSection";
+import LearningLanguageSection from "../components/core/HomePage/LearningLanguageSection";
+import BecomeInstructor from "../components/core/HomePage/BecomeInstructor";
+import ExploreMore from "../components/core/HomePage/ExploreMore";
+import ReviewSlider from "../components/common/ReviewSlider";
 
+const Home = () => {
+  return (
+    <div className="flex flex-col items-center text-white overflow-x-hidden">
 
-const Home = ()=>{
-    return (
-        // Section 1
-      <div className='mx-auto flex flex-col items-center text-white justify-center'>
-        <div className='mx-auto flex flex-col w-11/12 items-center text-white justify-center'>
+      {/* ── Hero ── */}
+      <section className="w-full bg-[#121220] pt-24 pb-12 border-b border-gray-800">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 flex flex-col items-center text-center gap-6">
+
+          {/* Pill badge */}
           <Link to="/signup">
-            <div className='group mt-16 p-1 mx-auto rounded-full bg-zinc-700 text-richblack-200 transition-all duration-200 hover:scale-95 w-fit'>
-              <div className='flex items-center gap-2 rounded-full px-4 sm:px-10 py-[5px] transition-all duration-200 group-hover:bg-richblack-900'>
-                <p className='text-sm sm:text-base'>Become an instructor</p>
-                <FaArrowRight/>
-              </div>
+            <div className="group inline-flex items-center gap-2 bg-gray-800 border border-gray-700 rounded-full px-5 py-2 text-sm text-gray-300 hover:border-yellow-400/50 hover:text-white transition-all duration-200">
+              Become an instructor
+              <FaArrowRight className="text-xs group-hover:translate-x-0.5 transition-transform duration-200" />
             </div>
           </Link>
 
-          <div className='flex flex-col sm:flex-row font-semibold text-2xl sm:text-4xl mt-7 text-center'>
-            <p className='text-white'>Empower your future with&nbsp;</p>
-            <HiglightedText text={"Coding Skills"}/>
-          </div>
+          {/* Headline */}
+          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold leading-tight tracking-tight">
+            Empower your future with
+            <br />
+            <HiglightedText text="Coding Skills" />
+          </h1>
 
-          <div className='mt-4 w-full sm:w-[90%] md:w-[70%] lg:w-[45%] text-center text-sm text-richblack-300 px-4 sm:px-0'>
-            <p>With our online course you can learn on your own pace, from anywhere in the world and get access to a wealth resources including hands-onn projects and quizess and personalised feedback instructors.</p>
-          </div>
+          {/* Sub-copy */}
+          <p className="text-gray-400 text-sm sm:text-base max-w-2xl leading-relaxed">
+            Learn at your own pace, from anywhere in the world. Get access to
+            hands-on projects, quizzes, and personalised feedback from expert
+            instructors.
+          </p>
 
-          <div className='flex flex-col sm:flex-row font-semibold lg:gap-4 sm:gap-1 mt-2'>
-            <CTAButton text="Learn More" color="yellow" link="/login" ></CTAButton>
-            <CTAButton text="Book a Demo" color="black" link="/signup"></CTAButton>
-          </div>  
+          {/* CTAs */}
+          <div className="flex flex-col sm:flex-row gap-4 mt-2">
+            <CTAButton text="Learn More" color="yellow" link="/login" />
+            <CTAButton text="Book a Demo" color="black" link="/signup" />
+          </div>
         </div>
 
-        <div className='shadow-blue-200 mt-10 mb-16 flex justify-center w-full px-4 sm:px-0'>
-          <video muted loop autoPlay className='w-full sm:w-3/4 md:w-2/3 lg:w-1/2 shadow-4xl'>
-            <source src={Banner} type='video/mp4'/>
-          </video>
+        {/* Hero video */}
+        <div className="mt-14 mx-auto max-w-3xl px-4 sm:px-6">
+          <div
+            className="rounded-2xl overflow-hidden"
+            style={{
+              boxShadow:
+                "0 0 80px -15px rgba(59,130,246,0.4), 0 30px 60px -20px rgba(0,0,0,0.8)",
+              border: "1px solid rgba(255,255,255,0.07)",
+            }}
+          >
+            <video muted loop autoPlay className="w-full block">
+              <source src={Banner} type="video/mp4" />
+            </video>
+          </div>
         </div>
+      </section>
 
-        {/* CodeBlock -> 1 */}
-        <div className='w-full px-4 sm:px-0'>
-          <CodeBlocks 
-            position="lg:flex-row" 
-            heading={
-              <div className="text-2xl sm:text-4xl font-semibold">
-                Unlock Your <HiglightedText text={"Coding Potential"} /> &nbsp;with our online courses
-              </div>
-            }
-            subheading={
-              "With our online courses, you can learn at your own pace, from coast to cloud — and unlock a world full of resources, including hands-on projects and quizess and personalised feedback instructors. Ready to start?"
-            }
-            ctabtn1={{
-              text: (
-                <>
-                  <p>Learn More</p>
-                  <FaArrowRight />
-                </>
-              ),
-              color: "yellow",
-              link: "/login"
-            }}
-            ctabtn2={{
-              text: "Try it Yourself",
-              color: "black",
-              link: "/signup"
-            }}
-            codeblock={`<!DOCTYPE html>
+      {/* ── Code blocks ── */}
+      <section className="w-full bg-[#121220]">
+        <CodeBlocks
+          position="lg:flex-row"
+          heading={
+            <div className="text-2xl sm:text-3xl lg:text-4xl font-semibold">
+              Unlock Your <HiglightedText text="Coding Potential" /> with our
+              online courses
+            </div>
+          }
+          subheading="With our online courses, you can learn at your own pace, from coast to cloud — and unlock a world full of resources, including hands-on projects and personalised feedback."
+          ctabtn1={{
+            text: (<><p>Learn More</p><FaArrowRight /></>),
+            color: "yellow",
+            link: "/login",
+          }}
+          ctabtn2={{ text: "Try it Yourself", color: "black", link: "/signup" }}
+          codeblock={`<!DOCTYPE html>
 <html>
   <head>
     <title>Example</title>
@@ -81,82 +89,101 @@ const Home = ()=>{
   </head>
   <body>
     <nav>
-      <a href="one/">One</a><a href="two/">Two</a>
+      <a href="one/">One</a>
+      <a href="two/">Two</a>
     </nav>
   </body>
 </html>`}
-            backgroundGradient="yellow" 
-            codeColor="text-yellow-500"
-          />
-        </div>
+          backgroundGradient="yellow"
+          codeColor="text-yellow-400"
+        />
 
-        {/* CodeBlock -> 2 */}
-        <div className='bg-transparent w-full px-4 sm:px-0'>
-          <CodeBlocks
-          position="lg:flex-row-reverse" 
+        <CodeBlocks
+          position="lg:flex-row-reverse"
           heading={
-            <div className='text-2xl sm:text-4xl font-semibold'>
-              Start<HiglightedText text={"Coding in seconds"}/>
+            <div className="text-2xl sm:text-3xl lg:text-4xl font-semibold">
+              Start <HiglightedText text="Coding in seconds" />
             </div>
           }
-          subheading={"Code now- no waiting, no hassle Learn at your own pace, from anywhere in the world — and get ready to thrive in tomorrow's world. With a clear roadmap and guided support, your path to success becomes simple and exciting."} 
+          subheading="Code now — no waiting, no hassle. Learn at your own pace, from anywhere in the world, and get ready to thrive in tomorrow's world with clear roadmaps and guided support."
           ctabtn1={{
-              text: (
-                <>
-                  <p>Learn More</p>
-                  <FaArrowRight />
-                </>
-              ),
-              color: "yellow",
-              link: "/login"
-            }}
-          ctabtn2={{
-            text: "Try it Yourself",color: "black", link:"/signup"
+            text: (<><p>Learn More</p><FaArrowRight /></>),
+            color: "yellow",
+            link: "/login",
           }}
+          ctabtn2={{ text: "Try it Yourself", color: "black", link: "/signup" }}
           codeblock={`<!DOCTYPE html>
-  <html>
-    <head>
-      <title>Example</title><link rel="stylesheet" href="styles.css" />
-    </head>
-    <body>
-      <nav>
-        <a href="one/">One</a><a href="two/">Two</a>
-      </nav>
-    </body>
-  </html>`}
-           backgroundGradient="blue" 
-           codeColor="blue"/>
+<html>
+  <head>
+    <title>Example</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <nav>
+      <a href="one/">One</a>
+      <a href="two/">Two</a>
+    </nav>
+  </body>
+</html>`}
+          backgroundGradient="blue"
+          codeColor="text-blue-400"
+        />
+      </section>
+
+      {/* ── Explore more ── */}
+      <section className="w-full bg-[#121220] border-t border-gray-800">
+        <ExploreMore />
+      </section>
+
+      {/* ── CTA banner ── */}
+      <div className="homepage_bg h-[200px] sm:h-[300px] w-full flex flex-col justify-center items-center gap-5">
+        <p className="text-black text-xl sm:text-2xl font-bold text-center px-4 drop-shadow-lg">
+          Explore our full course catalog
+        </p>
+        <div className="flex flex-col sm:flex-row gap-4">
+          <CTAButton
+            text={<><p>View Full Catalog</p><FaArrowRight /></>}
+            color="yellow"
+            link="/catalog"
+          />
+          <CTAButton text="Learn More" color="black" link="" />
         </div>
-
-        <ExploreMore/>
-
-        <div className='homepage_bg h-[200px] sm:h-[333px] w-[100%] bg-repeat flex justify-center items-center'>
-            <div className='flex flex-col sm:flex-row lg:gap-4 sm:gap-1'>
-              <CTAButton text={<><p>View Full Catalog</p><FaArrowRight /></>} color="yellow" link="/" />
-              <CTAButton text="Learn More" color="black" link=""/>
-            </div>
-        </div>
-
-        <div className='flex flex-col lg:flex-row justify-center mx-auto w-[100%] items-center bg-white p-8 sm:p-20 px-8 sm:px-40'>
-            <div className='font-bold text-2xl sm:text-4xl text-black m-4 sm:m-10 w-full lg:w-[50%] text-center lg:text-left'>
-              <p >Get the skills that</p><HiglightedText text="employers are looking for."/>
-            </div>
-            <div className='flex flex-col text-black w-full lg:w-[50%] text-center lg:text-left'>
-              <div className='mb-4'><p>The modern StudyNotion is the dictates its own terms. Today, to be a competitive specialist requires more than just professional skills.</p></div>
-              <div><CTAButton text="Learn More" color="yellow" link="/signup"/></div>
-            </div>
-        </div>
-        
-        <TimelineSection/>
-
-        <LearningLanguageSection/>
-
-        <BecomeInstructor/>
-        
-        <ReviewSlider/>
-
       </div>
-    )
-}
+
+      {/* ── Get the skills ── */}
+      <section className="bg-[#1d1d1d] w-full py-16 lg:py-24 border-y border-gray-800">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col lg:flex-row items-center gap-10 lg:gap-16">
+          <div className="font-bold text-3xl sm:text-4xl text-white lg:w-1/2 text-center lg:text-left leading-tight">
+            Get the skills that{" "}
+            <HiglightedText text="employers are looking for." />
+          </div>
+          <div className="flex flex-col gap-5 lg:w-1/2 text-center lg:text-left">
+            <p className="text-gray-400 text-sm sm:text-base leading-relaxed">
+              The modern job market demands more than just professional skills.
+              Build a complete toolkit that sets you apart — with real projects,
+              peer collaboration, and expert guidance from industry professionals.
+            </p>
+            <div className="flex justify-center lg:justify-start">
+              <CTAButton text="Learn More" color="yellow" link="/signup" />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ── Timeline ── */}
+      <TimelineSection />
+
+      {/* ── Learning languages ── */}
+      <LearningLanguageSection />
+
+      {/* ── Become instructor ── */}
+      <BecomeInstructor />
+
+      {/* ── Reviews ── */}
+      <ReviewSlider />
+
+    </div>
+  );
+};
 
 export default Home;

@@ -42,6 +42,7 @@ import ContactUsPage from './pages/Contact';
 import Footer from './components/common/Footer';
 import GoogleAuthHandler from './components/core/Auth/GoogleAuthHandler';
 import Auth0Callback from './pages/Auth0Callback';
+import BecomeInstructor from './components/core/Dashboard/BecomeInstructor';
 
 function App() {
   const location = useLocation();
@@ -59,14 +60,14 @@ function App() {
       }}
     >
       <GoogleAuthHandler />
-      <div className="w-full min-h-screen bg-richblack-900 flex flex-col font-inter">
+      <div className="w-full min-h-screen bg-[#121220] flex flex-col font-inter">
         {/* Fixed Navbar */}
-        <div className="fixed top-0 left-0 w-full z-50 bg-richblack-900 border-b border-richblack-800">
+        <div className="fixed top-0 left-0 w-full z-50 bg-[#121220] border-b border-gray-800">
           <Navbar />
         </div>
 
         {/* Add padding-top so content doesn’t hide behind fixed Navbar */}
-        <main className="flex-1 w-full mx-auto px-4 sm:px-6 lg:px-8 py-4 md:py-6 pt-[3.5rem]">
+        <main className="flex-1 w-full pt-[3.5rem] overflow-x-hidden">
           <Routes>
             {/* Auth0 Callback */}
             <Route path="/auth0/callback" element={<Auth0Callback />} />
@@ -106,6 +107,7 @@ function App() {
               <Route path="ai-study-assistant" element={<AIStudyAssistant />} />
               <Route path="text-to-video-summarizer" element={<TextToVideoSummarizer />} />
               <Route path="edit-course/:courseId" element={<EditCourse />} />
+              <Route path="become-instructor" element={<BecomeInstructor />} />
             </Route>
 
             {/* Admin Routes - Uses same Dashboard component with role-based access */}

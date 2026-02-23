@@ -20,9 +20,11 @@ const About = () => {
 
       <StatsComponent />
       
-      <section className="mx-auto mt-16 md:mt-20 flex w-11/12 max-w-maxContent flex-col justify-between gap-10 text-white">
+      <section className="bg-richblack-900 py-16 lg:py-24 text-white">
         <LearningGrid />
-        <ContactFormSection />
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-16">
+          <ContactFormSection />
+        </div>
       </section>
 
       {/* Review Slider */}

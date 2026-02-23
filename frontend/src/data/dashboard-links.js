@@ -25,6 +25,13 @@ export const sidebarLinks = [
         allowedRoles: [ACCOUNT_TYPE.STUDENT],
     },
     {
+        id: 17,
+        name: "Become an Instructor",
+        path: '/dashboard/become-instructor',
+        icon: 'VscMortarBoard',
+        allowedRoles: [ACCOUNT_TYPE.STUDENT],
+    },
+    {
         id: 4,
         name: "Smart Study Companion",
         path: '/dashboard/smart-study',

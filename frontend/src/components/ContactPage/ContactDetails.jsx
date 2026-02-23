@@ -1,53 +1,64 @@
-import React from "react"
-import * as Icon1 from "react-icons/bi"
-import * as Icon3 from "react-icons/hi2"
-import * as Icon2 from "react-icons/io5"
+import { HiChatBubbleLeftRight } from "react-icons/hi2";
+import { IoCall } from "react-icons/io5";
+import { BiWorld } from "react-icons/bi";
 
 const contactDetails = [
   {
-    icon: "HiChatBubbleLeftRight",
-    heading: "Chat on us",
+    Icon: HiChatBubbleLeftRight,
+    heading: "Chat with us",
     description: "Our friendly team is here to help.",
-    details: "info@studynotion.com",
+    detail: "info@academix.com",
+    color: "text-blue-400",
+    bg: "bg-blue-400/10",
   },
   {
-    icon: "BiWorld",
+    Icon: BiWorld,
     heading: "Visit us",
     description: "Come and say hello at our office HQ.",
-    details:
-      "Akshya Nagar 1st Block 1st Cross, Rammurthy nagar, Bangalore-560016",
+    detail: "Akshya Nagar 1st Block, Rammurthy Nagar, Bangalore – 560016",
+    color: "text-green-400",
+    bg: "bg-green-400/10",
   },
   {
-    icon: "IoCall",
+    Icon: IoCall,
     heading: "Call us",
-    description: "Mon - Fri From 8am to 5pm",
-    details: "+123 456 7869",
+    description: "Mon – Fri, 8 am to 5 pm",
+    detail: "+123 456 7869",
+    color: "text-yellow-400",
+    bg: "bg-yellow-400/10",
   },
-]
+];
 
 const ContactDetails = () => {
   return (
-    <div className="flex flex-col gap-6 rounded-xl bg-richblack-800 p-4 lg:p-6">
-      {contactDetails.map((ele, i) => {
-        let Icon = Icon1[ele.icon] || Icon2[ele.icon] || Icon3[ele.icon]
-        return (
-          <div
-            className="flex flex-col gap-[2px] p-3 text-sm text-richblack-200"
-            key={i}
-          >
-            <div className="flex flex-row items-center gap-3">
-              <Icon size={25} />
-              <h1 className="text-lg font-semibold text-richblack-5">
-                {ele?.heading}
-              </h1>
-            </div>
-            <p className="font-medium">{ele?.description}</p>
-            <p className="font-semibold">{ele?.details}</p>
+    <div className="flex flex-col gap-5">
+      {contactDetails.map(({ Icon, heading, description, detail, color, bg }) => (
+        <div
+          key={heading}
+          className="flex gap-4 items-start bg-[#1d1d1d] rounded-2xl p-5 border border-gray-800"
+        >
+          <div className={`flex-shrink-0 h-11 w-11 flex items-center justify-center rounded-xl ${bg}`}>
+            <Icon size={22} className={color} />
           </div>
-        )
-      })}
-    </div>
-  )
-}
+          <div className="flex flex-col gap-1">
+            <h3 className="font-semibold text-white text-base">{heading}</h3>
+            <p className="text-gray-400 text-sm">{description}</p>
+            <p className={`text-sm font-medium mt-0.5 ${color}`}>{detail}</p>
+          </div>
+        </div>
+      ))}
 
-export default ContactDetails
+      {/* Extra CTA */}
+      <div className="rounded-2xl border border-yellow-400/20 bg-yellow-400/5 p-5 mt-1">
+        <p className="text-sm text-gray-300 leading-relaxed">
+          Have a general question?{" "}
+          <span className="text-yellow-400 font-medium">
+            Fill out the form and we'll get back to you within 24 hours.
+          </span>
+        </p>
+      </div>
+    </div>
+  );
+};
+
+export default ContactDetails;

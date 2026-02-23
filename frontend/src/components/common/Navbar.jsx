@@ -172,6 +172,7 @@ function Navbar() {
               <img
                 src={getUserImage(user)}
                 alt="Profile"
+                referrerPolicy="no-referrer"
                 className="w-8 h-8 sm:w-10 sm:h-10 rounded-full border-2 border-blue-400 hover:border-yellow-400 transition-colors duration-200 object-cover"
                 onError={createImageErrorHandler(user)}
                 loading="lazy"
@@ -287,6 +288,7 @@ function Navbar() {
                     <img
                       src={getUserImage(user)}
                       alt="Profile"
+                      referrerPolicy="no-referrer"
                       className="w-8 h-8 rounded-full border border-blue-400 object-cover"
                       onError={createImageErrorHandler(user)}
                       loading="lazy"

@@ -31,6 +31,7 @@ export const studentEndpoints = {
 export const courseEndpoints = {
   GET_ALL_COURSE_API: API_GATEWAY_URL + "/course/showAllCoures",
   COURSE_DETAILS_API: API_GATEWAY_URL + "/course/getFullCourseDetails",
+  COURSE_PUBLIC_DETAILS_API: API_GATEWAY_URL + "/course/getCoursePublicDetails",
   EDIT_COURSE_API: API_GATEWAY_URL + "/course/editCourse",
   COURSE_CATEGORIES_API: API_GATEWAY_URL + "/course/showAllCategories", 
   CREATE_COURSE_API: API_GATEWAY_URL + "/course/createCourse",
@@ -97,6 +98,8 @@ export const adminEndpoints = {
   APPROVE_INSTRUCTOR: API_GATEWAY_URL + "/admin/user/instructors/:id/approve",
   REVOKE_INSTRUCTOR: API_GATEWAY_URL + "/admin/user/instructors/:id/revoke",
   GET_INSTRUCTOR_APPLICATIONS: API_GATEWAY_URL + "/admin/user/instructor-applications",
+  APPROVE_INSTRUCTOR_APPLICATION: API_GATEWAY_URL + "/admin/user/instructor-applications/:id/approve",
+  REJECT_INSTRUCTOR_APPLICATION: API_GATEWAY_URL + "/admin/user/instructor-applications/:id/reject",
   
   // Course Service Admin Endpoints
   GET_ALL_COURSES: API_GATEWAY_URL + "/admin/course/admin",

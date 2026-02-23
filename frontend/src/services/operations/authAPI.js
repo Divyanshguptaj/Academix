@@ -114,7 +114,7 @@ export function logout(navigate) {
     dispatch(setLoading(true));
     try {
       // Call backend to invalidate token
-      const response = await apiConnector("POST", "/api/v1/auth/logout", {});
+      const response = await apiConnector("POST", "/auth/logout", {});
 
       if (!response.data.success) {
         throw new Error(response.data.message);

@@ -2,7 +2,7 @@ import { useEffect, useState } from "react"
 import { useSelector } from "react-redux"
 import { apiConnector } from "../../../services/apiconnector"
 import { adminEndpoints } from "../../../services/apis"
-import { FaUserTie, FaCheckCircle, FaTimesCircle, FaEye, FaUsers, FaBook, FaRupeeSign, FaClock, FaFilter, FaSearch, FaSync, FaCalendar, FaEnvelope, FaStar, FaTrophy } from "react-icons/fa"
+import { FaUserTie, FaCheckCircle, FaTimesCircle, FaUsers, FaBook, FaRupeeSign, FaClock, FaSearch, FaSync, FaCalendar, FaEnvelope } from "react-icons/fa"
 import { format } from "date-fns"
 
 export default function InstructorManagement() {
@@ -41,17 +41,29 @@ export default function InstructorManagement() {
     }
   }
 
-  const handleInstructorApproval = async (userId, action) => {
+  // For the Applications tab: approve/reject by application _id
+  const handleApplicationAction = async (applicationId, action) => {
     try {
-      const endpoint = action === "approve" 
-        ? adminEndpoints.APPROVE_INSTRUCTOR.replace(":id", userId)
-        : adminEndpoints.REVOKE_INSTRUCTOR.replace(":id", userId)
-      
+      const endpoint = action === "approve"
+        ? adminEndpoints.APPROVE_INSTRUCTOR_APPLICATION.replace(":id", applicationId)
+        : adminEndpoints.REJECT_INSTRUCTOR_APPLICATION.replace(":id", applicationId)
       await apiConnector("PUT", endpoint, {})
-      fetchInstructorData() // Refresh the list
+      fetchInstructorData()
     } catch (error) {
-      console.error("Error updating instructor status:", error)
-      setError("Failed to update instructor status")
+      console.error("Error processing application:", error)
+      setError("Failed to process application")
+    }
+  }
+
+  // For the Approved tab: revoke by user _id
+  const handleRevokeInstructor = async (userId) => {
+    try {
+      const endpoint = adminEndpoints.REVOKE_INSTRUCTOR.replace(":id", userId)
+      await apiConnector("PUT", endpoint, {})
+      fetchInstructorData()
+    } catch (error) {
+      console.error("Error revoking instructor:", error)
+      setError("Failed to revoke instructor access")
     }
   }
 
@@ -278,14 +290,14 @@ export default function InstructorManagement() {
                         </div>
                         <div className="flex flex-col sm:flex-row gap-3">
                           <button
-                            onClick={() => handleInstructorApproval(app._id, "approve")}
+                            onClick={() => handleApplicationAction(app._id, "approve")}
                             className="flex items-center justify-center space-x-2 bg-gradient-to-r from-green-500 to-green-600 text-white px-6 py-3 rounded-xl hover:from-green-600 hover:to-green-700 transition-all duration-200 font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
                           >
                             <FaCheckCircle />
                             <span>Approve</span>
                           </button>
                           <button
-                            onClick={() => handleInstructorApproval(app._id, "reject")}
+                            onClick={() => handleApplicationAction(app._id, "reject")}
                             className="flex items-center justify-center space-x-2 bg-richblack-600 text-richblack-200 px-6 py-3 rounded-xl hover:bg-red-600 hover:text-white transition-all duration-200 font-semibold border border-richblack-500 hover:border-red-600"
                           >
                             <FaTimesCircle />
@@ -367,7 +379,7 @@ export default function InstructorManagement() {
                         </div>
                         <div className="flex flex-col sm:flex-row gap-3">
                           <button
-                            onClick={() => handleInstructorApproval(instr._id, "revoke")}
+                            onClick={() => handleRevokeInstructor(instr._id)}
                             className="flex items-center justify-center space-x-2 bg-richblack-600 text-richblack-200 px-6 py-3 rounded-xl hover:bg-red-600 hover:text-white transition-all duration-200 font-semibold border border-richblack-500 hover:border-red-600"
                           >
                             <FaTimesCircle />

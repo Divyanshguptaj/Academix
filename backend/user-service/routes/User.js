@@ -9,7 +9,6 @@ import {
   validateLogin,
   validatePasswordChange,
   validateOTP,
-  validateGoogleAuth,
   validatePasswordReset,
   validatePasswordResetConfirm,
   handleValidationErrors,
@@ -74,11 +73,9 @@ router.post('/sendotp',
   sendOTP
 );
 
-router.post('/google-auth', 
-  sanitizeInput, 
-  mongoSanitizeMiddleware, 
-  validateGoogleAuth, 
-  handleValidationErrors, 
+router.post('/google-auth',
+  sanitizeInput,
+  mongoSanitizeMiddleware,
   googleAuth
 );
 

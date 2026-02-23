@@ -4,7 +4,7 @@ export const contactUsController = async (req, res) => {
   try {
       const { firstname, lastname, email, phoneNo, message, countrycode } = req.body;
 
-    if (!firstname || !email || !message || !phoneNo || !countrycode) {
+    if (!firstname || !lastname || !email || !message || !phoneNo || !countrycode) {
       return res.status(400).json({
         success: false,
         message: "Please fill all required fields",

@@ -10,6 +10,17 @@ import CourseProgress from '../models/CourseProgress.js'
 import dotenv from 'dotenv';
 dotenv.config();
 
+const decodeHtmlEntities = (str) => {
+  if (!str || typeof str !== 'string') return str;
+  return str
+    .replace(/&#x2F;/gi, '/')
+    .replace(/&#x27;/gi, "'")
+    .replace(/&amp;/gi, '&')
+    .replace(/&lt;/gi, '<')
+    .replace(/&gt;/gi, '>')
+    .replace(/&quot;/gi, '"');
+};
+
 export const editCourse = async (req, res) => {
     try {
         const { courseId } = req.body;
@@ -319,7 +330,7 @@ export const getCourseDetails = async (req,res)=>{
           ...courseDetails.toObject(),
           instructor: instructorDetails || courseDetails.instructor,
           // keep existing students details if available, but also include a compact progress list
-          studentsEnrolled: studentsDetails || courseDetails.studentsEnrolled,
+          studentsEnrolled: studentsDetails?.length > 0 ? studentsDetails : courseDetails.studentsEnrolled,
           studentsProgress: studentsProgress,
           success: true
         };
@@ -339,6 +350,65 @@ export const getCourseDetails = async (req,res)=>{
         })
     }
 }
+
+export const getCoursePublicDetails = async (req, res) => {
+  try {
+    const { courseId } = req.body;
+    if (!courseId) {
+      return res.status(400).json({ success: false, message: 'courseId is required' });
+    }
+
+    const course = await Course.findById(courseId)
+      .populate({ path: 'category', select: 'name' })
+      .populate({ path: 'ratingAndReviews', select: 'rating' })
+      .populate({
+        path: 'courseContent',
+        populate: {
+          path: 'subSection',
+          select: '_id title description timeDuration',
+        },
+      })
+      .lean();
+
+    if (!course) {
+      return res.status(404).json({ success: false, message: "Course not found" });
+    }
+
+    // Fetch instructor from user-service
+    let instructor = { _id: course.instructor };
+    if (course.instructor) {
+      try {
+        const resp = await userService.get('/auth/get-instructors-by-ids', {
+          params: { ids: course.instructor, fields: 'firstName,lastName,image,additionalDetails' },
+        });
+        const instructors = resp.data?.data || [];
+        if (instructors[0]) {
+          instructor = {
+            ...instructors[0],
+            image: decodeHtmlEntities(instructors[0].image),
+          };
+        }
+      } catch (e) {
+        console.error('[getCoursePublicDetails] instructor fetch failed:', e.message);
+      }
+    }
+
+    const { studentsEnrolled, ...courseWithoutEnrolled } = course;
+
+    return res.status(200).json({
+      success: true,
+      message: "Course details fetched successfully",
+      data: {
+        ...courseWithoutEnrolled,
+        instructor,
+        studentsEnrolledCount: studentsEnrolled?.length || 0,
+      },
+    });
+  } catch (err) {
+    console.error('[getCoursePublicDetails]', err);
+    return res.status(500).json({ success: false, message: 'Failed to fetch course details' });
+  }
+};
 
 export const getInstructorCourses = async (req, res) => {
   try {

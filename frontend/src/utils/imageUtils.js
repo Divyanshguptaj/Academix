@@ -47,7 +47,7 @@ export const getUserImage = (user) => {
  */
 export const createImageErrorHandler = (user) => {
   return (e) => {
-    // Fallback to DiceBear if Google image fails to load
+    e.target.onerror = null; // prevent infinite loop if fallback also fails
     e.target.src = `https://api.dicebear.com/5.x/initials/svg?seed=${user.firstName} ${user.lastName}`;
   };
 };

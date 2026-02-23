@@ -5,44 +5,44 @@ import HighlightText from '../HomePage/HiglightedText'
 
 const HeroSection = () => {
   return (
-      <section className="bg-slate-800">
-        <div className="relative mx-auto flex w-11/12 max-w-maxContent flex-col justify-between gap-10 text-center text-white items-center">
-          <header className="mx-auto py-10 md:py-20 text-2xl md:text-4xl font-semibold lg:w-[70%]">
-            Driving Innovation in Online Education for a
+    <section className="bg-richblack-800 border-b border-gray-700 overflow-hidden">
+      {/* top yellow accent strip */}
+      <div className="h-0.5 bg-yellow-400" />
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-14 lg:pt-20">
+
+        {/* Heading + subtext */}
+        <div className="max-w-3xl mx-auto text-center mb-10 lg:mb-14">
+          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white leading-tight mb-5">
+            Driving Innovation in Online Education for a{" "}
             <HighlightText text={"Brighter Future"} />
-            <p className="mx-auto mt-3 text-center text-sm md:text-base text-richblack-300 font-medium lg:w-[95%]">
-              Studynotion is at the forefront of driving innovation in online
-              education. We're passionate about creating a brighter future by
-              offering cutting-edge courses, leveraging emerging technologies,
-              and nurturing a vibrant learning community.
-            </p>
-          </header>
-          <div className="sm:h-[50px] lg:h-[130px]"></div>
-          <div className="absolute bottom-0 md:bottom-[-40px] left-[50%] grid w-full md:w-[90%] lg:w-[80%] translate-x-[-50%] translate-y-[30%] grid-cols-3 gap-2 md:gap-0">
-            <div className="flex justify-center items-center">
-              <img 
-                src={BannerImage1} 
-                alt="" 
-                className="h-auto w-full max-h-[120px] md:max-h-[180px] object-contain"
-              />
-            </div>
-            <div className="flex justify-center items-center">
-              <img 
-                src={BannerImage2} 
-                alt="" 
-                className="h-auto w-full max-h-[120px] md:max-h-[180px] object-contain"
-              />
-            </div>
-            <div className="flex justify-center items-center">
-              <img 
-                src={BannerImage3} 
-                alt="" 
-                className="h-auto w-full max-h-[120px] md:max-h-[180px] object-contain"
-              />
-            </div>
+          </h1>
+          <p className="text-gray-400 text-sm sm:text-base leading-relaxed">
+            Academix is at the forefront of driving innovation in online
+            education. We&apos;re passionate about creating a brighter future by
+            offering cutting-edge courses, leveraging emerging technologies,
+            and nurturing a vibrant learning community.
+          </p>
+        </div>
+
+        {/* Staggered image row — tallest in centre, shorter on sides */}
+        <div className="flex items-end justify-center gap-2 sm:gap-3 lg:gap-5 max-w-4xl mx-auto">
+          <div className="flex-1 rounded-t-xl overflow-hidden">
+            <img src={BannerImage1} alt="About Academix"
+              className="w-full h-36 sm:h-52 lg:h-64 object-cover" />
+          </div>
+          <div className="flex-1 rounded-t-xl overflow-hidden">
+            <img src={BannerImage2} alt="About Academix"
+              className="w-full h-48 sm:h-64 lg:h-80 object-cover" />
+          </div>
+          <div className="flex-1 rounded-t-xl overflow-hidden">
+            <img src={BannerImage3} alt="About Academix"
+              className="w-full h-36 sm:h-52 lg:h-64 object-cover" />
           </div>
         </div>
-      </section>
+
+      </div>
+    </section>
   )
 }
 

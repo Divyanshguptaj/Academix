@@ -1,35 +1,72 @@
-import React, { useEffect, useState } from "react";
-import ReactStars from "react-rating-stars-component";
-
-// Swiper components & modules
+import { useEffect, useState } from "react";
 import { Swiper, SwiperSlide } from "swiper/react";
-import {
-  Autoplay,
-  Navigation,
-  Pagination,
-  EffectCoverflow,
-} from "swiper/modules";
-
-// Swiper styles
+import { Autoplay, Navigation } from "swiper/modules";
 import "swiper/css";
 import "swiper/css/navigation";
-import "swiper/css/pagination";
-import "swiper/css/effect-coverflow";
-import "../../App.css";
-
-// Icons
-import { FaStar, FaChevronLeft, FaChevronRight } from "react-icons/fa";
-
-// API
+import { FaStar, FaChevronLeft, FaChevronRight, FaQuoteLeft } from "react-icons/fa";
 import { apiConnector } from "../../services/apiconnector";
 import { ratingsEndpoints } from "../../services/apis";
 
+const AUTOPLAY_DELAY = 5000;
+
+const ReviewCard = ({ review }) => {
+  const truncate = (text, wordLimit = 28) => {
+    if (!text) return "";
+    const words = text.split(" ");
+    return words.length > wordLimit
+      ? words.slice(0, wordLimit).join(" ") + "…"
+      : text;
+  };
+
+  const seed = `${review?.user?.firstName ?? ""} ${review?.user?.lastName ?? ""}`.trim();
+  const fallbackSrc = `https://api.dicebear.com/5.x/initials/svg?seed=${encodeURIComponent(seed)}`;
+
+  return (
+    <div className="rs-card flex flex-col gap-4 h-full bg-[#1d1d1d] rounded-2xl p-6 border border-gray-800 transition-colors duration-300 select-none">
+      {/* Quote icon */}
+      <FaQuoteLeft className="text-yellow-400 text-xl opacity-50" />
+
+      {/* Review body */}
+      <p className="text-gray-300 text-sm leading-relaxed flex-grow min-h-[80px]">
+        {truncate(review?.review)}
+      </p>
+
+      {/* Divider */}
+      <div className="border-t border-gray-800" />
+
+      {/* Footer: avatar + name + rating */}
+      <div className="flex items-center gap-3">
+        <img
+          src={review?.user?.image || fallbackSrc}
+          alt={seed || "Reviewer"}
+          referrerPolicy="no-referrer"
+          onError={(e) => {
+            e.target.onerror = null;
+            e.target.src = fallbackSrc;
+          }}
+          className="h-10 w-10 rounded-full object-cover ring-2 ring-yellow-400/30 flex-shrink-0"
+        />
+        <div className="flex-1 min-w-0">
+          <p className="font-semibold text-white text-sm truncate leading-tight">
+            {review?.user?.firstName} {review?.user?.lastName}
+          </p>
+          <p className="text-yellow-400 text-xs truncate mt-0.5 leading-tight">
+            {review?.course?.courseName}
+          </p>
+        </div>
+        <div className="flex items-center gap-1 flex-shrink-0">
+          <span className="text-yellow-400 font-bold text-sm tabular-nums">
+            {review?.rating?.toFixed(1)}
+          </span>
+          <FaStar className="text-yellow-400 text-xs" />
+        </div>
+      </div>
+    </div>
+  );
+};
+
 function ReviewSlider() {
   const [reviews, setReviews] = useState([]);
-  const [swiperInstance, setSwiperInstance] = useState(null);
-  const [currentSlide, setCurrentSlide] = useState(0);
-  const [progressKey, setProgressKey] = useState(0);
-  const truncateWords = 20;
 
   useEffect(() => {
     (async () => {
@@ -38,266 +75,98 @@ function ReviewSlider() {
           "GET",
           ratingsEndpoints.REVIEWS_DETAILS_API
         );
-        if (data?.success) {
-          setReviews(data?.data || []);
-        }
-      } catch (error) {
-        console.error("Error fetching reviews:", error);
+        if (data?.success) setReviews(data?.data || []);
+      } catch (err) {
+        console.error("Error fetching reviews:", err);
       }
     })();
   }, []);
 
-  const handleSlideChange = (swiper) => {
-    setCurrentSlide(swiper.realIndex);
-    setProgressKey((prev) => prev + 1);
-  };
-
-  if (reviews.length === 0) {
-    return (
-      <div className="text-white">
-        <div className="my-12 max-w-[90%] mx-auto lg:max-w-4xl">
-          <div className="flex justify-center items-center h-64">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-yellow-400"></div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="relative mx-auto my-16 md:my-20 flex w-11/12 max-w-maxContent flex-col items-center justify-between gap-8 bg-richblack-900 text-white">
-      <h1 className="text-center text-3xl md:text-4xl font-semibold mt-8">
-        Reviews from other learners
-      </h1>
-      <div className="text-white relative">
-        <div className="my-12 w-full max-w-6xl mx-auto px-4 relative">
-          {/* Custom Navigation Buttons */}
-          <div className="swiper-nav-prev absolute left-2 top-1/2 transform -translate-y-1/2 z-20 bg-richblack-700 hover:bg-richblack-600 rounded-full p-3 cursor-pointer transition-all duration-200 shadow-lg">
-            <FaChevronLeft className="text-yellow-400 w-4 h-4" />
-          </div>
-          <div className="swiper-nav-next absolute right-2 top-1/2 transform -translate-y-1/2 z-20 bg-richblack-700 hover:bg-richblack-600 rounded-full p-3 cursor-pointer transition-all duration-200 shadow-lg">
-            <FaChevronRight className="text-yellow-400 w-4 h-4" />
-          </div>
+    <section className="bg-[#121220] py-16 lg:py-24">
+      {/* Scoped slide styles — active card gets yellow border tint, inactive dims */}
+      <style>{`
+        .rs-swiper .swiper-slide {
+          transition: transform 0.4s ease, opacity 0.4s ease;
+          opacity: 0.5;
+          transform: scale(0.88);
+          height: auto;
+        }
+        .rs-swiper .swiper-slide-active {
+          opacity: 1;
+          transform: scale(1);
+        }
+        .rs-swiper .swiper-slide-active .rs-card {
+          border-color: rgba(250, 204, 21, 0.25);
+        }
+      `}</style>
 
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+        {/* Section header */}
+        <div className="text-center mb-12">
+          <span className="text-yellow-400 text-xs font-semibold uppercase tracking-widest">
+            Testimonials
+          </span>
+          <h2 className="text-3xl sm:text-4xl font-bold text-white mt-2">
+            Reviews from learners
+          </h2>
+          <p className="text-gray-400 mt-3 text-sm sm:text-base">
+            See what our students are saying about their experience.
+          </p>
+        </div>
+
+        {/* Slider */}
+        {reviews.length === 0 ? (
+          <div className="flex justify-center items-center h-56">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-yellow-400" />
+          </div>
+        ) : (
           <div className="relative">
+            {/* Nav buttons */}
+            <button
+              className="rs-nav-prev absolute left-0 top-1/2 -translate-y-1/2 -translate-x-3 sm:-translate-x-5 z-10 bg-[#1d1d1d] hover:bg-gray-700 border border-gray-700 hover:border-yellow-400/40 rounded-full p-2.5 transition-all duration-200 shadow-lg"
+              aria-label="Previous review"
+            >
+              <FaChevronLeft className="text-yellow-400 w-4 h-4" />
+            </button>
+            <button
+              className="rs-nav-next absolute right-0 top-1/2 -translate-y-1/2 translate-x-3 sm:translate-x-5 z-10 bg-[#1d1d1d] hover:bg-gray-700 border border-gray-700 hover:border-yellow-400/40 rounded-full p-2.5 transition-all duration-200 shadow-lg"
+              aria-label="Next review"
+            >
+              <FaChevronRight className="text-yellow-400 w-4 h-4" />
+            </button>
+
             <Swiper
-              onSwiper={setSwiperInstance}
-              effect="coverflow"
-              grabCursor={true}
-              centeredSlides={true}
-              slidesPerView={3}
-              spaceBetween={30}
-              loop={reviews.length > 1}
+              className="rs-swiper"
+              modules={[Autoplay, Navigation]}
+              grabCursor
+              centeredSlides
+              loop={reviews.length > 2}
               autoplay={{
-                delay: 10000,
+                delay: AUTOPLAY_DELAY,
                 disableOnInteraction: false,
-              }}
-              coverflowEffect={{
-                rotate: 0,
-                stretch: 0,
-                depth: 200,
-                modifier: 1,
-                slideShadows: false,
+                pauseOnMouseEnter: true,
               }}
               navigation={{
-                nextEl: ".swiper-nav-next",
-                prevEl: ".swiper-nav-prev",
+                prevEl: ".rs-nav-prev",
+                nextEl: ".rs-nav-next",
               }}
-              pagination={{
-                clickable: true,
-                bulletClass: "swiper-pagination-bullet custom-bullet",
-                bulletActiveClass:
-                  "swiper-pagination-bullet-active custom-bullet-active",
-              }}
-              onSlideChange={handleSlideChange}
               breakpoints={{
-                320: {
-                  slidesPerView: 1,
-                  spaceBetween: 20,
-                },
-                640: {
-                  slidesPerView: 2,
-                  spaceBetween: 25,
-                },
-                1024: {
-                  slidesPerView: 3,
-                  spaceBetween: 30,
-                },
+                320: { slidesPerView: 1, spaceBetween: 16 },
+                640: { slidesPerView: 2, spaceBetween: 20 },
+                1024: { slidesPerView: 3, spaceBetween: 24 },
               }}
-              modules={[EffectCoverflow, Navigation, Pagination, Autoplay]}
-              className="review-swiper !overflow-visible"
             >
               {reviews.map((review, i) => (
-                <SwiperSlide key={i} className="swiper-slide-custom">
-                  <div
-                    className={`review-card transition-all duration-500 ${
-                      i === currentSlide ? "active-slide" : "inactive-slide"
-                    }`}
-                  >
-                    <div className="flex flex-col gap-6 bg-richblack-800 p-6 rounded-xl shadow-2xl border border-richblack-700 h-full min-h-[380px] w-full max-w-sm mx-auto">
-                      {/* User Info */}
-                      <div className="flex items-center gap-4">
-                        <img
-                          src={
-                            review?.user?.image
-                              ? review.user.image
-                              : `https://api.dicebear.com/5.x/initials/svg?seed=${review?.user?.firstName} ${review?.user?.lastName}`
-                          }
-                          alt={`${review?.user?.firstName} ${review?.user?.lastName}`}
-                          className="h-12 w-12 rounded-full object-cover border-2 border-yellow-400"
-                        />
-                        <div className="flex flex-col">
-                          <h1 className="font-bold text-richblack-5 text-lg">
-                            {`${review?.user?.firstName} ${review?.user?.lastName}`}
-                          </h1>
-                          <h2 className="text-sm font-medium text-yellow-400">
-                            {review?.course?.courseName}
-                          </h2>
-                        </div>
-                      </div>
-
-                      {/* Review Text */}
-                      <div className="flex-grow min-h-[120px]">
-                        <p className="font-medium text-richblack-25 text-base leading-relaxed">
-                          {review?.review.split(" ").length > truncateWords
-                            ? `${review.review
-                                .split(" ")
-                                .slice(0, truncateWords)
-                                .join(" ")}...`
-                            : review.review}
-                        </p>
-                      </div>
-
-                      {/* Rating */}
-                      <div className="flex items-center gap-3 mt-auto pt-4 border-t border-richblack-700">
-                        <div className="flex items-center gap-2">
-                          <span className="font-bold text-yellow-400 text-lg">
-                            {review.rating.toFixed(1)}
-                          </span>
-                          <ReactStars
-                            count={5}
-                            value={review.rating}
-                            size={20}
-                            edit={false}
-                            activeColor="#ffd700"
-                            color="#4B5563"
-                            emptyIcon={<FaStar />}
-                            fullIcon={<FaStar />}
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  </div>
+                <SwiperSlide key={i}>
+                  <ReviewCard review={review} />
                 </SwiperSlide>
               ))}
             </Swiper>
-
-            {/* Progress Bar */}
-            <div className="mt-6 mx-auto max-w-xs">
-              <div className="w-full bg-richblack-700 rounded-full h-1">
-                <div
-                  key={progressKey}
-                  className="bg-yellow-400 h-1 rounded-full progress-bar"
-                ></div>
-              </div>
-            </div>
           </div>
-
-          {/* Slide Counter */}
-          <div className="text-center mt-4">
-            <span className="text-richblack-400 text-sm">
-              {currentSlide + 1} of {reviews.length}
-            </span>
-          </div>
-        </div>
-
-        <style jsx>{`
-          .review-swiper {
-            padding: 40px 0;
-            overflow: visible !important;
-          }
-
-          .swiper-slide-custom {
-            transition: all 0.6s ease;
-            display: flex;
-            justify-content: center;
-            height: auto;
-          }
-
-          .review-card {
-            height: 100%;
-            transform-origin: center;
-            width: 100%;
-            max-width: 320px;
-          }
-
-          .active-slide {
-            transform: scale(1);
-            opacity: 1;
-            z-index: 10;
-          }
-
-          .inactive-slide {
-            transform: scale(0.8);
-            opacity: 0.5;
-            filter: blur(1px);
-            z-index: 1;
-          }
-
-          .swiper-wrapper {
-            align-items: center;
-          }
-
-          .custom-bullet {
-            width: 12px !important;
-            height: 12px !important;
-            background: #374151 !important;
-            opacity: 1 !important;
-            margin: 0 4px !important;
-            transition: all 0.3s ease !important;
-          }
-
-          .custom-bullet-active {
-            background: #ffd700 !important;
-            transform: scale(1.2) !important;
-          }
-
-          .swiper-pagination {
-            bottom: 10px !important;
-          }
-
-          @keyframes progress {
-            0% {
-              width: 0%;
-            }
-            100% {
-              width: 100%;
-            }
-          }
-
-          .progress-bar {
-            animation: progress 10s linear infinite;
-          }
-
-          @media (max-width: 640px) {
-            .inactive-slide {
-              transform: scale(0.9);
-              filter: blur(0.5px);
-            }
-
-            .review-card {
-              max-width: 280px;
-            }
-          }
-
-          @media (max-width: 1024px) {
-            .review-card {
-              max-width: 300px;
-            }
-          }
-        `}</style>
+        )}
       </div>
-    </div>
+    </section>
   );
 }
 

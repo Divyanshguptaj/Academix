@@ -1,4 +1,3 @@
-import React from "react";
 import HiglightedText from "./HiglightedText";
 import Imagells1 from "../../../assets/Images/homeStudy1.png";
 import Imagells2 from "../../../assets/Images/homeStudy2.png";
@@ -7,47 +6,47 @@ import CTAButton from "./Button";
 
 const LearningLanguageSection = () => {
   return (
-    <div className="flex flex-col px-4 sm:px-10 md:px-20 lg:px-40 bg-white w-full justify-center pb-10 pt-10">
-      {/* Heading */}
-      <div className="font-bold text-2xl sm:text-3xl md:text-4xl text-black w-full flex justify-center text-center flex-wrap">
-        <p>Your swiss knife for&nbsp;</p>
-        <HiglightedText text="learning a language" />
-      </div>
+    <div className="bg-[#1d1d1d] w-full px-4 sm:px-6 lg:px-8 py-16 lg:py-24 border-b border-gray-800">
+      <div className="max-w-5xl mx-auto flex flex-col items-center">
 
-      {/* Subheading */}
-      <div className="text-xs sm:text-sm md:text-base text-black w-full flex justify-center pt-5">
-        <p className="w-full sm:w-[80%] md:w-[60%] text-center">
-          With Spin, mastering multiple languages is easy. Enjoy 20+ languages
-          with realistic voice-overs, progress tracking, custom schedules, and
-          more.
+        {/* Heading */}
+        <div className="font-bold text-3xl sm:text-4xl text-white text-center leading-snug">
+          Your swiss knife for{" "}
+          <HiglightedText text="learning a language" />
+        </div>
+
+        {/* Subheading */}
+        <p className="text-gray-400 text-sm sm:text-base text-center mt-5 max-w-xl leading-relaxed">
+          With Academix, mastering multiple skills is easy. Enjoy 20+ learning
+          paths with progress tracking, custom schedules, and expert-curated
+          content.
         </p>
-      </div>
 
-      {/* Images */}
-      <div className="flex flex-col sm:flex-row w-full items-center justify-center mt-10 p-5 gap-6 sm:gap-10">
-        <img
-          src={Imagells1}
-          alt=""
-          className="shadow-2xl w-[80%] sm:w-[30%] max-w-xs"
-          style={{ transform: "rotate(15deg)" }}
-        />
-        <img
-          src={Imagells2}
-          alt=""
-          className="shadow-2xl w-[80%] sm:w-[30%] max-w-xs"
-          style={{ transform: "rotate(-8.36deg)" }}
-        />
-        <img
-          src={Imagells3}
-          alt=""
-          className="shadow-2xl w-[80%] sm:w-[30%] max-w-xs"
-          style={{ transform: "rotate(9.88deg)" }}
-        />
-      </div>
+        {/* Images */}
+        <div className="flex flex-col sm:flex-row w-full items-center justify-center mt-12 gap-8 sm:gap-6">
+          <img
+            src={Imagells1}
+            alt="Learning"
+            className="shadow-2xl w-[70%] sm:w-[28%] max-w-xs"
+            style={{ transform: "rotate(6deg)" }}
+          />
+          <img
+            src={Imagells2}
+            alt="Learning"
+            className="shadow-2xl w-[70%] sm:w-[28%] max-w-xs"
+            style={{ transform: "rotate(-4deg)" }}
+          />
+          <img
+            src={Imagells3}
+            alt="Learning"
+            className="shadow-2xl w-[70%] sm:w-[28%] max-w-xs"
+            style={{ transform: "rotate(6deg)" }}
+          />
+        </div>
 
-      {/* CTA Button */}
-      <div className="w-full flex justify-center p-5">
-        <CTAButton text="Learn More" color="yellow" link="/login" />
+        <div className="mt-12">
+          <CTAButton text="Learn More" color="yellow" link="/login" />
+        </div>
       </div>
     </div>
   );

@@ -2,12 +2,11 @@ import Quote from "./Quote"
 
 const QuoteSection = () => {
   return (
-    <section className="border-b border-slate-600 mt-20 md:mt-0">
-        <div className="mx-auto flex w-11/12 max-w-maxContent flex-col justify-between gap-10 text-richblack-500">
-          <div className="h-[80px] md:h-[100px]"></div>
-          <Quote />
-        </div>
-      </section>
+    <section className="bg-richblack-900 border-b border-gray-700 py-14 sm:py-20">
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+        <Quote />
+      </div>
+    </section>
   )
 }
 

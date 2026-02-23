@@ -4,6 +4,7 @@ import { courseEndpoints } from "../apis"
 
 const {
   COURSE_DETAILS_API,
+  COURSE_PUBLIC_DETAILS_API,
   COURSE_CATEGORIES_API,
   GET_ALL_COURSE_API,
   CREATE_COURSE_API,
@@ -26,7 +27,7 @@ export const fetchCourseDetails = async (courseId) => {
   //   dispatch(setLoading(true));
   // let result = null
   try {
-    const response = await apiConnector("POST", COURSE_DETAILS_API, {
+    const response = await apiConnector("POST", COURSE_PUBLIC_DETAILS_API, {
       courseId,
     })
 
@@ -34,12 +35,13 @@ export const fetchCourseDetails = async (courseId) => {
       throw new Error(response.data.message)
     }
     toast.dismiss(toastId)
-    return response.data.data
+    return response.data
   } catch (error) {
     console.log("COURSE_DETAILS_API API ERROR............", error)
     toast.dismiss(toastId)
-    toast.error(error.response.data.message);
-    return error.response.data
+    const message = error.response?.data?.message || error.message || "Failed to load course"
+    toast.error(message)
+    return error.response?.data || { success: false, message }
   }
 }
 

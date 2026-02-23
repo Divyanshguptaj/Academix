@@ -1,87 +1,101 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import toast from "react-hot-toast";
 import CountryCode from "../../data/countrycode.json";
 import { apiConnector } from "../../services/apiconnector";
 import { contactusEndpoint } from "../../services/apis";
 
-const SearchableCountrySelect = ({ register, setValue, defaultValue }) => {
+const SearchableCountrySelect = ({ register, setValue }) => {
   const [searchTerm, setSearchTerm] = useState("");
   const [isOpen, setIsOpen] = useState(false);
-  const [selectedCountry, setSelectedCountry] = useState(
-    CountryCode.find(country => country.code === "IN") || CountryCode[0]
+  const [selected, setSelected] = useState(
+    CountryCode.find((c) => c.code === "IN") || CountryCode[0]
   );
-  const dropdownRef = React.useRef(null);
-  const searchInputRef = React.useRef(null);
+  const dropdownRef = useRef(null);
+  const searchRef = useRef(null);
 
+  // Keep hidden field in sync
   useEffect(() => {
-    setValue("countrycode", selectedCountry.dial_code);
-  }, [selectedCountry, setValue]);
+    setValue("countrycode", selected.dial_code);
+  }, [selected, setValue]);
 
+  // Close on outside click
   useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+    const handler = (e) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target))
         setIsOpen(false);
-      }
     };
-
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
   }, []);
 
+  // Auto-focus search input when dropdown opens
   useEffect(() => {
-    if (isOpen && searchInputRef.current) {
-      // Small delay to ensure the element is rendered
-      setTimeout(() => {
-        searchInputRef.current.focus();
-      }, 100);
+    if (isOpen) {
+      const id = setTimeout(() => searchRef.current?.focus(), 80);
+      return () => clearTimeout(id);
     }
   }, [isOpen]);
 
-  const filteredCountries = CountryCode.filter(country =>
-    country.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    country.dial_code.includes(searchTerm) ||
-    country.code.toLowerCase().includes(searchTerm.toLowerCase())
+  const filtered = CountryCode.filter(
+    (c) =>
+      c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      c.dial_code.includes(searchTerm) ||
+      c.code.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const handleSelect = (country) => {
-    setSelectedCountry(country);
-    setSearchTerm("");
-    setIsOpen(false);
-  };
-
   return (
-    <div className="relative" ref={dropdownRef}>
-      <div
-        className="form-style bg-slate-900 rounded-md text-white border border-1 border-gray-300 p-2 cursor-pointer flex justify-between items-center w-full"
-        onClick={() => setIsOpen(!isOpen)}
-        style={{ minWidth: '200px' }}
+    <div className="relative flex-shrink-0" ref={dropdownRef}>
+      {/* Hidden registered field so RHF includes countrycode in form data */}
+      <input type="hidden" {...register("countrycode")} />
+
+      <button
+        type="button"
+        onClick={() => setIsOpen((o) => !o)}
+        className="form-style flex items-center justify-between gap-2 cursor-pointer w-44"
       >
-        <span className="truncate flex-1 mr-2">{selectedCountry.dial_code} - {selectedCountry.name}</span>
-        <span>▼</span>
-      </div>
+        <span className="truncate text-sm">
+          {selected.dial_code} — {selected.name}
+        </span>
+        <span className="text-gray-400 text-xs flex-shrink-0">
+          {isOpen ? "▲" : "▼"}
+        </span>
+      </button>
+
       {isOpen && (
-        <div className="absolute top-full left-0 right-0 bg-slate-900 border border-gray-300 rounded-md mt-1 z-10 max-h-60 overflow-y-auto min-w-[200px] transition-all duration-200 ease-in-out opacity-100 scale-100">
+        <div className="absolute top-full left-0 z-30 mt-1 w-64 rounded-lg border border-gray-700 bg-[#1d1d1d] shadow-xl overflow-hidden">
           <input
-            ref={searchInputRef}
+            ref={searchRef}
             type="text"
-            placeholder="Search country or code..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full p-2 bg-slate-800 text-white border-b border-gray-300 rounded-t-md"
             onClick={(e) => e.stopPropagation()}
+            placeholder="Search country or code…"
+            className="w-full px-3 py-2 bg-[#121220] text-sm text-white placeholder:text-gray-500 border-b border-gray-700 focus:outline-none"
           />
-          {filteredCountries.map((country, index) => (
-            <div
-              key={index}
-              className="p-2 hover:bg-slate-800 cursor-pointer text-white"
-              onClick={() => handleSelect(country)}
-            >
-              {country.dial_code} - {country.name}
-            </div>
-          ))}
+          <ul className="max-h-52 overflow-y-auto">
+            {filtered.length === 0 ? (
+              <li className="px-3 py-2 text-sm text-gray-500">No results</li>
+            ) : (
+              filtered.map((c, i) => (
+                <li
+                  key={i}
+                  onClick={() => {
+                    setSelected(c);
+                    setSearchTerm("");
+                    setIsOpen(false);
+                  }}
+                  className={`px-3 py-2 text-sm cursor-pointer transition-colors duration-150 ${
+                    c.code === selected.code
+                      ? "bg-yellow-400/10 text-yellow-400"
+                      : "text-gray-300 hover:bg-gray-800"
+                  }`}
+                >
+                  {c.dial_code} — {c.name}
+                </li>
+              ))
+            )}
+          </ul>
         </div>
       )}
     </div>
@@ -95,34 +109,22 @@ const ContactUsForm = () => {
     handleSubmit,
     reset,
     setValue,
-    formState: { errors, isSubmitSuccessful },
+    formState: { errors },
   } = useForm();
 
   const submitContactForm = async (data) => {
     try {
       setLoading(true);
-
       const res = await apiConnector(
         "POST",
         contactusEndpoint.CONTACT_US_API,
         data
       );
-
-      if (!res?.data?.success) {
+      if (!res?.data?.success)
         throw new Error(res?.data?.message || "Submission failed");
-      }
 
       toast.success("Message sent successfully!");
-    } catch (error) {
-      toast.error(error?.response?.data?.message || "Failed to send message.");
-      console.error("ERROR MESSAGE - ", error.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    if (isSubmitSuccessful) {
+      // Reset only on success — not using isSubmitSuccessful which is always true
       reset({
         email: "",
         firstname: "",
@@ -131,135 +133,125 @@ const ContactUsForm = () => {
         phoneNo: "",
         countrycode: "",
       });
+    } catch (error) {
+      toast.error(
+        error?.response?.data?.message ||
+          error?.message ||
+          "Failed to send message."
+      );
+      console.error("Contact form error:", error.message);
+    } finally {
+      setLoading(false);
     }
-  }, [reset, isSubmitSuccessful]);
+  };
 
   return (
     <form
-      className="flex flex-col gap-7"
+      className="flex flex-col gap-6"
       onSubmit={handleSubmit(submitContactForm)}
     >
-      <div className="flex flex-col gap-5 lg:flex-row">
-        <div className="flex flex-col gap-2 lg:w-[48%]">
-          <label htmlFor="firstname" className="lable-style font-light">
-            First Name
+      {/* First + Last name */}
+      <div className="flex flex-col sm:flex-row gap-4">
+        <div className="flex flex-col gap-1.5 flex-1">
+          <label htmlFor="firstname" className="lable-style">
+            First Name <span className="text-red-400">*</span>
           </label>
           <input
-            type="text"
-            name="firstname"
             id="firstname"
+            type="text"
             placeholder="Enter first name"
-            className="form-style bg-slate-900 rounded-md text-white border border-1 border-gray-300 p-2"
-            {...register("firstname", { required: true })}
+            className="form-style"
+            {...register("firstname", { required: "First name is required" })}
           />
           {errors.firstname && (
-            <span className="-mt-1 text-[12px] text-yellow-100">
-              Please enter your name.
-            </span>
+            <p className="text-xs text-red-400">{errors.firstname.message}</p>
           )}
         </div>
 
-        <div className="flex flex-col gap-2 lg:w-[48%]">
-          <label htmlFor="lastname" className="lable-style font-light">
-            Last Name
+        <div className="flex flex-col gap-1.5 flex-1">
+          <label htmlFor="lastname" className="lable-style">
+            Last Name <span className="text-red-400">*</span>
           </label>
           <input
-            type="text"
-            name="lastname"
             id="lastname"
+            type="text"
             placeholder="Enter last name"
-            className="form-style bg-slate-900 rounded-md text-white border border-1 border-gray-300 p-2"
-            {...register("lastname")}
+            className="form-style"
+            {...register("lastname", { required: "Last name is required" })}
           />
+          {errors.lastname && (
+            <p className="text-xs text-red-400">{errors.lastname.message}</p>
+          )}
         </div>
       </div>
 
-      <div className="flex flex-col gap-2">
-        <label htmlFor="email" className="lable-style font-light">
-          Email Address
+      {/* Email */}
+      <div className="flex flex-col gap-1.5">
+        <label htmlFor="email" className="lable-style">
+          Email Address <span className="text-red-400">*</span>
         </label>
         <input
-          type="email"
-          name="email"
           id="email"
+          type="email"
           placeholder="Enter email address"
-          className="form-style bg-slate-900 rounded-md text-white border border-1 border-gray-300 p-2"
-          {...register("email", { required: true })}
+          className="form-style"
+          {...register("email", { required: "Email address is required" })}
         />
         {errors.email && (
-          <span className="-mt-1 text-[12px] text-yellow-100">
-            Please enter your Email address.
-          </span>
+          <p className="text-xs text-red-400">{errors.email.message}</p>
         )}
       </div>
 
-      <div className="flex flex-col gap-2">
-        <label htmlFor="phonenumber" className="lable-style font-light">
-          Phone Number
+      {/* Phone number */}
+      <div className="flex flex-col gap-1.5">
+        <label className="lable-style">
+          Phone Number <span className="text-red-400">*</span>
         </label>
-
-        <div className="flex gap-5">
-          <div className="flex w-[200px] flex-col gap-2">
-            <SearchableCountrySelect
-              register={register}
-              setValue={setValue}
-            />
-          </div>
-          <div className="flex w-[calc(100%-210px)] flex-col gap-2">
+        <div className="flex items-start gap-3">
+          <SearchableCountrySelect register={register} setValue={setValue} />
+          <div className="flex-1 flex flex-col gap-1">
             <input
-              type="tel"
-              name="phoneNo"
               id="phonenumber"
+              type="tel"
               placeholder="12345 67890"
-              className="form-style bg-slate-900 rounded-md text-white border border-1 border-gray-300 p-2"
+              className="form-style"
               {...register("phoneNo", {
-                required: {
-                  value: true,
-                  message: "Please enter your Phone Number.",
-                },
-                maxLength: { value: 12, message: "Invalid Phone Number" },
-                minLength: { value: 10, message: "Invalid Phone Number" },
+                required: "Phone number is required",
+                minLength: { value: 10, message: "Invalid phone number" },
+                maxLength: { value: 12, message: "Invalid phone number" },
               })}
             />
+            {errors.phoneNo && (
+              <p className="text-xs text-red-400">{errors.phoneNo.message}</p>
+            )}
           </div>
         </div>
-        {errors.phoneNo && (
-          <span className="-mt-1 text-[12px] text-yellow-100">
-            {errors.phoneNo.message}
-          </span>
-        )}
       </div>
 
-      <div className="flex flex-col gap-2">
-        <label htmlFor="message" className="lable-style font-light">
-          Message
+      {/* Message */}
+      <div className="flex flex-col gap-1.5">
+        <label htmlFor="message" className="lable-style">
+          Message <span className="text-red-400">*</span>
         </label>
         <textarea
-          name="message"
           id="message"
-          cols="30"
-          rows="7"
+          rows={6}
           placeholder="Enter your message here"
-          className="form-style bg-slate-900 rounded-md text-white border border-1 border-gray-300 p-2"
-          {...register("message", { required: true })}
+          className="form-style resize-none"
+          {...register("message", { required: "Message is required" })}
         />
         {errors.message && (
-          <span className="-mt-1 text-[12px] text-yellow-100">
-            Please enter your Message.
-          </span>
+          <p className="text-xs text-red-400">{errors.message.message}</p>
         )}
       </div>
 
+      {/* Submit */}
       <button
-        disabled={loading}
         type="submit"
-        className={`rounded-md bg-yellow-500 px-6 py-3 text-center text-[13px] font-bold text-black shadow-[2px_2px_0px_0px_rgba(255,255,255,0.18)] 
-         ${
-           !loading &&
-           "transition-all duration-200 hover:scale-95 hover:shadow-none"
-         }  disabled:bg-richblack-500 sm:text-[16px] `}
+        disabled={loading}
+        className="w-full rounded-lg bg-yellow-400 px-6 py-3 text-sm font-bold text-black transition-all duration-200 hover:bg-yellow-300 hover:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed"
       >
-        {loading ? "Sending..." : "Send Message"}
+        {loading ? "Sending…" : "Send Message"}
       </button>
     </form>
   );

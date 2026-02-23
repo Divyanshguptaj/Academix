@@ -1,7 +1,7 @@
 import express from 'express';
 const router = express.Router();
 import { createCategory, findAllCategory, categoryPageDetails } from '../controllers/Category.js'
-import {createCourse, showAllCourses, getCourseDetails, editCourse,getInstructorCourses, deleteCourse, getCourseDetailsForPayment, enrollStudentInCourse, getCourseByIds, getEnrolledStudentsWithProgress, updateCourseProgress, adminListCourses, approveCourse, rejectCourse, getCourseAnalytics} from '../controllers/Course.js'
+import {createCourse, showAllCourses, getCourseDetails, getCoursePublicDetails, editCourse,getInstructorCourses, deleteCourse, getCourseDetailsForPayment, enrollStudentInCourse, getCourseByIds, getEnrolledStudentsWithProgress, updateCourseProgress, adminListCourses, approveCourse, rejectCourse, getCourseAnalytics} from '../controllers/Course.js'
 import { authorize } from '../../shared-utils/middlewares/auth.js'
 import {createSection, updateSection, deleteSection} from '../controllers/Section.js'
 import {createSubSection,deleteSubSection, updateSubSection} from '../controllers/Subsection.js'
@@ -15,6 +15,7 @@ router.post('/updateCourseProgress', updateCourseProgress)
 router.get('/showAllCoures', showAllCourses);
 router.get('/getInstructorCourses', getInstructorCourses);
 router.post('/getFullCourseDetails',getCourseDetails);
+router.post('/getCoursePublicDetails', getCoursePublicDetails);
 
 // Payment Service communication endpoints
 router.get('/details/:courseId', getCourseDetailsForPayment);

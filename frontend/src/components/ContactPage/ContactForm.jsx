@@ -1,19 +1,17 @@
-import React from "react";
 import ContactUsForm from "./ContactUsForm";
 
 const ContactForm = () => {
   return (
-    <div className="border border-richblack-600 text-richblack-300 rounded-xl p-7 lg:p-14 flex gap-3 flex-col">
-      <h1 className="text-4xl leading-10 font-semibold text-richblack-5">
-        Got a Idea? We&apos;ve got the skills. Let&apos;s team up
-      </h1>
-      <p className="">
-        Tell us more about yourself and what you&apos;re got in mind.
-      </p>
-
-      <div className="mt-7">
-        <ContactUsForm />
+    <div className="bg-[#1d1d1d] rounded-2xl border border-gray-800 p-6 sm:p-8">
+      <div className="mb-7">
+        <h2 className="text-2xl sm:text-3xl font-bold text-white">
+          Send us a message
+        </h2>
+        <p className="text-gray-400 text-sm mt-2">
+          Tell us more about yourself and what you have in mind.
+        </p>
       </div>
+      <ContactUsForm />
     </div>
   );
 };

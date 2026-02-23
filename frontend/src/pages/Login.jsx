@@ -1,106 +1,109 @@
 import { useState } from "react";
 import { useDispatch } from "react-redux";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { FaRegEye, FaRegEyeSlash } from "react-icons/fa";
 import loginImage from "../assets/Images/loginImage.png";
 import { toast } from "react-hot-toast";
 import AuthTemplate from "../components/core/Auth/AuthTemplate";
-import { login } from "../services/operations/authAPI"; // Assuming you have a login API call
+import { login } from "../services/operations/authAPI";
 
 const Login = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
 
-  const [formData, setFormData] = useState({
-    email: "",
-    password: "",
-  });
-
+  const [formData, setFormData] = useState({ email: "", password: "" });
   const [showPassword, setShowPassword] = useState(false);
 
-  const handleOnChange = (e) => {
-    setFormData((prevData) => ({
-      ...prevData,
-      [e.target.name]: e.target.value,
-    }));
-  };
+  const handleOnChange = (e) =>
+    setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
 
-  const googleState = {
-    mode: "login",
-  };
-
-  const handleOnSubmit = async (e) => {
+  const handleOnSubmit = (e) => {
     e.preventDefault();
-
     if (!formData.email || !formData.password) {
       toast.error("Please fill in all fields");
       return;
     }
-
-    // Dispatch your regular login action here
     dispatch(login(formData.email, formData.password, navigate));
-
-    setFormData({
-      email: "",
-      password: "",
-    });
+    setFormData({ email: "", password: "" });
   };
 
   return (
     <AuthTemplate
       title="Welcome back"
-      description="Login to your StudyNotion account"
+      description="Log in to your Academix account to continue learning."
       imageSrc={loginImage}
       showGoogleButton={true}
-      googleState={googleState} // Pass googleState for login mode
+      footerLink={
+        <>
+          Don&apos;t have an account?{" "}
+          <Link
+            to="/signup"
+            className="text-yellow-400 hover:text-yellow-300 font-medium transition-colors"
+          >
+            Sign up for free
+          </Link>
+        </>
+      }
     >
-      <form className="w-full mt-5" onSubmit={handleOnSubmit}>
+      <form onSubmit={handleOnSubmit} className="flex flex-col gap-4">
         {/* Email */}
-        <label className="w-full">
-          <p className="text-[0.875rem] text-white mb-1 leading-[1.375rem]">
-            Email Address{" "}
-            <sup className="text-pink-200">*</sup>
-          </p>
+        <div className="flex flex-col gap-1.5">
+          <label htmlFor="login-email" className="lable-style">
+            Email address <span className="text-pink-400">*</span>
+          </label>
           <input
+            id="login-email"
             type="email"
             name="email"
             value={formData.email}
             onChange={handleOnChange}
-            placeholder="Enter email address"
-            className="w-full px-4 py-3 rounded-md bg-gray-900 text-white"
+            placeholder="you@example.com"
+            className="form-style"
             required
           />
-        </label>
+        </div>
 
         {/* Password */}
-        <label className="relative mt-4 w-full">
-          <p className="text-[0.875rem] text-white mb-1 leading-[1.375rem]">
-            Password{" "}
-            <sup className="text-pink-200">*</sup>
-          </p>
-          <input
-            type={showPassword ? "text" : "password"}
-            name="password"
-            value={formData.password}
-            onChange={handleOnChange}
-            placeholder="Enter Password"
-            className="w-full px-4 py-3 rounded-md bg-gray-900 text-white"
-            required
-          />
-          <span
-            onClick={() => setShowPassword(!showPassword)}
-            className="absolute right-3 top-[38px] cursor-pointer text-gray-400 hover:text-yellow-500"
-          >
-            {showPassword ? <FaRegEyeSlash /> : <FaRegEye />}
-          </span>
-        </label>
+        <div className="flex flex-col gap-1.5">
+          <div className="flex items-center justify-between">
+            <label htmlFor="login-password" className="lable-style">
+              Password <span className="text-pink-400">*</span>
+            </label>
+            <Link
+              to="/forgotPassword"
+              className="text-xs text-yellow-400 hover:text-yellow-300 transition-colors"
+            >
+              Forgot password?
+            </Link>
+          </div>
+          <div className="relative">
+            <input
+              id="login-password"
+              type={showPassword ? "text" : "password"}
+              name="password"
+              value={formData.password}
+              onChange={handleOnChange}
+              placeholder="Enter your password"
+              className="form-style pr-11"
+              required
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword((v) => !v)}
+              tabIndex={-1}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-yellow-400 transition-colors"
+            >
+              {showPassword ? <FaRegEyeSlash size={16} /> : <FaRegEye size={16} />}
+            </button>
+          </div>
+        </div>
 
-        {/* Submit Button */}
+        {/* Submit */}
         <button
           type="submit"
-          className="mt-6 w-full bg-yellow-500 text-black font-bold py-3 rounded-md hover:bg-yellow-600"
+          className="mt-2 w-full bg-yellow-400 text-black font-semibold py-2.5 rounded-lg hover:bg-yellow-300 active:scale-[0.98] transition-all duration-150"
         >
-          Login
+          Log in
         </button>
       </form>
     </AuthTemplate>
