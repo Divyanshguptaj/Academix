@@ -4,6 +4,8 @@ import cors from "cors";
 import helmet from "helmet";
 import compression from "compression";
 import dotenv from "dotenv";
+import { fileURLToPath } from "url";
+import { dirname, resolve } from "path";
 import mongoose from "mongoose";
 import userRoutes from "./routes/User.js";
 import profileRoutes from "./routes/Profile.js";
@@ -13,7 +15,8 @@ import adminRoutes from "./routes/admin.js";
 import database from "./config/database.js";
 import { validateEnv } from "../shared-utils/validateEnv.js";
 
-dotenv.config();
+// Load .env from this service's own directory, regardless of what cwd is at startup
+dotenv.config({ path: resolve(dirname(fileURLToPath(import.meta.url)), '.env') });
 
 // Fail fast if required env vars are missing
 validateEnv(

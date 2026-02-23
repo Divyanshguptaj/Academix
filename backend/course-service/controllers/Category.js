@@ -85,7 +85,7 @@ export const categoryPageDetails = async (req, res) => {
     let instructorDetails = [];
     if (instructorIds.length > 0) {
       try {
-        const instructorResponse = await userService.get('/user/get-instructors-by-ids', {
+        const instructorResponse = await userService.get('/auth/get-instructors-by-ids', {
           params: { ids: instructorIds.join(','), fields: 'firstName,lastName,image,additionalDetails' },
         });
         instructorDetails = instructorResponse.data?.data || [];

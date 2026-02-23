@@ -87,7 +87,7 @@ export const editCourse = async (req, res) => {
         let instructorDetails = null;
         if (updatedCourse.instructor) {
             try {
-                const instructorResponse = await userService.get('/user/get-instructors-by-ids', {
+                const instructorResponse = await userService.get('/auth/get-instructors-by-ids', {
                     params: { ids: updatedCourse.instructor, fields: 'firstName,lastName,image,additionalDetails' },
                 });
                 instructorDetails = instructorResponse.data?.data?.[0];
@@ -276,7 +276,7 @@ export const getCourseDetails = async (req,res)=>{
         let instructorDetails = null;
         if (courseDetails.instructor) {
             try {
-                const instructorResponse = await userService.get('/user/get-instructors-by-ids', {
+                const instructorResponse = await userService.get('/auth/get-instructors-by-ids', {
                     params: { ids: courseDetails.instructor, fields: 'firstName,lastName,image,additionalDetails' },
                 });
                 console.log("Instructor API response:", instructorResponse.data);
@@ -291,7 +291,7 @@ export const getCourseDetails = async (req,res)=>{
         let studentsDetails = [];
         if (courseDetails.studentsEnrolled && courseDetails.studentsEnrolled.length > 0) {
             try {
-                const studentsResponse = await userService.get('/user/get-instructors-by-ids', {
+                const studentsResponse = await userService.get('/auth/get-instructors-by-ids', {
                     params: { ids: courseDetails.studentsEnrolled.join(','), fields: 'firstName,lastName,image,additionalDetails' },
                 });
                 studentsDetails = studentsResponse.data?.data || [];
@@ -635,7 +635,7 @@ export const getEnrolledStudentsWithProgress = async (req, res) => {
     let studentsDetails = [];
     if (course.studentsEnrolled && course.studentsEnrolled.length > 0) {
       try {
-        const studentsResponse = await userService.get('/user/get-instructors-by-ids', {
+        const studentsResponse = await userService.get('/auth/get-instructors-by-ids', {
           params: { ids: course.studentsEnrolled.join(','), fields: 'firstName,lastName,image,additionalDetails' },
         });
         studentsDetails = studentsResponse.data?.data || [];

@@ -4,9 +4,12 @@ import cookieParser from "cookie-parser";
 import helmet from "helmet";
 import compression from "compression";
 import dotenv from "dotenv";
+import { fileURLToPath } from "url";
+import { dirname, resolve } from "path";
 import { createProxyMiddleware } from "http-proxy-middleware";
 
-dotenv.config();
+// Load .env from this service's own directory, regardless of what cwd is at startup
+dotenv.config({ path: resolve(dirname(fileURLToPath(import.meta.url)), '.env') });
 
 const app = express();
 const PORT = process.env.PORT || 4000;

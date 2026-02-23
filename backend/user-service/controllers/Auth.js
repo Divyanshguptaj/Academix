@@ -7,6 +7,18 @@ import jwt from "jsonwebtoken";
 import Profile from "../models/Profile.js";
 import mongoose from "mongoose";
 
+// Decode HTML entities that sanitizers may introduce into URLs (e.g. &#x2F; → /)
+const decodeHtmlEntities = (str) => {
+  if (!str || typeof str !== 'string') return str;
+  return str
+    .replace(/&#x2F;/gi, '/')
+    .replace(/&#x27;/gi, "'")
+    .replace(/&amp;/gi, '&')
+    .replace(/&lt;/gi, '<')
+    .replace(/&gt;/gi, '>')
+    .replace(/&quot;/gi, '"');
+};
+
 //Send OTP -
 export const sendOTP = async (req, res) => {
   try {
@@ -387,7 +399,9 @@ export const googleAuth = async (req, res) => {
       password: hashedPassword,
       accountType: accountType || 'Student',
       additionalDetails: profileDetails._id,
-      image: picture ? picture.replace('=s96-c', '=s200-c') : `https://api.dicebear.com/5.x/initials/svg?seed=${firstName} ${lastName}`,
+      image: picture
+        ? decodeHtmlEntities(picture).replace('=s96-c', '=s200-c')
+        : `https://api.dicebear.com/5.x/initials/svg?seed=${firstName} ${lastName}`,
     });
 
     // console.log(`New user created: ${user._id}`);

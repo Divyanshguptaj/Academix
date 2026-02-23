@@ -139,7 +139,7 @@ export const capturePayment = async (req, res) => {
     return res.status(200).json({
       success: true,
       message: "Order created successfully",
-      key: process.env.RAZORPAY_KEY_ID,
+      key: process.env.RAZORPAY_KEY,
       orderId: razorpayOrder.id,
       transactionId: transaction._id,
       amount: options.amount,

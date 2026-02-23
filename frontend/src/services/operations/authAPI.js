@@ -4,6 +4,7 @@ import { setUser } from "../../slices/profileSlice"
 import { apiConnector } from "../apiconnector"
 import { endpoints } from "../apis"
 import axios from "axios"
+import { decodeImageUrl } from "../../utils/imageUtils"
 
 const {
   SENDOTP_API,
@@ -228,11 +229,10 @@ export function googleLogin(userData) {
       toast.success("Welcome back User!");
       dispatch(setToken(result.token));
       
-      // Fix: Use the Google user's picture if available, otherwise fallback to DiceBear
-      const userImage = result.user?.image && result.user.image !== 'undefined' 
-        ? result.user.image
-        : (userData.picture 
-            ? userData.picture 
+      const userImage = result.user?.image && result.user.image !== 'undefined'
+        ? decodeImageUrl(result.user.image)
+        : (userData.picture
+            ? userData.picture
             : `https://api.dicebear.com/5.x/initials/svg?seed=${result.user.firstName} ${result.user.lastName}`);
       
       dispatch(setUser({ ...result.user, image: userImage }));
@@ -280,11 +280,10 @@ export function googleSignupFinalize(userData, navigate) {
       toast.success(response.data.message || "Signup successful!");
       dispatch(setToken(response.data.token));
       
-      // Fix: Use the Google user's picture if available, otherwise fallback to DiceBear
-      const userImage = response.data?.user?.image && response.data.user.image !== 'undefined' 
-        ? response.data.user.image
-        : (userData.picture 
-            ? userData.picture 
+      const userImage = response.data?.user?.image && response.data.user.image !== 'undefined'
+        ? decodeImageUrl(response.data.user.image)
+        : (userData.picture
+            ? userData.picture
             : `https://api.dicebear.com/5.x/initials/svg?seed=${response.data.user.firstName} ${response.data.user.lastName}`);
       
       dispatch(setUser({ ...response.data.user, image: userImage }));

@@ -66,6 +66,25 @@ export const authorize = (...roles) => async (req, res, next) => {
   })
 }
 
+// Internal service-to-service authentication via a shared secret header.
+// Use this on endpoints that are ONLY called by other services (never by end users).
+// Every service client automatically injects the secret via the request interceptor
+// in shared-utils/serviceClients.js.
+export const authenticateInternal = (req, res, next) => {
+  const expected = process.env.INTERNAL_SERVICE_SECRET
+  if (!expected) {
+    console.error('[auth] INTERNAL_SERVICE_SECRET is not configured')
+    return res.status(500).json({ success: false, message: 'Service misconfigured' })
+  }
+
+  const secret = req.headers['x-service-secret']
+  if (!secret || secret !== expected) {
+    return res.status(401).json({ success: false, message: 'Unauthorized internal call' })
+  }
+
+  next()
+}
+
 // Token invalidation for logout - increments tokenVersion so all existing tokens
 // for this user stop working immediately
 export const invalidateToken = async (req, res) => {

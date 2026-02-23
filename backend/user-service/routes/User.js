@@ -2,7 +2,7 @@ import express from 'express';
 const router = express.Router();
 import {login, signUp, changePassword, sendOTP, getUserByEmail, googleAuth, getInstructorsByIds, submitInstructorApplication} from '../controllers/Auth.js'
 import {resetPasswordToken, resetPassword} from '../controllers/ResetPassword.js'
-import { invalidateToken, authenticateToken } from '../../shared-utils/middlewares/auth.js'
+import { invalidateToken, authenticateToken, authenticateInternal } from '../../shared-utils/middlewares/auth.js'
 import {
   sanitizeInput,
   validateSignup,
@@ -82,19 +82,9 @@ router.post('/google-auth',
   googleAuth
 );
 
-router.get('/user-by-email/:email', 
-  sanitizeInput, 
-  mongoSanitizeMiddleware, 
-  authenticateToken,  // Add authentication middleware
-  getUserByEmail
-);
-
-router.get('/get-instructors-by-ids', 
-  sanitizeInput, 
-  mongoSanitizeMiddleware, 
-  authenticateToken,  // Add authentication middleware
-  getInstructorsByIds
-);
+// Internal-only: called by course-service, never by end users
+router.get('/user-by-email/:email', sanitizeInput, mongoSanitizeMiddleware, authenticateInternal, getUserByEmail);
+router.get('/get-instructors-by-ids', sanitizeInput, mongoSanitizeMiddleware, authenticateInternal, getInstructorsByIds);
 
 router.post('/logout', 
   authenticateToken,  // Add authentication middleware

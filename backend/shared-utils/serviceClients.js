@@ -15,6 +15,16 @@ export const createServiceClient = (baseUrl, timeout = 10000) => {
     headers: { 'Content-Type': 'application/json' },
   })
 
+  // Inject the shared internal secret on every request.
+  // Reading at request time (not at factory-call time) ensures dotenv has already run.
+  instance.interceptors.request.use((config) => {
+    const secret = process.env.INTERNAL_SERVICE_SECRET
+    if (secret) {
+      config.headers['x-service-secret'] = secret
+    }
+    return config
+  })
+
   instance.interceptors.response.use(
     (res) => res,
     (err) => {

@@ -2,7 +2,7 @@ import express from 'express';
 const router = express.Router();
 
 import {updateProfile, deleteAccount, getAllUsers,getUserDetails, getEnrolledCourses, instructorDetails, updateDisplayPicture, addCourseToProfile, removeCourseFromProfile, addCourseProgressToProfile, removeCourseProgressFromProfile} from '../controllers/Profile.js'
-import { authenticateToken, authorize } from '../../shared-utils/middlewares/auth.js'
+import { authenticateToken, authorize, authenticateInternal } from '../../shared-utils/middlewares/auth.js'
 import { sanitizeInput, handleValidationErrors, mongoSanitizeMiddleware, createRateLimit, validateProfileUpdate } from '../../shared-utils/middlewares/inputSanitization.js'
 
 // Rate limiting for profile endpoints
@@ -62,36 +62,11 @@ router.put('/updateDisplayPicture',
   updateDisplayPicture
 );
 
-router.post('/add-course', 
-  profileRateLimit,
-  sanitizeInput, 
-  mongoSanitizeMiddleware, 
-  authenticateToken,  // Add authentication middleware
-  addCourseToProfile
-);
-
-router.post('/remove-course', 
-  profileRateLimit,
-  sanitizeInput, 
-  mongoSanitizeMiddleware, 
-  authenticateToken,  // Add authentication middleware
-  removeCourseFromProfile
-);
-
-router.post('/add-course-progress',
-  profileRateLimit,
-  sanitizeInput,
-  mongoSanitizeMiddleware,
-  authenticateToken,  // Add authentication middleware
-  addCourseProgressToProfile
-);
-
-router.post('/remove-course-progress',
-  profileRateLimit,
-  sanitizeInput,
-  mongoSanitizeMiddleware,
-  authenticateToken,  // Add authentication middleware
-  removeCourseProgressFromProfile
-);
+// Internal-only: called by course-service and payment-service, never by end users.
+// Protected by shared service secret instead of user JWT.
+router.post('/add-course', authenticateInternal, addCourseToProfile);
+router.post('/remove-course', authenticateInternal, removeCourseFromProfile);
+router.post('/add-course-progress', authenticateInternal, addCourseProgressToProfile);
+router.post('/remove-course-progress', authenticateInternal, removeCourseProgressFromProfile);
 
 export default router
