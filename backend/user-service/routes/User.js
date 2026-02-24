@@ -1,6 +1,6 @@
 import express from 'express';
 const router = express.Router();
-import {login, signUp, changePassword, sendOTP, getUserByEmail, googleAuth, getInstructorsByIds, submitInstructorApplication} from '../controllers/Auth.js'
+import {login, signUp, changePassword, sendOTP, getUserByEmail, googleAuth, getInstructorsByIds, submitInstructorApplication, getMyInstructorApplication} from '../controllers/Auth.js'
 import {resetPasswordToken, resetPassword} from '../controllers/ResetPassword.js'
 import { invalidateToken, authenticateToken, authenticateInternal } from '../../shared-utils/middlewares/auth.js'
 import {
@@ -88,12 +88,17 @@ router.post('/logout',
   invalidateToken
 );
 
-// Instructor Application Route
-router.post('/submit-instructor-application', 
-  sanitizeInput, 
-  mongoSanitizeMiddleware, 
-  authenticateToken,  // Add authentication middleware
+// Instructor Application Routes
+router.post('/submit-instructor-application',
+  sanitizeInput,
+  mongoSanitizeMiddleware,
+  authenticateToken,
   submitInstructorApplication
+);
+
+router.get('/my-instructor-application',
+  authenticateToken,
+  getMyInstructorApplication
 );
 
 export default router;

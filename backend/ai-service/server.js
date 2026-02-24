@@ -3,6 +3,7 @@ import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
 import compression from 'compression';
+import fileUpload from 'express-fileupload';
 import dotenv from 'dotenv';
 import { fileURLToPath } from 'url';
 import { dirname, resolve } from 'path';
@@ -43,6 +44,9 @@ app.use(cors({
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
+
+// File upload middleware (needed for generateSummary)
+app.use(fileUpload({ limits: { fileSize: 50 * 1024 * 1024 } }));
 
 // Request timeout — return 408 if a request hangs for more than 30s
 app.use((req, res, next) => {

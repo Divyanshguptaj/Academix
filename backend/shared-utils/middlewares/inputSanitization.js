@@ -2,12 +2,15 @@ import { body, validationResult } from 'express-validator'
 import mongoSanitize from 'express-mongo-sanitize'
 import rateLimit from 'express-rate-limit'
 
-// Sanitize input by trimming whitespace
+// Sanitize input by trimming whitespace; normalize email fields to lowercase
 export const sanitizeInput = (req, res, next) => {
   if (req.body) {
     Object.keys(req.body).forEach(key => {
       if (typeof req.body[key] === 'string') {
         req.body[key] = req.body[key].trim()
+        if (key === 'email') {
+          req.body[key] = req.body[key].toLowerCase()
+        }
       }
     })
   }
@@ -28,8 +31,12 @@ export const handleValidationErrors = (req, res, next) => {
 }
 
 // MongoDB injection protection middleware
+// allowDots:true — emails and other values can legitimately contain dots;
+// express-validator already validates all inputs, so we don't need
+// mongoSanitize to strip dotted keys.
 export const mongoSanitizeMiddleware = mongoSanitize({
   replaceWith: '_',
+  allowDots: true,
   onSanitize: ({ key }) => {
     console.warn(`Sanitized potentially malicious input: ${key}`)
   }

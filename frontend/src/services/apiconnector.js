@@ -51,12 +51,18 @@ axiosInstance.interceptors.response.use(
   }
 )
 
-export const apiConnector = (method , url , bodyData, headers, params)=>{
+export const apiConnector = (method, url, bodyData, headers, params, timeout = 15000) => {
+    const requestHeaders = headers ? { ...headers } : {};
+    // For FormData, remove Content-Type so the browser sets multipart/form-data with boundary
+    if (bodyData instanceof FormData) {
+        requestHeaders['Content-Type'] = undefined;
+    }
     return axiosInstance({
         method: `${method}`,
         url: `${url}`,
-        data: bodyData ? bodyData: null, 
-        headers: headers ? headers: null, 
-        params: params ? params: null, 
-    })
+        data: bodyData ? bodyData : null,
+        headers: requestHeaders,
+        params: params ? params : null,
+        timeout,
+    });
 }

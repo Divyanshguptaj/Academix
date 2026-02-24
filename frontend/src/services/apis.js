@@ -10,6 +10,7 @@ export const endpoints = {
   RESETPASSTOKEN_API: API_GATEWAY_URL + "/auth/reset-password-token",
   RESETPASSWORD_API: API_GATEWAY_URL + "/auth/reset-password",
   SUBMIT_INSTRUCTOR_APPLICATION: API_GATEWAY_URL + "/auth/submit-instructor-application",
+  GET_MY_INSTRUCTOR_APPLICATION: API_GATEWAY_URL + "/auth/my-instructor-application",
 }
 
 // PROFILE ENDPOINTS (Routed through API Gateway to User Service)

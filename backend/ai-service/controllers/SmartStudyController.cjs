@@ -15,8 +15,8 @@ if (!JSON2VIDEO_API_KEY) {
 }
 
 // Model names — change here to update across all functions
-const GEMINI_FLASH_MODEL = "gemini-2.0-flash";
-const GEMINI_PRO_MODEL = "gemini-2.5-pro";
+const GEMINI_FLASH_MODEL = "gemini-2.5-flash";
+// const GEMINI_PRO_MODEL = "gemini-pro"; // higher quality but may have quota limits
 
 // Max characters of extracted text sent to Gemini per request
 const MAX_TEXT_LENGTH_SUMMARY = 15000;
@@ -675,9 +675,8 @@ exports.generateSummary = async (req, res) => {
         .json({ success: false, message: "No text found in the file" });
     }
 
-    // Choose model (flash = fast/cheap, pro = best reasoning)
-    // const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
-    const model = genAI.getGenerativeModel({ model: GEMINI_PRO_MODEL });
+    // Use flash model — gemini-2.5-pro has free-tier quota of 0
+    const model = genAI.getGenerativeModel({ model: GEMINI_FLASH_MODEL });
 
     // Chunk → summarize each → merge
     const chunks = chunkText(text, 12000);

@@ -146,7 +146,8 @@ function App() {
           </Routes>
         </main>
 
-        {(!isDashboard || !isviewCourse) && <Footer />}
+        {/* Footer is handled inside Dashboard/ViewCourse; only show here for public pages */}
+        {!isDashboard && !isviewCourse && <Footer />}
 
       </div>
     </Auth0Provider>

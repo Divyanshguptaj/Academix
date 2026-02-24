@@ -6,7 +6,7 @@ import { useLocation, useNavigate, useParams } from "react-router-dom"
 import IconBtn from "../../common/IconBtn"
 
 export default function VideoDetailsSidebar({ setReviewModal }) { 
-  const [activeStatus, setActiveStatus] = useState("")
+  const [openSections, setOpenSections] = useState(new Set())
   const [videoBarActive, setVideoBarActive] = useState("")
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
   const [isMobile, setIsMobile] = useState(false)
@@ -72,11 +72,20 @@ export default function VideoDetailsSidebar({ setReviewModal }) {
         courseSectionData[currentSectionIndx]?.subSection?.[
           currentSubSectionIndx
         ]?._id
-      setActiveStatus(courseSectionData?.[currentSectionIndx]?._id)
+      const currentSectionId = courseSectionData?.[currentSectionIndx]?._id
+      setOpenSections((prev) => new Set([...prev, currentSectionId]))
       setVideoBarActive(activeSubSectionId)
     })()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [courseSectionData, courseEntireData, location.pathname])
+
+  const toggleSection = (sectionId) => {
+    setOpenSections((prev) => {
+      const next = new Set(prev)
+      next.has(sectionId) ? next.delete(sectionId) : next.add(sectionId)
+      return next
+    })
+  }
 
   const handleSubSectionClick = (course, topic) => {
     navigate(
@@ -94,9 +103,9 @@ export default function VideoDetailsSidebar({ setReviewModal }) {
   }
 
   const sidebarContent = (
-    <div className={`flex h-full flex-col fixed left-[-2rem] top-[2rem] bg-richblack-800 border-r-[1px] border-r-richblack-700 ${
-      isMobile ? 'w-64 sm:w-64' : 'w-64 xl:w-72'
-    } ${isMobile ? 'fixed top-[3rem] left-0' : 'relative'}`}>
+    <div className={`flex h-full flex-col bg-richblack-800 border-r border-richblack-700 ${
+      isMobile ? 'w-64' : 'w-full'
+    }`}>
       {/* Header */}
       <div className={`mx-3 sm:mx-5 flex flex-col items-start justify-between gap-2 gap-y-4 border-b border-richblack-600 py-4 sm:py-5 text-lg font-bold text-richblack-300 ${
         isMobile ? 'pt-6' : ''
@@ -157,11 +166,11 @@ export default function VideoDetailsSidebar({ setReviewModal }) {
       </div>
 
       {/* Course Content */}
-      <div className="h-[calc(100vh-10rem)] sm:h-[calc(100vh-8rem)] overflow-y-auto text-white scrollbar-thin scrollbar-thumb-richblack-600 scrollbar-track-richblack-800">
+      <div className="flex-1 overflow-y-auto text-white scrollbar-thin scrollbar-thumb-richblack-600 scrollbar-track-richblack-800">
         {courseSectionData.map((course, index) => (
           <div
             className="mt-2 cursor-pointer text-sm text-richblack-300"
-            onClick={() => setActiveStatus(course?._id)}
+            onClick={() => toggleSection(course?._id)}
             key={index}
           >
             {/* Section */}
@@ -172,7 +181,7 @@ export default function VideoDetailsSidebar({ setReviewModal }) {
               <div className="flex items-center gap-3">
                 <span
                   className={`${
-                    activeStatus === course?._id
+                    openSections.has(course?._id)
                       ? "rotate-0"
                       : "rotate-180"
                   } transition-all duration-300 text-richblack-200`}
@@ -183,7 +192,7 @@ export default function VideoDetailsSidebar({ setReviewModal }) {
             </div>
 
             {/* Sub Sections */}
-            {activeStatus === course?._id && (
+            {openSections.has(course?._id) && (
               <div className="transition-all duration-300 ease-in-out">
                 {course.subSection.map((topic, i) => (
                   <div
@@ -244,11 +253,11 @@ export default function VideoDetailsSidebar({ setReviewModal }) {
       {/* Sidebar Container - Enhanced */}
       <div
         className={`${
-          isMobile 
-            ? `fixed left-0 top-0 z-10 h-full transform transition-transform duration-300 ease-in-out ${
+          isMobile
+            ? `fixed left-0 top-0 z-30 h-full transform transition-transform duration-300 ease-in-out ${
                 isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
               }`
-            : 'w-64 xl:w-72 flex-shrink-0 relative'
+            : 'fixed left-0 top-[3.5rem] h-[calc(100vh-3.5rem)] w-64 xl:w-72 z-30'
         }`}
       >
         {(isMobile ? isSidebarOpen : true) && sidebarContent}

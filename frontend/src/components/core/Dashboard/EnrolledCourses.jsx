@@ -5,6 +5,16 @@ import { useNavigate } from "react-router-dom"
 import { getUserEnrolledCourses } from "../../../services/operations/profileAPI"
 import { toast } from "react-hot-toast"
 
+const formatDuration = (totalSeconds) => {
+  const s = Math.round(totalSeconds || 0);
+  const h = Math.floor(s / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  const sec = s % 60;
+  if (h > 0) return `${h}h ${m}m`;
+  if (m > 0) return sec > 0 ? `${m}m ${sec}s` : `${m}m`;
+  return `${sec}s`;
+};
+
 export default function EnrolledCourses(){
   const { token } = useSelector((state) => state.auth)  
   const { user } = useSelector((state) => state.profile)
@@ -99,7 +109,7 @@ export default function EnrolledCourses(){
                 {/* Duration */}
                 <div className="w-full sm:w-1/4 px-0 sm:px-2 py-1 sm:py-3">
                   <p className="text-xs text-richblack-400 md:hidden">Duration:</p>
-                  <p className="text-sm sm:text-base text-white">{course?.totalDurationInMinutes} min</p>
+                  <p className="text-sm sm:text-base text-white">{formatDuration(course?.totalDurationInSeconds)}</p>
                 </div>
                 
                 {/* Progress */}

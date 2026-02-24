@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import { toast } from 'react-hot-toast';
 import { VscCloudUpload } from 'react-icons/vsc';
 import { apiConnector } from '../../../services/apiconnector';
@@ -36,9 +36,7 @@ const SmartStudyCompanion = () => {
       const formData = new FormData();
       formData.append('file', file);
 
-      const response = await apiConnector('POST', GENERATE_SUMMARY_API, formData, {
-        'Content-Type': 'multipart/form-data',
-      });
+      const response = await apiConnector('POST', GENERATE_SUMMARY_API, formData, null, null, 120000);
 
       if (response.data.success) {
         setSummary(response.data.summary);
@@ -50,7 +48,13 @@ const SmartStudyCompanion = () => {
       }
     } catch (error) {
       console.error('Upload error:', error);
-      toast.error('An error occurred while processing the file');
+      if (error.response?.status === 429) {
+        toast.error('AI service is busy — please wait a moment and try again.');
+      } else if (error.code === 'ECONNABORTED') {
+        toast.error('Request timed out — your file may be too large or the AI is taking too long. Try again.');
+      } else {
+        toast.error('An error occurred while processing the file');
+      }
     } finally {
       setLoading(false);
       toast.dismiss(toastId);
@@ -76,7 +80,7 @@ const SmartStudyCompanion = () => {
       const response = await apiConnector('POST', CHAT_WITH_DOCUMENT_API, {
         question: chatQuestion,
         documentText,
-      });
+      }, null, null, 60000);
 
       if (response.data.success) {
         setChatHistory(prev => [...prev, {
@@ -186,7 +190,7 @@ const SmartStudyCompanion = () => {
               type="text"
               value={chatQuestion}
               onChange={(e) => setChatQuestion(e.target.value)}
-              onKeyPress={(e) => e.key === 'Enter' && handleChatSend()}
+              onKeyDown={(e) => e.key === 'Enter' && handleChatSend()}
               placeholder="Ask a question about the document..."
               className="flex-1 bg-richblack-800 border border-richblack-700 rounded-lg px-4 py-2 text-white placeholder-richblack-400 focus:outline-none focus:ring-2 focus:ring-yellow-50"
               disabled={chatLoading}

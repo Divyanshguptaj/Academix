@@ -6,6 +6,24 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import Profile from "../models/Profile.js";
 import mongoose from "mongoose";
+import mailSender from "../../shared-utils/mailSender.js";
+
+// Maximum number of instructor application submissions per user
+const MAX_INSTRUCTOR_APPLICATIONS = 3;
+
+function instructorApplicationEmailTemplate(firstName, submissionCount) {
+  const isResubmission = submissionCount > 1;
+  return `
+    <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:24px;background:#1a1a2e;color:#fff;border-radius:12px;border:1px solid #374151;">
+      <h2 style="color:#fcd34d;margin-top:0;">Application ${isResubmission ? 'Re-submitted' : 'Received'} ✓</h2>
+      <p>Hi ${firstName},</p>
+      <p>We've received your instructor application${isResubmission ? ` (attempt <strong>${submissionCount}</strong> of <strong>${MAX_INSTRUCTOR_APPLICATIONS}</strong>)` : ''}. Our admin team will review it and get back to you shortly.</p>
+      <p>You'll receive another email once a decision has been made. Until then, keep learning on <strong>Academix</strong>!</p>
+      <hr style="border-color:#374151;margin:20px 0;" />
+      <p style="color:#9ca3af;font-size:12px;margin:0;">— The Academix Team</p>
+    </div>
+  `;
+}
 
 // Decode HTML entities that sanitizers may introduce into URLs (e.g. &#x2F; → /)
 const decodeHtmlEntities = (str) => {
@@ -173,7 +191,7 @@ export const signUp = async (req, res) => {
     const user = await User.create({
       firstName,
       lastName,
-      email,
+      email: email.toLowerCase(),
       password: hashedPassword,
       additionalDetails: profileDetails._id,
       image: `https://api.dicebear.com/5.x/initials/svg?seed=${firstName} ${lastName}`,
@@ -556,39 +574,100 @@ export const getInstructorsByIds = async (req, res) => {
   }
 };
 
+// Get current user's instructor application status
+export const getMyInstructorApplication = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const application = await InstructorApplication.findOne({ userId });
+    if (!application) {
+      return res.status(200).json({ success: true, data: null });
+    }
+    return res.status(200).json({
+      success: true,
+      data: {
+        status: application.status,
+        submissionCount: application.submissionCount,
+        remainingAttempts: MAX_INSTRUCTOR_APPLICATIONS - application.submissionCount,
+        maxAttempts: MAX_INSTRUCTOR_APPLICATIONS,
+        rejectionReason: application.rejectionReason || null,
+        updatedAt: application.updatedAt,
+      },
+    });
+  } catch (error) {
+    console.error("Get my instructor application error:", error);
+    res.status(500).json({ success: false, message: "Failed to fetch application status" });
+  }
+};
+
 // Submit Instructor Application
 export const submitInstructorApplication = async (req, res) => {
   try {
     const { qualifications, experience, expertise, bio, portfolio } = req.body;
     const userId = req.user.id;
 
-    // Validation
     if (!qualifications || !experience || !expertise || !bio) {
-      return res.status(400).json({
-        success: false,
-        message: "All fields are required"
-      });
+      return res.status(400).json({ success: false, message: "All fields are required" });
     }
 
-    // Check if user already has an application
-    const existingApplication = await InstructorApplication.findOne({ userId });
-    if (existingApplication) {
-      return res.status(400).json({
-        success: false,
-        message: "You have already submitted an instructor application"
-      });
-    }
-
-    // Check if user is already an instructor
     const user = await User.findById(userId);
     if (user.accountType === 'Instructor' || user.accountType === 'Admin') {
-      return res.status(400).json({
-        success: false,
-        message: "You already have instructor privileges"
+      return res.status(400).json({ success: false, message: "You already have instructor privileges" });
+    }
+
+    const expertiseArray = Array.isArray(expertise)
+      ? expertise
+      : expertise.split(',').map((item) => item.trim());
+
+    const existingApplication = await InstructorApplication.findOne({ userId });
+
+    if (existingApplication) {
+      if (existingApplication.status === 'pending') {
+        return res.status(400).json({ success: false, message: "Your application is currently under review" });
+      }
+      if (existingApplication.status === 'approved') {
+        return res.status(400).json({ success: false, message: "Your application was already approved" });
+      }
+      // Status is 'rejected' — check if more attempts are allowed
+      if (existingApplication.submissionCount >= MAX_INSTRUCTOR_APPLICATIONS) {
+        return res.status(400).json({
+          success: false,
+          message: `You have reached the maximum number of applications (${MAX_INSTRUCTOR_APPLICATIONS})`,
+        });
+      }
+      // Re-submission: update the existing record
+      existingApplication.status = 'pending';
+      existingApplication.submissionCount += 1;
+      existingApplication.qualifications = qualifications;
+      existingApplication.experience = experience;
+      existingApplication.expertise = expertiseArray;
+      existingApplication.bio = bio;
+      existingApplication.portfolio = portfolio || undefined;
+      existingApplication.rejectionReason = undefined;
+      existingApplication.reviewedBy = undefined;
+      existingApplication.reviewedAt = undefined;
+      await existingApplication.save();
+
+      try {
+        await mailSender(
+          user.email,
+          'Instructor Application Re-submitted — Academix',
+          instructorApplicationEmailTemplate(user.firstName, existingApplication.submissionCount)
+        );
+      } catch (e) {
+        console.error('Instructor application email failed:', e.message);
+      }
+
+      return res.status(200).json({
+        success: true,
+        message: "Application re-submitted successfully",
+        data: {
+          submissionCount: existingApplication.submissionCount,
+          remainingAttempts: MAX_INSTRUCTOR_APPLICATIONS - existingApplication.submissionCount,
+        },
       });
     }
 
-    // Create application
+    // First-time submission
     const application = await InstructorApplication.create({
       userId,
       firstName: user.firstName,
@@ -596,21 +675,32 @@ export const submitInstructorApplication = async (req, res) => {
       email: user.email,
       qualifications,
       experience,
-      expertise: Array.isArray(expertise) ? expertise : expertise.split(',').map(item => item.trim()),
+      expertise: expertiseArray,
       bio,
-      portfolio: portfolio || undefined
+      portfolio: portfolio || undefined,
+      submissionCount: 1,
     });
 
-    res.status(201).json({
+    try {
+      await mailSender(
+        user.email,
+        'Instructor Application Received — Academix',
+        instructorApplicationEmailTemplate(user.firstName, 1)
+      );
+    } catch (e) {
+      console.error('Instructor application email failed:', e.message);
+    }
+
+    return res.status(201).json({
       success: true,
       message: "Instructor application submitted successfully",
-      data: application
+      data: {
+        submissionCount: 1,
+        remainingAttempts: MAX_INSTRUCTOR_APPLICATIONS - 1,
+      },
     });
   } catch (error) {
     console.error("Submit instructor application error:", error);
-    res.status(500).json({
-      success: false,
-      message: "Failed to submit instructor application"
-    });
+    res.status(500).json({ success: false, message: "Failed to submit instructor application" });
   }
 };

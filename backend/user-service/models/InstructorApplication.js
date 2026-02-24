@@ -47,6 +47,11 @@ const instructorApplicationSchema = new mongoose.Schema({
         enum: ['pending', 'approved', 'rejected'],
         default: 'pending'
     },
+    submissionCount: {
+        type: Number,
+        default: 1,
+        min: 1,
+    },
     reviewedBy: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User',

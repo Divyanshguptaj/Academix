@@ -7,6 +7,9 @@ import { useSelector } from "react-redux"
 import { createRating } from "../../../services/operations/courseDetailsAPI"
 import IconBtn from "../../common/IconBtn"
 
+const decodeImg = (url) =>
+  url?.replace(/&#x2F;/gi, "/").replace(/&#x27;/gi, "'").replace(/&amp;/gi, "&")
+
 export default function CourseReviewModal({ setReviewModal }) {
   const { user } = useSelector((state) => state.profile)
   const { token } = useSelector((state) => state.auth)
@@ -56,13 +59,19 @@ export default function CourseReviewModal({ setReviewModal }) {
           <div className="flex items-center justify-center gap-x-4">
             <img
               src={
-                user?.image ||
+                decodeImg(user?.image) ||
                 `https://api.dicebear.com/5.x/initials/svg?seed=${encodeURIComponent(
                   `${user?.firstName || ""} ${user?.lastName || ""}`
                 )}`
               }
               alt={`${user?.firstName || "User"} profile`}
               className="aspect-square w-[50px] rounded-full object-cover"
+              onError={(e) => {
+                e.currentTarget.onerror = null
+                e.currentTarget.src = `https://api.dicebear.com/5.x/initials/svg?seed=${encodeURIComponent(
+                  `${user?.firstName || ""} ${user?.lastName || ""}`
+                )}`
+              }}
             />
             <div className="">
               <p className="font-semibold text-richblack-300">

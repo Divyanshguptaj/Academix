@@ -221,7 +221,7 @@ export const getEnrolledCourses = async (req, res) => {
 
     // 4. Calculate progress and return complete data
     const coursesWithDuration = courseDetails.data.map((course) => {
-      let totalDuration = 0;
+      let totalDurationInSeconds = 0;
       let totalSubSections = 0;
 
       course.courseContent.forEach((section) => {
@@ -229,7 +229,7 @@ export const getEnrolledCourses = async (req, res) => {
 
         section.subSection.forEach((sub) => {
           const duration = parseFloat(sub.timeDuration) || 0;
-          totalDuration += duration;
+          totalDurationInSeconds += duration;
         });
       });
 
@@ -247,7 +247,7 @@ export const getEnrolledCourses = async (req, res) => {
 
       return {
         ...course,
-        totalDurationInMinutes: totalDuration,
+        totalDurationInSeconds,
         totalLectures: totalSubSections,
         completedLectures: completedCount,
         progressPercentage,

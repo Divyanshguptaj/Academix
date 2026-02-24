@@ -15,9 +15,9 @@ export const createSubSection = async (req, res)=>{
         }
 
         const uploadDetails = await uploadImagetoCloudinary(video, "Study-Notion");
-        const durationInMinutes = Math.round((uploadDetails.duration || 0) / 60);
+        const durationInSeconds = Math.round(uploadDetails.duration || 0);
         const newSubSection = await subSection.create({
-            title, timeDuration:durationInMinutes, description, videoURL: uploadDetails.secure_url
+            title, timeDuration:durationInSeconds, description, videoURL: uploadDetails.secure_url
         })
         await Section.findByIdAndUpdate(sectionId,{$push:{subSection:newSubSection._id}},{new: true}).populate("subSection");
         const updatedCourse = await Course.findOne({ _id: courseId })
