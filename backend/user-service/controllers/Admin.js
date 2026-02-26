@@ -1,6 +1,10 @@
 import User from '../models/User.js'
 import InstructorApplication from '../models/InstructorApplication.js'
 import { courseService, paymentService } from '../utils/serviceClients.js'
+import mailSender from '../../shared-utils/mailSender.js'
+import { instructorApprovalEmail } from '../../shared-utils/mail/templates/instructorApprovalEmail.js'
+import { instructorRejectionEmail } from '../../shared-utils/mail/templates/instructorRejectionEmail.js'
+import { instructorRevokeEmail } from '../../shared-utils/mail/templates/instructorRevokeEmail.js'
 
 // Admin Dashboard Stats
 export const getDashboardStats = async (req, res) => {
@@ -224,13 +228,34 @@ export const getAllInstructors = async (req, res) => {
       .select('-password -token -resetPasswordExpires')
       .sort({ createdAt: -1 })
 
-    // Add course count and revenue for each instructor (this would typically come from course service)
-    const enrichedInstructors = instructors.map(instructor => ({
-      ...instructor.toObject(),
-      courseCount: 0, // To be populated by course service
-      totalRevenue: 0, // To be populated by payment service
-      studentCount: 0 // To be populated by course service
-    }))
+    // Fetch all courses from course-service to enrich instructor stats
+    let allCourses = []
+    try {
+      const courseResponse = await courseService.get('/admin/list')
+      if (courseResponse.data?.success && Array.isArray(courseResponse.data.data)) {
+        allCourses = courseResponse.data.data
+      }
+    } catch (err) {
+      console.error('Could not fetch courses for instructor enrichment:', err.message)
+    }
+
+    const enrichedInstructors = instructors.map(instructor => {
+      const id = instructor._id.toString()
+      const instructorCourses = allCourses.filter(c => {
+        const cInstructor = c.instructor?._id || c.instructor
+        return cInstructor?.toString() === id
+      })
+      const studentCount = instructorCourses.reduce((sum, c) => {
+        const enrolled = Array.isArray(c.studentsEnrolled) ? c.studentsEnrolled.length : (c.enrolledStudents || 0)
+        return sum + enrolled
+      }, 0)
+      return {
+        ...instructor.toObject(),
+        courseCount: instructorCourses.length,
+        totalRevenue: 0, // Revenue requires payment-service join — not implemented yet
+        studentCount,
+      }
+    })
 
     res.status(200).json({
       success: true,
@@ -315,6 +340,23 @@ export const revokeInstructor = async (req, res) => {
     user.accountType = 'Student'
     await user.save()
 
+    // Reset InstructorApplication so the user can re-apply
+    await InstructorApplication.findOneAndUpdate(
+      { userId: id },
+      { status: 'rejected', rejectionReason: 'Instructor access revoked by admin.' }
+    )
+
+    // Notify user by email (non-blocking)
+    try {
+      await mailSender(
+        user.email,
+        'Instructor Access Update — Academix',
+        instructorRevokeEmail(user.firstName)
+      )
+    } catch (e) {
+      console.error('Revoke notification email failed:', e.message)
+    }
+
     res.status(200).json({
       success: true,
       message: 'Instructor role revoked successfully'
@@ -379,6 +421,17 @@ export const approveInstructorApplication = async (req, res) => {
     user.accountType = 'Instructor'
     await user.save()
 
+    // Notify user by email (non-blocking)
+    try {
+      await mailSender(
+        user.email,
+        'Instructor Application Approved — Academix',
+        instructorApprovalEmail(user.firstName)
+      )
+    } catch (e) {
+      console.error('Approval notification email failed:', e.message)
+    }
+
     res.status(200).json({
       success: true,
       message: 'Instructor application approved successfully'
@@ -419,6 +472,20 @@ export const rejectInstructorApplication = async (req, res) => {
     application.reviewedAt = new Date()
     application.rejectionReason = rejectionReason
     await application.save()
+
+    // Notify user by email (non-blocking)
+    try {
+      const user = await User.findById(application.userId)
+      if (user) {
+        await mailSender(
+          user.email,
+          'Instructor Application Update — Academix',
+          instructorRejectionEmail(user.firstName, rejectionReason)
+        )
+      }
+    } catch (e) {
+      console.error('Rejection notification email failed:', e.message)
+    }
 
     res.status(200).json({
       success: true,

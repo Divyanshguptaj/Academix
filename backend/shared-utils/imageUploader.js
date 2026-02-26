@@ -1,15 +1,15 @@
 import { v2 as cloudinary } from 'cloudinary'
 
-// Configure Cloudinary
-cloudinary.config({
-  cloud_name: process.env.CLOUD_NAME,
-  api_key: process.env.API_KEY,
-  api_secret: process.env.API_SECRET
-})
-
 // Upload image to Cloudinary
 export const uploadImagetoCloudinary = async (file, folder, height, quality) => {
   try {
+    // Configure at call time — dotenv has already run by this point (ESM hoisting safety)
+    cloudinary.config({
+      cloud_name: process.env.CLOUD_NAME,
+      api_key: process.env.API_KEY,
+      api_secret: process.env.API_SECRET,
+    })
+
     const options = { folder }
 
     if (height) {
@@ -35,6 +35,12 @@ export const uploadImagetoCloudinary = async (file, folder, height, quality) => 
 // Delete image from Cloudinary
 export const deleteImageFromCloudinary = async (publicId) => {
   try {
+    cloudinary.config({
+      cloud_name: process.env.CLOUD_NAME,
+      api_key: process.env.API_KEY,
+      api_secret: process.env.API_SECRET,
+    })
+
     const result = await cloudinary.uploader.destroy(publicId)
     return result
   } catch (error) {

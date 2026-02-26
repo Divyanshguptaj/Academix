@@ -1,139 +1,158 @@
-import React, { useState } from "react";
-import { useForm } from "react-hook-form";
-import { AiOutlineEye, AiOutlineEyeInvisible } from "react-icons/ai";
-import { useSelector } from "react-redux";
-import { useNavigate } from "react-router-dom";
-import { changePassword } from "../../../../services/operations/settingsAPI";
-import IconBtn from "../../../common/IconBtn";
-import { toast } from "react-hot-toast";
+import { useState } from "react"
+import { useForm } from "react-hook-form"
+import { AiOutlineEye, AiOutlineEyeInvisible } from "react-icons/ai"
+import { FiLock, FiSave, FiX } from "react-icons/fi"
+import { useSelector } from "react-redux"
+import { useNavigate } from "react-router-dom"
+import { changePassword } from "../../../../services/operations/settingsAPI"
+import { toast } from "react-hot-toast"
+
+const inputClass =
+  "w-full bg-richblack-700 border border-richblack-600 rounded-lg px-4 py-2.5 text-richblack-5 text-sm placeholder:text-richblack-400 focus:outline-none focus:border-yellow-400/60 transition-colors pr-10"
 
 export default function UpdatePassword() {
-  const { token } = useSelector((state) => state.auth);
-  const { user } = useSelector((state) => state.profile);
-  const navigate = useNavigate();
+  const { token } = useSelector((state) => state.auth)
+  const { user } = useSelector((state) => state.profile)
+  const navigate = useNavigate()
 
-  const [showOldPassword, setShowOldPassword] = useState(false);
-  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showOldPassword, setShowOldPassword] = useState(false)
+  const [showNewPassword, setShowNewPassword] = useState(false)
 
   const {
     register,
     handleSubmit,
     formState: { errors },
     reset,
-  } = useForm();
+  } = useForm()
 
   const submitPasswordForm = async (data) => {
     try {
-      const mail = user.email;
-      const formData = { ...data, mail };
+      const mail = user.email
+      const formData = { ...data, mail }
 
       if (formData.newPassword.length < 8) {
-        toast.error("Minimum length of password should be 8");
-        return;
+        toast.error("Minimum length of password should be 8")
+        return
       }
-
       if (!/\d/.test(formData.newPassword)) {
-        toast.error("Password must include at least one number");
-        return;
+        toast.error("Password must include at least one number")
+        return
       }
-
       if (!/[!@#$%^&*(),.?":{}|<>]/.test(formData.newPassword)) {
-        toast.error("Password must include at least one special character");
-        return;
+        toast.error("Password must include at least one special character")
+        return
       }
 
-      const res = await changePassword(token, formData);
+      const res = await changePassword(token, formData)
       if (res) {
-        toast.success("Password updated successfully");
-        reset();
-        setShowOldPassword(false);
-        setShowNewPassword(false);
+        toast.success("Password updated successfully")
+        reset()
+        setShowOldPassword(false)
+        setShowNewPassword(false)
       }
     } catch (error) {
-      console.log("ERROR MESSAGE - ", error.message);
-      toast.error("Something went wrong");
+      console.log("ERROR MESSAGE - ", error.message)
+      toast.error("Something went wrong")
     }
-  };
+  }
 
   return (
     <form onSubmit={handleSubmit(submitPasswordForm)}>
-      <div className="my-6 md:my-10 flex flex-col gap-y-6 rounded-md border border-richblack-700 bg-richblack-800 p-4 md:p-8 md:px-12 mx-4 md:mx-0">
-        <h2 className="text-base md:text-lg font-semibold text-richblack-300">
-          Change Password
-        </h2>
+      <div className="my-6 md:my-10 rounded-xl border border-richblack-700 bg-richblack-800 overflow-hidden mx-4 md:mx-0">
 
-        <div className="flex flex-col lg:flex-row lg:justify-between lg:items-start gap-5">
-          {/* Current Password */}
-          <div className="relative flex flex-col gap-2 lg:w-[48%]">
-            <label htmlFor="oldPassword" className="lable-style text-white text-sm md:text-base">
-              Current Password
-            </label>
-            <input
-              type={showOldPassword ? "text" : "password"}
-              id="oldPassword"
-              placeholder="Enter Current Password"
-              className="form-style bg-slate-900 text-white border border-gray-300 p-2 md:p-3 rounded-md pr-10 text-sm md:text-base"
-              {...register("oldPassword", { required: true })}
-            />
-            <span
-              onClick={() => setShowOldPassword((prev) => !prev)}
-              className="absolute right-3 top-[32px] md:top-[38px] z-[10] cursor-pointer"
-            >
-              {showOldPassword ? (
-                <AiOutlineEyeInvisible fontSize={20} className="md:text-2xl" fill="#AFB2BF" />
-              ) : (
-                <AiOutlineEye fontSize={20} className="md:text-2xl" fill="#AFB2BF" />
+        {/* Section Header */}
+        <div className="flex items-center gap-3 px-6 md:px-10 py-5 border-b border-richblack-700">
+          <div className="w-9 h-9 bg-yellow-400/10 rounded-lg flex items-center justify-center flex-shrink-0">
+            <FiLock className="text-yellow-400 text-base" />
+          </div>
+          <div>
+            <h2 className="text-base font-semibold text-richblack-5">Change Password</h2>
+            <p className="text-xs text-richblack-400 mt-0.5">Keep your account secure with a strong password</p>
+          </div>
+        </div>
+
+        <div className="px-6 md:px-10 py-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+
+            {/* Current Password */}
+            <div className="flex flex-col gap-1.5">
+              <label htmlFor="oldPassword" className="text-sm font-medium text-richblack-300 flex items-center gap-1.5">
+                <FiLock className="text-richblack-400 text-xs" /> Current Password
+              </label>
+              <div className="relative">
+                <input
+                  type={showOldPassword ? "text" : "password"}
+                  id="oldPassword"
+                  placeholder="Enter current password"
+                  className={inputClass}
+                  {...register("oldPassword", { required: true })}
+                />
+                <span
+                  onClick={() => setShowOldPassword((prev) => !prev)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 cursor-pointer text-richblack-400 hover:text-richblack-200 transition-colors"
+                >
+                  {showOldPassword
+                    ? <AiOutlineEyeInvisible fontSize={18} />
+                    : <AiOutlineEye fontSize={18} />}
+                </span>
+              </div>
+              {errors.oldPassword && (
+                <span className="text-[11px] text-yellow-300">Please enter your current password.</span>
               )}
-            </span>
-            {errors.oldPassword && (
-              <span className="text-[10px] md:text-[12px] text-yellow-100">
-                Please enter your Current Password.
-              </span>
-            )}
+            </div>
+
+            {/* New Password */}
+            <div className="flex flex-col gap-1.5">
+              <label htmlFor="newPassword" className="text-sm font-medium text-richblack-300 flex items-center gap-1.5">
+                <FiLock className="text-richblack-400 text-xs" /> New Password
+              </label>
+              <div className="relative">
+                <input
+                  type={showNewPassword ? "text" : "password"}
+                  id="newPassword"
+                  placeholder="Enter new password"
+                  className={inputClass}
+                  {...register("newPassword", { required: true })}
+                />
+                <span
+                  onClick={() => setShowNewPassword((prev) => !prev)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 cursor-pointer text-richblack-400 hover:text-richblack-200 transition-colors"
+                >
+                  {showNewPassword
+                    ? <AiOutlineEyeInvisible fontSize={18} />
+                    : <AiOutlineEye fontSize={18} />}
+                </span>
+              </div>
+              {errors.newPassword && (
+                <span className="text-[11px] text-yellow-300">Please enter your new password.</span>
+              )}
+            </div>
+
           </div>
 
-          {/* New Password */}
-          <div className="relative flex flex-col gap-2 lg:w-[48%]">
-            <label htmlFor="newPassword" className="lable-style text-white text-sm md:text-base">
-              New Password
-            </label>
-            <input
-              type={showNewPassword ? "text" : "password"}
-              id="newPassword"
-              placeholder="Enter New Password"
-              className="form-style bg-slate-900 text-white border border-gray-300 p-2 md:p-3 rounded-md pr-10 text-sm md:text-base"
-              {...register("newPassword", { required: true })}
-            />
-            <span
-              onClick={() => setShowNewPassword((prev) => !prev)}
-              className="absolute right-3 top-[32px] md:top-[38px] z-[10] cursor-pointer"
-            >
-              {showNewPassword ? (
-                <AiOutlineEyeInvisible fontSize={20} className="md:text-2xl" fill="#AFB2BF" />
-              ) : (
-                <AiOutlineEye fontSize={20} className="md:text-2xl" fill="#AFB2BF" />
-              )}
-            </span>
-            {errors.newPassword && (
-              <span className="text-[10px] md:text-[12px] text-yellow-100">
-                Please enter your New Password.
-              </span>
-            )}
-          </div>
+          {/* Password requirements hint */}
+          <p className="mt-4 text-xs text-richblack-500">
+            Password must be at least 8 characters, include a number and a special character.
+          </p>
         </div>
       </div>
 
       {/* Action Buttons */}
-      <div className="flex flex-col sm:flex-row justify-end gap-2 sm:gap-3 px-4 md:px-0">
+      <div className="flex flex-col sm:flex-row justify-end gap-3 px-4 md:px-0 mb-6">
         <button
           type="button"
           onClick={() => navigate("/dashboard/my-profile")}
-          className="cursor-pointer rounded-md bg-slate-800 py-2 px-4 md:px-5 font-semibold text-richblack-300 text-sm md:text-base order-2 sm:order-1"
+          className="flex items-center justify-center gap-2 cursor-pointer rounded-lg bg-richblack-700 hover:bg-richblack-600 border border-richblack-600 py-2.5 px-5 font-medium text-richblack-300 text-sm transition-colors order-2 sm:order-1"
         >
-          Cancel
+          <FiX className="text-sm" /> Cancel
         </button>
-        <IconBtn type="submit" text="Update" className="order-1 sm:order-2" />
+        <button
+          type="submit"
+          className="flex items-center justify-center gap-2 cursor-pointer rounded-lg bg-yellow-400 hover:bg-yellow-300 py-2.5 px-5 font-semibold text-richblack-900 text-sm transition-colors order-1 sm:order-2"
+        >
+          <FiSave className="text-sm" /> Update Password
+        </button>
       </div>
     </form>
-  );
+  )
 }

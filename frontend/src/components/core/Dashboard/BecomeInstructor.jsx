@@ -207,7 +207,7 @@ export default function BecomeInstructor() {
   const maxAttempts = appStatus?.maxAttempts || 3;
 
   return (
-    <div className="w-full px-4 py-8 lg:py-0 lg:px-0">
+    <div className="w-full max-w-2xl mx-auto px-4 py-8">
       {/* Header */}
       <div className="mb-8 sm:my-10">
         <div className="flex items-center gap-3 mb-2">
@@ -224,7 +224,7 @@ export default function BecomeInstructor() {
 
       {/* Rejection banner with previous reason */}
       {isResubmission && (
-        <div className="flex flex-col gap-2 mb-6 max-w-2xl">
+        <div className="flex flex-col gap-2 mb-6">
           <div className="flex items-start gap-3 bg-red-500/10 border border-red-500/20 rounded-lg px-4 py-3 text-sm text-red-300">
             <FaTimesCircle className="mt-0.5 flex-shrink-0" />
             <div>
@@ -245,7 +245,7 @@ export default function BecomeInstructor() {
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="flex flex-col gap-6 max-w-2xl">
+      <form onSubmit={handleSubmit} className="flex flex-col gap-6">
         {/* Qualifications */}
         <div className="flex flex-col gap-1.5">
           <label className="text-sm font-medium text-gray-300">

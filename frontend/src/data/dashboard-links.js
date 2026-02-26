@@ -31,28 +31,6 @@ export const sidebarLinks = [
         icon: 'VscMortarBoard',
         allowedRoles: [ACCOUNT_TYPE.STUDENT],
     },
-    {
-        id: 4,
-        name: "Smart Study Companion",
-        path: '/dashboard/smart-study',
-        icon: 'VscBook',
-        allowedRoles: [ACCOUNT_TYPE.STUDENT, ACCOUNT_TYPE.INSTRUCTOR],
-    },
-    {
-        id: 5,
-        name: "AI Study Assistant",
-        path: '/dashboard/ai-study-assistant',
-        icon: 'VscHubot',
-        allowedRoles: [ACCOUNT_TYPE.STUDENT, ACCOUNT_TYPE.INSTRUCTOR],
-    },
-    {
-        id: 6,
-        name: "Text to Video Summarizer",
-        path: '/dashboard/text-to-video-summarizer',
-        icon: 'BiVideo',
-        allowedRoles: [ACCOUNT_TYPE.STUDENT, ACCOUNT_TYPE.INSTRUCTOR],
-    },
-
     // Instructor Links
     {
         id: 7,
@@ -125,6 +103,27 @@ export const sidebarLinks = [
         path: '/admin/settings',
         icon: 'VscSettingsGear',
         allowedRoles: [ACCOUNT_TYPE.ADMIN],
+    },
+        {
+        id: 4,
+        name: "Smart Study Companion",
+        path: '/dashboard/smart-study',
+        icon: 'VscBook',
+        allowedRoles: [ACCOUNT_TYPE.STUDENT, ACCOUNT_TYPE.INSTRUCTOR],
+    },
+    {
+        id: 5,
+        name: "AI Study Assistant",
+        path: '/dashboard/ai-study-assistant',
+        icon: 'VscHubot',
+        allowedRoles: [ACCOUNT_TYPE.STUDENT, ACCOUNT_TYPE.INSTRUCTOR],
+    },
+    {
+        id: 6,
+        name: "Text to Video Summarizer",
+        path: '/dashboard/text-to-video-summarizer',
+        icon: 'BiVideo',
+        allowedRoles: [ACCOUNT_TYPE.STUDENT, ACCOUNT_TYPE.INSTRUCTOR],
     },
 ]
 

@@ -1,4 +1,5 @@
 import express from "express";
+import fileUpload from "express-fileupload";
 import cookieParser from "cookie-parser";
 import cors from "cors";
 import helmet from "helmet";
@@ -45,6 +46,9 @@ app.use(cors({
   origin: process.env.CORS_ORIGINS?.split(',') || ['http://localhost:3000', 'http://localhost:4000'],
   credentials: true,
 }));
+
+// File upload — must be before routes; useTempFiles required by Cloudinary uploader (uses file.tempFilePath)
+app.use(fileUpload({ useTempFiles: true, tempFileDir: '/tmp/' }));
 
 // Body parsing & cookies
 app.use(express.json());

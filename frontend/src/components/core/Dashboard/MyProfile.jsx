@@ -1,148 +1,179 @@
-import { RiEditBoxLine } from "react-icons/ri"
+import { useEffect } from "react"
 import { useDispatch, useSelector } from "react-redux"
 import { useNavigate } from "react-router-dom"
-import { formattedDate } from "../../../utils/dateFormatter"
-import IconBtn from "../../common/IconBtn"
-import { useEffect } from "react"
+import {
+  FiUser, FiMail, FiPhone, FiCalendar, FiFileText, FiEdit2, FiInfo
+} from "react-icons/fi"
+import { BsGenderAmbiguous, BsPersonBadge } from "react-icons/bs"
 import { fetchUserDetails } from "../../../services/operations/profileAPI"
 import { getUserImage, createImageErrorHandler } from "../../../utils/imageUtils"
+import { formattedDate } from "../../../utils/dateFormatter"
+
+const DetailItem = ({ icon: Icon, label, value, placeholder }) => (
+  <div className="flex flex-col gap-1">
+    <span className="text-xs font-medium text-richblack-400 flex items-center gap-1.5">
+      <Icon className="text-[11px]" /> {label}
+    </span>
+    <span className={`text-sm font-medium ${value ? "text-richblack-5" : "text-richblack-500 italic"}`}>
+      {value || placeholder}
+    </span>
+  </div>
+)
 
 export default function MyProfile() {
   const { user } = useSelector((state) => state.profile)
   const navigate = useNavigate()
-  const dispatch = useDispatch();
+  const dispatch = useDispatch()
 
-  const getUserDetails = async () => {
-    try {
-      dispatch(fetchUserDetails(user.email));
-    } catch (error) {
-      console.error("Error fetching user details:", error);
-    }
-  };
-  
   useEffect(() => {
     if (user?.email) {
-      getUserDetails();
+      dispatch(fetchUserDetails(user.email))
     }
-  }, []);
-  
+  }, [])
+
+  const editBtn = (
+    <button
+      onClick={() => navigate("/dashboard/settings")}
+      className="flex items-center gap-1.5 text-xs font-medium text-richblack-300 hover:text-yellow-400 bg-richblack-700 hover:bg-richblack-600 border border-richblack-600 rounded-lg px-3 py-1.5 transition-colors"
+    >
+      <FiEdit2 className="text-xs" /> Edit
+    </button>
+  )
+
   return (
     <div className="w-full px-4 py-8 lg:py-0 lg:px-0">
-      <h1 className="mb-8 text-2xl font-medium text-white sm:text-3xl sm:my-14">
-        My Profile
-      </h1>
-      
-      {/* Profile Card */}
-      <div className="flex flex-col items-start justify-between gap-4 rounded-md border-[1px] border-richblack-700 bg-richblack-800 p-6 sm:flex-row sm:items-center sm:p-8 sm:px-12">
-        <div className="flex items-center gap-x-4">
-          <img
-            src={getUserImage(user)}
-            alt={`profile-${user?.firstName}`}
-            className="aspect-square w-16 rounded-full object-cover sm:w-[78px]"
-            onError={createImageErrorHandler(user)}
-            loading="lazy"
-          />
-          <div className="space-y-1">
-            <p className="text-lg font-semibold text-cyan-400">
-              {user?.firstName + " " + user?.lastName}
-            </p>
-            <p className="text-sm text-richblack-300">{user?.email}</p>
-          </div>
+
+      {/* Page Header */}
+      <div className="flex items-center gap-3 mb-8 sm:mb-10">
+        <div className="w-9 h-9 bg-yellow-400/10 rounded-lg flex items-center justify-center flex-shrink-0">
+          <FiUser className="text-yellow-400 text-base" />
         </div>
-        <IconBtn
-          text="Edit "
-          onclick={() => {
-            navigate("/dashboard/settings")
-          }}
-        >
-          <RiEditBoxLine />
-        </IconBtn>
+        <div>
+          <h1 className="text-xl font-semibold text-richblack-5">My Profile</h1>
+          <p className="text-xs text-richblack-400 mt-0.5">View and manage your personal information</p>
+        </div>
       </div>
-      
-      {/* About Section */}
-      <div className="my-8 flex flex-col gap-y-4 rounded-md border-[1px] border-richblack-700 bg-richblack-800 p-6 sm:my-10 sm:p-8 sm:px-12">
-        <div className="flex w-full items-center justify-between">
-          <p className="text-lg font-semibold text-cyan-400">About</p>
-          <IconBtn
-            text="Edit"
-            onclick={() => {
-              navigate("/dashboard/settings")
-            }}
-          >
-            <RiEditBoxLine />
-          </IconBtn>
+
+      {/* Profile Hero Card */}
+      <div className="rounded-xl border border-richblack-700 bg-richblack-800 overflow-hidden mb-6">
+        {/* Top accent strip */}
+        <div className="h-1 w-full bg-gradient-to-r from-yellow-400/60 via-yellow-400/20 to-transparent" />
+
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 px-6 md:px-10 py-6">
+          <div className="flex items-center gap-4">
+            <div className="relative flex-shrink-0">
+              <img
+                src={getUserImage(user)}
+                alt={`profile-${user?.firstName}`}
+                className="w-16 h-16 sm:w-20 sm:h-20 rounded-full object-cover ring-2 ring-richblack-600 ring-offset-2 ring-offset-richblack-800"
+                onError={createImageErrorHandler(user)}
+                loading="lazy"
+              />
+              {/* Online indicator */}
+              <span className="absolute bottom-0.5 right-0.5 w-3 h-3 bg-green-500 rounded-full border-2 border-richblack-800" />
+            </div>
+            <div className="space-y-1 min-w-0">
+              <h2 className="text-lg font-semibold text-richblack-5 truncate">
+                {user?.firstName} {user?.lastName}
+              </h2>
+              <p className="text-sm text-richblack-400 truncate">{user?.email}</p>
+              <span className={`inline-flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-full ${
+                user?.accountType === "Instructor"
+                  ? "bg-yellow-400/10 text-yellow-400 border border-yellow-400/20"
+                  : "bg-blue-400/10 text-blue-400 border border-blue-400/20"
+              }`}>
+                <BsPersonBadge className="text-xs" />
+                {user?.accountType || "Student"}
+              </span>
+            </div>
+          </div>
+          {editBtn}
         </div>
-        <p
-          className={`${
+      </div>
+
+      {/* About Section */}
+      <div className="rounded-xl border border-richblack-700 bg-richblack-800 overflow-hidden mb-6">
+        {/* Section Header */}
+        <div className="flex items-center justify-between px-6 md:px-10 py-4 border-b border-richblack-700">
+          <div className="flex items-center gap-2.5">
+            <div className="w-7 h-7 bg-yellow-400/10 rounded-lg flex items-center justify-center flex-shrink-0">
+              <FiFileText className="text-yellow-400 text-xs" />
+            </div>
+            <span className="text-sm font-semibold text-richblack-5">About</span>
+          </div>
+          {editBtn}
+        </div>
+
+        <div className="px-6 md:px-10 py-5">
+          <p className={`text-sm leading-relaxed ${
             user?.additionalDetails?.about
-              ? "text-white"
-              : "text-richblack-300"
-          } text-sm font-medium`}
-        >
-          {user?.additionalDetails?.about ?? "Write Something About Yourself"}
-        </p>
+              ? "text-richblack-100"
+              : "text-richblack-500 italic"
+          }`}>
+            {user?.additionalDetails?.about ?? "No bio added yet. Tell others a bit about yourself."}
+          </p>
+        </div>
       </div>
 
       {/* Personal Details Section */}
-      <div className="my-8 flex flex-col gap-y-8 rounded-md border-[1px] border-richblack-700 bg-richblack-800 p-6 sm:my-10 sm:p-8 sm:px-12">
-        <div className="flex w-full items-center justify-between">
-          <p className="text-lg font-semibold text-cyan-400">
-            Personal Details
-          </p>
-          <IconBtn
-            text="Edit"
-            onclick={() => {
-              navigate("/dashboard/settings")
-            }}
-          >
-            <RiEditBoxLine />
-          </IconBtn>
-        </div>
-        
-        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 sm:max-w-[500px] sm:gap-x-10">
-          <div className="flex flex-col gap-y-5">
-            <div>
-              <p className="mb-2 text-sm text-cyan-200">First Name</p>
-              <p className="text-sm font-medium text-white">
-                {user?.firstName}
-              </p>
+      <div className="rounded-xl border border-richblack-700 bg-richblack-800 overflow-hidden">
+        {/* Section Header */}
+        <div className="flex items-center justify-between px-6 md:px-10 py-4 border-b border-richblack-700">
+          <div className="flex items-center gap-2.5">
+            <div className="w-7 h-7 bg-yellow-400/10 rounded-lg flex items-center justify-center flex-shrink-0">
+              <FiInfo className="text-yellow-400 text-xs" />
             </div>
-            <div>
-              <p className="mb-2 text-sm text-cyan-200">Email</p>
-              <p className="text-sm font-medium text-white">
-                {user?.email}
-              </p>
-            </div>
-            <div>
-              <p className="mb-2 text-sm text-cyan-200">Gender</p>
-              <p className="text-sm font-medium text-white">
-                {user?.additionalDetails?.gender ?? "Add Gender"}
-              </p>
-            </div>
+            <span className="text-sm font-semibold text-richblack-5">Personal Details</span>
           </div>
-          
-          <div className="flex flex-col gap-y-5">
-            <div>
-              <p className="mb-2 text-sm text-cyan-200">Last Name</p>
-              <p className="text-sm font-medium text-white">
-                {user?.lastName}
-              </p>
-            </div>
-            <div>
-              <p className="mb-2 text-sm text-cyan-200">Phone Number</p>
-              <p className="text-sm font-medium text-white">
-                {user?.additionalDetails?.contactNumber ?? "Add Contact Number"}
-              </p>
-            </div>
-            <div>
-              <p className="mb-2 text-sm text-cyan-200">Date Of Birth</p>
-              <p className="text-sm font-medium text-white">
-                {user?.additionalDetails?.dateOfBirth ? formattedDate(user?.additionalDetails?.dateOfBirth) : "Add Date Of Birth"}
-              </p>
-            </div>
+          {editBtn}
+        </div>
+
+        <div className="px-6 md:px-10 py-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-12 gap-y-5">
+            <DetailItem
+              icon={FiUser}
+              label="First Name"
+              value={user?.firstName}
+              placeholder="Not provided"
+            />
+            <DetailItem
+              icon={FiUser}
+              label="Last Name"
+              value={user?.lastName}
+              placeholder="Not provided"
+            />
+            <DetailItem
+              icon={FiMail}
+              label="Email"
+              value={user?.email}
+              placeholder="Not provided"
+            />
+            <DetailItem
+              icon={FiPhone}
+              label="Phone Number"
+              value={user?.additionalDetails?.contactNumber}
+              placeholder="Add contact number"
+            />
+            <DetailItem
+              icon={BsGenderAmbiguous}
+              label="Gender"
+              value={user?.additionalDetails?.gender}
+              placeholder="Add gender"
+            />
+            <DetailItem
+              icon={FiCalendar}
+              label="Date of Birth"
+              value={
+                user?.additionalDetails?.dateOfBirth
+                  ? formattedDate(user.additionalDetails.dateOfBirth)
+                  : null
+              }
+              placeholder="Add date of birth"
+            />
           </div>
         </div>
       </div>
+
     </div>
   )
 }

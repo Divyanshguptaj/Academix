@@ -47,8 +47,8 @@ import BecomeInstructor from './components/core/Dashboard/BecomeInstructor';
 function App() {
   const location = useLocation();
 
-  // Check if current route starts with "/dashboard"
-  const isDashboard = location.pathname.startsWith("/dashboard");
+  // Check if current route starts with "/dashboard" or "/admin"
+  const isDashboard = location.pathname.startsWith("/dashboard") || location.pathname.startsWith("/admin");
   const isviewCourse = location.pathname.startsWith("/view-course");
 
   return (
