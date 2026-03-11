@@ -21,7 +21,7 @@ export default function ViewCourse() {
 
         const courseData = await getFullDetailsOfCourse(courseId)
         console.log("Course Data here... ", courseData)
-        if (courseData) {
+        if (courseData && courseData.courseContent) {
           dispatch(setCourseSectionData(courseData.courseContent))
           dispatch(setEntireCourseData(courseData))
 

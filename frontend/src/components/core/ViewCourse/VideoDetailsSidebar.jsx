@@ -167,7 +167,7 @@ export default function VideoDetailsSidebar({ setReviewModal }) {
 
       {/* Course Content */}
       <div className="flex-1 overflow-y-auto text-white scrollbar-thin scrollbar-thumb-richblack-600 scrollbar-track-richblack-800">
-        {courseSectionData.map((course, index) => (
+        {(courseSectionData || []).map((course, index) => (
           <div
             className="mt-2 cursor-pointer text-sm text-richblack-300"
             onClick={() => toggleSection(course?._id)}

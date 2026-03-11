@@ -9,6 +9,7 @@
     "dev": "nodemon server.js"
   },
   "dependencies": {
-    "shared-utils": "file:../shared-utils"
+    "shared-utils": "file:../shared-utils",
+    "socket.io": "^4.8.3"
   }
 }

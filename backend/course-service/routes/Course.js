@@ -17,8 +17,8 @@ router.get('/getInstructorCourses', authorize('Instructor'), getInstructorCourse
 router.get('/showAllCoures', showAllCourses);
 router.post('/getCoursePublicDetails', getCoursePublicDetails);
 
-// Course — Authenticated (enrolled student)
-router.post('/getFullCourseDetails', authorize('Student'), getCourseDetails);
+// Course — Authenticated (enrolled student, instructor, or admin)
+router.post('/getFullCourseDetails', authorize('Student', 'Instructor', 'Admin'), getCourseDetails);
 router.post('/updateCourseProgress', authorize('Student'), updateCourseProgress)
 
 // Section — Instructor only
