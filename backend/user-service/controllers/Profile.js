@@ -287,16 +287,11 @@ export const instructorDetails = async (req, res) => {
       });
     }
 
-    // Fetch instructor with populated fields
+    // Fetch instructor with profile details
     const instructor = await User.findOne({
       _id: userId.trim(),
       accountType: "Instructor",
-    })
-      .populate("additionalDetails")
-      .populate({
-        path: "courses",
-        select: "courseName courseDescription price studentsEnrolled thumbnail",
-      });
+    }).populate("additionalDetails");
 
     if (!instructor) {
       return res.status(404).json({
@@ -305,23 +300,23 @@ export const instructorDetails = async (req, res) => {
       });
     }
 
-    // If instructor exists but has no courses
-    if (!instructor.courses || instructor.courses.length === 0) {
-      return res.status(200).json({
-        success: true,
-        message: "Instructor found, but no courses available yet.",
-        instructor: {
-          ...instructor.toObject(),
-          courses: [],
-        },
+    // Fetch courses from course-service
+    let courses = [];
+    if (instructor.courses?.length > 0) {
+      const courseIds = instructor.courses.map((id) => id.toString());
+      const courseRes = await courseService.get("/course/get-courses-by-ids", {
+        params: { ids: courseIds.join(",") },
       });
+      courses = courseRes.data?.data || [];
     }
 
-    // If instructor and courses found
     return res.status(200).json({
       success: true,
       message: "Instructor data fetched successfully.",
-      instructor,
+      instructor: {
+        ...instructor.toObject(),
+        courses,
+      },
     });
   } catch (error) {
     console.error("Error fetching instructor details:", error.message);

@@ -12,8 +12,9 @@
     "shared-utils"
   ],
   "scripts": {
-    "dev": "concurrently \"npm run dev --workspace=user-service\" \"npm run dev --workspace=course-service\" \"npm run dev --workspace=payment-service\" \"npm run dev --workspace=ai-service\" \"npm run dev --workspace=api-gateway\"",
-    "start": "concurrently \"npm start --workspace=user-service\" \"npm start --workspace=course-service\" \"npm start --workspace=payment-service\" \"npm start --workspace=ai-service\" \"npm start --workspace=api-gateway\"",
+    "kill-ports": "powershell -NoProfile -Command \"@(4000,4001,4002,4003,4004) | ForEach-Object { $c = Get-NetTCPConnection -LocalPort $_ -EA SilentlyContinue | Select-Object -First 1; if ($c) { Stop-Process -Id $c.OwningProcess -Force -EA SilentlyContinue } }\"",
+    "dev": "npm run kill-ports && concurrently \"npm run dev --workspace=user-service\" \"npm run dev --workspace=course-service\" \"npm run dev --workspace=payment-service\" \"npm run dev --workspace=ai-service\" \"npm run dev --workspace=api-gateway\"",
+    "start": "npm run kill-ports && concurrently \"npm start --workspace=user-service\" \"npm start --workspace=course-service\" \"npm start --workspace=payment-service\" \"npm start --workspace=ai-service\" \"npm start --workspace=api-gateway\"",
     "install:all": "npm install",
     "clean": "rm -rf node_modules */node_modules"
   },

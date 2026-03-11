@@ -5,6 +5,7 @@ import { useEffect, useState } from "react"
 import { FaCheck } from "react-icons/fa"
 import { FiEdit2 } from "react-icons/fi"
 import { HiClock } from "react-icons/hi"
+import { MdOutlinePlayCircle } from "react-icons/md"
 import { RiDeleteBin6Line } from "react-icons/ri"
 import { useNavigate } from "react-router-dom"
 import {
@@ -84,6 +85,13 @@ export default function CoursesTable({ courses, setCourses }) {
 
       {/* Action Buttons */}
       <div className="flex gap-2">
+        <button
+          onClick={() => navigate(`/view-course/${course._id}`)}
+          className="flex-1 flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200"
+        >
+          <MdOutlinePlayCircle size={16} />
+          View
+        </button>
         <button
           disabled={loading}
           onClick={() => navigate(`/dashboard/edit-course/${course._id}`)}
@@ -218,6 +226,13 @@ export default function CoursesTable({ courses, setCourses }) {
                   </Td>
                   
                   <Td className="text-sm font-medium text-richblack-300 flex items-center gap-2 min-w-[100px]">
+                    <button
+                      onClick={() => navigate(`/view-course/${course._id}`)}
+                      title="View Course"
+                      className="p-2 transition-all duration-200 hover:scale-110 hover:text-blue-400 rounded-full hover:bg-richblack-700"
+                    >
+                      <MdOutlinePlayCircle size={18} />
+                    </button>
                     <button
                       disabled={loading}
                       onClick={() => {

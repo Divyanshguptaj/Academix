@@ -36,25 +36,23 @@ export default function Instructor() {
   }, [token, user])
 
   useEffect(() => {
-    if (instructorData?.courses?.length > 0) {
-      const totalStudents = instructorData.courses.reduce(
+    if (courses.length > 0) {
+      const total = courses.reduce(
         (acc, course) => acc + (course.studentsEnrolled?.length || 0),
         0
       )
-
-      const totalAmount = instructorData.courses.reduce(
+      const amount = courses.reduce(
         (acc, course) =>
-          acc + course.price * (course.studentsEnrolled?.length || 0),
+          acc + (course.price || 0) * (course.studentsEnrolled?.length || 0),
         0
       )
-
-      setTotalStudents(totalStudents)
-      setTotalAmount(totalAmount)
+      setTotalStudents(total)
+      setTotalAmount(amount)
     } else {
       setTotalStudents(0)
       setTotalAmount(0)
     }
-  }, [instructorData])
+  }, [courses])
 
   return (
     <div className="px-4 md:px-0">
@@ -152,7 +150,7 @@ export default function Instructor() {
                     </p>
                     <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 text-xs md:text-sm">
                       <span className="font-medium text-richblack-300">
-                        {course.studentsEnrolled.length} student{course.studentsEnrolled.length !== 1 ? 's' : ''}
+                        {course.studentsEnrolled?.length || 0} student{(course.studentsEnrolled?.length || 0) !== 1 ? 's' : ''}
                       </span>
                       <span className="hidden sm:inline text-richblack-300">|</span>
                       <span className="font-medium text-richblack-300">
