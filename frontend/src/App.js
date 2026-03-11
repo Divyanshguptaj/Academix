@@ -43,6 +43,9 @@ import Footer from './components/common/Footer';
 import GoogleAuthHandler from './components/core/Auth/GoogleAuthHandler';
 import Auth0Callback from './pages/Auth0Callback';
 import BecomeInstructor from './components/core/Dashboard/BecomeInstructor';
+import PrivateRoute from './components/core/Auth/PrivateRoute';
+import EnrolledRoute from './components/core/Auth/EnrolledRoute';
+import { ACCOUNT_TYPE } from './utils/constants';
 
 function App() {
   const location = useLocation();
@@ -87,36 +90,45 @@ function App() {
             <Route path="/catalog/:catalogName" element={<Catalog />} />
             <Route path="/courses/:courseId" element={<CourseDetails />} />
 
-            {/* Dashboard Routes */}
+            {/* Dashboard Routes — requires login; child routes further restrict by role */}
             <Route
               path="/dashboard"
               element={
-                <div className="w-screen m-0">
-                  <DashBoard />
-                </div>
+                <PrivateRoute>
+                  <div className="w-screen m-0">
+                    <DashBoard />
+                  </div>
+                </PrivateRoute>
               }
             >
+              {/* Student + Instructor */}
               <Route path="my-profile" element={<Profile />} />
-              <Route path="cart" element={<Cart />} />
-              <Route path="add-courses" element={<AddCourse />} />
               <Route path="settings" element={<Settings />} />
-              <Route path="instructor-courses" element={<InstructorCourses />} />
-              <Route path="instructor" element={<Instructor />} />
-              <Route path="enrolled-courses" element={<EnrolledCourses />} />
               <Route path="smart-study" element={<SmartStudyCompanion />} />
               <Route path="ai-study-assistant" element={<AIStudyAssistant />} />
               <Route path="text-to-video-summarizer" element={<TextToVideoSummarizer />} />
-              <Route path="edit-course/:courseId" element={<EditCourse />} />
-              <Route path="become-instructor" element={<BecomeInstructor />} />
+
+              {/* Student only */}
+              <Route path="cart" element={<PrivateRoute allowedRoles={[ACCOUNT_TYPE.STUDENT]}><Cart /></PrivateRoute>} />
+              <Route path="enrolled-courses" element={<PrivateRoute allowedRoles={[ACCOUNT_TYPE.STUDENT]}><EnrolledCourses /></PrivateRoute>} />
+              <Route path="become-instructor" element={<PrivateRoute allowedRoles={[ACCOUNT_TYPE.STUDENT]}><BecomeInstructor /></PrivateRoute>} />
+
+              {/* Instructor only */}
+              <Route path="add-courses" element={<PrivateRoute allowedRoles={[ACCOUNT_TYPE.INSTRUCTOR]}><AddCourse /></PrivateRoute>} />
+              <Route path="instructor-courses" element={<PrivateRoute allowedRoles={[ACCOUNT_TYPE.INSTRUCTOR]}><InstructorCourses /></PrivateRoute>} />
+              <Route path="instructor" element={<PrivateRoute allowedRoles={[ACCOUNT_TYPE.INSTRUCTOR]}><Instructor /></PrivateRoute>} />
+              <Route path="edit-course/:courseId" element={<PrivateRoute allowedRoles={[ACCOUNT_TYPE.INSTRUCTOR]}><EditCourse /></PrivateRoute>} />
             </Route>
 
-            {/* Admin Routes - Uses same Dashboard component with role-based access */}
+            {/* Admin Routes — Admin role required */}
             <Route
               path="/admin"
               element={
-                <div className="w-screen m-0">
-                  <DashBoard />
-                </div>
+                <PrivateRoute allowedRoles={[ACCOUNT_TYPE.ADMIN]}>
+                  <div className="w-screen m-0">
+                    <DashBoard />
+                  </div>
+                </PrivateRoute>
               }
             >
               <Route path="my-profile" element={<AdminDashboardOverview />} />
@@ -129,13 +141,15 @@ function App() {
               <Route path="settings" element={<AdminSettings />} />
             </Route>
 
-            {/* Course View */}
+            {/* Course View — login + enrollment required */}
             <Route
               path="/view-course/:courseId"
               element={
-                <div className="w-screen m-0">
-                  <ViewCourse />
-                </div>
+                <EnrolledRoute>
+                  <div className="w-screen m-0">
+                    <ViewCourse />
+                  </div>
+                </EnrolledRoute>
               }
             >
               <Route
