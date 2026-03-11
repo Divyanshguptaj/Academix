@@ -37,6 +37,7 @@ import About from './pages/About';
 import Catalog from './pages/Catalog';
 import ViewCourse from "./pages/ViewCourse";
 import VideoDetails from "./components/core/ViewCourse/VideoDetails";
+import DiscussionPage from "./components/core/ViewCourse/DiscussionPage";
 import CourseDetails from './pages/CourseDetails';
 import ContactUsPage from './pages/Contact';
 import Footer from './components/common/Footer';
@@ -155,6 +156,10 @@ function App() {
               <Route
                 path="section/:sectionId/sub-section/:subSectionId"
                 element={<VideoDetails />}
+              />
+              <Route
+                path="discussion"
+                element={<DiscussionPage />}
               />
             </Route>
           </Routes>

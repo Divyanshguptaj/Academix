@@ -62,6 +62,16 @@ app.get("/", (req, res) => {
   });
 });
 
+// Socket.IO WebSocket proxy — must be before other routes
+app.use(
+  "/socket.io",
+  createProxyMiddleware({
+    target: COURSE_SERVICE_URL,
+    changeOrigin: true,
+    ws: true,
+  })
+);
+
 // Auth routes proxy
 app.use(
   "/api/v1/auth",

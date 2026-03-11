@@ -1,4 +1,6 @@
 import express from 'express';
+import { createServer } from 'http';
+import { Server } from 'socket.io';
 import fileUpload from 'express-fileupload';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
@@ -12,6 +14,7 @@ import courseRoutes from './routes/Course.js';
 import adminRoutes from './routes/admin.js';
 import database from './config/database.js';
 import { validateEnv } from '../shared-utils/validateEnv.js';
+import { setIo } from './socket.js';
 
 // Load .env from this service's own directory, regardless of what cwd is at startup
 dotenv.config({ path: resolve(dirname(fileURLToPath(import.meta.url)), '.env') });
@@ -90,8 +93,29 @@ app.use((err, req, res, next) => {
   });
 });
 
+// Create HTTP server and attach Socket.IO
+const httpServer = createServer(app);
+const io = new Server(httpServer, {
+  cors: {
+    origin: process.env.CORS_ORIGINS?.split(',') || ['http://localhost:3000', 'http://localhost:4000'],
+    credentials: true,
+  },
+});
+
+// Register io singleton so controllers can emit events
+setIo(io);
+
+io.on('connection', (socket) => {
+  socket.on('join-course', (courseId) => {
+    socket.join(courseId);
+  });
+  socket.on('leave-course', (courseId) => {
+    socket.leave(courseId);
+  });
+});
+
 // Graceful shutdown — finish in-flight requests before exiting
-const server = app.listen(PORT, () => {
+const server = httpServer.listen(PORT, () => {
   console.log(`Course Service running on port ${PORT}`);
 });
 

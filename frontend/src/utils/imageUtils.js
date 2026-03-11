@@ -9,15 +9,23 @@
  */
 export const decodeImageUrl = (imageUrl) => {
   if (!imageUrl) return null;
-  
-  // Replace HTML entities with their actual characters
-  return imageUrl
-    .replace(/&#x2F;/g, '/')  // Replace &#x2F; with /
-    .replace(/&/g, '&')   // Replace & with &
-    .replace(/</g, '<')    // Replace < with <
-    .replace(/>/g, '>')    // Replace > with >
-    .replace(/"/g, '"')  // Replace " with "
-    .replace(/&#x27;/g, "'")  // Replace &#x27; with '
+  // Use the browser's own HTML parser — handles every entity type including
+  // &#x2F; &#47; &amp; &lt; &gt; &quot; &#x27; named entities, etc.
+  try {
+    const txt = document.createElement('textarea');
+    txt.innerHTML = imageUrl;
+    return txt.value || null;
+  } catch {
+    // Fallback (non-browser env): handle the most common case manually
+    return imageUrl
+      .replace(/&#x([0-9a-fA-F]+);/gi, (_, hex) => String.fromCharCode(parseInt(hex, 16)))
+      .replace(/&#(\d+);/gi, (_, dec) => String.fromCharCode(parseInt(dec, 10)))
+      .replace(/&amp;/g, '&')
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/&quot;/g, '"')
+      .replace(/&#x27;/g, "'") || null;
+  }
 };
 
 /**

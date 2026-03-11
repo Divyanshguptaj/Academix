@@ -5,57 +5,79 @@ import { useSocket } from '../../../contexts/SocketContext';
 import { toast } from 'react-hot-toast';
 import { apiConnector } from '../../../services/apiconnector';
 import { discussionEndpoints } from '../../../services/apis';
-import DiscussionActivation from './DiscussionActivation';
 import DiscussionList from './DiscussionList';
 import DiscussionForm from './DiscussionForm';
 
+const { GET_DISCUSSIONS } = discussionEndpoints;
+
 export default function DiscussionPage() {
     const { courseId } = useParams();
-    const { courseEntireData } = useSelector((state) => state.viewCourse);
-    const { socket, isConnected, onDiscussionCreated, offDiscussionCreated, onDiscussionEnabled, offDiscussionEnabled } = useSocket();
-    
-    const [discussionEnabled, setDiscussionEnabled] = useState(false);
+    const { token } = useSelector((state) => state.auth);
+    const { socket, isConnected, joinCourse, leaveCourse, onDiscussionCreated, offDiscussionCreated, onReplyAdded, offReplyAdded } = useSocket();
+
     const [discussions, setDiscussions] = useState([]);
-    const [showCreateForm, setShowCreateForm] = useState(false);
     const [loading, setLoading] = useState(false);
 
+    // Join socket room for this course
     useEffect(() => {
-        // Check if discussion is enabled
-        if (courseEntireData) {
-            setDiscussionEnabled(courseEntireData.discussionEnabled || false);
+        if (socket && isConnected && courseId) {
+            joinCourse(courseId);
         }
-    }, [courseEntireData]);
-
-    useEffect(() => {
-        // Fetch discussions if enabled
-        if (discussionEnabled) {
-            fetchDiscussions();
-        }
-    }, [discussionEnabled, courseId]);
-
-    useEffect(() => {
-        // Set up real-time listeners
-        if (socket && isConnected) {
-            onDiscussionCreated(handleDiscussionCreated);
-            onDiscussionEnabled(handleDiscussionEnabled);
-        }
-
         return () => {
-            if (socket) {
-                offDiscussionCreated(handleDiscussionCreated);
-                offDiscussionEnabled(handleDiscussionEnabled);
+            if (socket && courseId) {
+                leaveCourse(courseId);
             }
         };
-    }, [socket, isConnected, onDiscussionCreated, offDiscussionCreated, onDiscussionEnabled, offDiscussionEnabled]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [socket, isConnected, courseId]);
+
+    // Fetch discussions on load
+    useEffect(() => {
+        fetchDiscussions();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [courseId]);
+
+    // Real-time socket listeners
+    useEffect(() => {
+        if (!socket) return;
+
+        const handleDiscussionCreated = (data) => {
+            if (data.courseId === courseId) {
+                setDiscussions((prev) => [data.discussion, ...prev]);
+            }
+        };
+
+        const handleReplyAdded = (data) => {
+            if (data.courseId === courseId) {
+                setDiscussions((prev) =>
+                    prev.map((d) =>
+                        d._id === data.discussionId
+                            ? { ...d, replies: [...d.replies, data.reply] }
+                            : d
+                    )
+                );
+            }
+        };
+
+        onDiscussionCreated(handleDiscussionCreated);
+        onReplyAdded(handleReplyAdded);
+
+        return () => {
+            offDiscussionCreated(handleDiscussionCreated);
+            offReplyAdded(handleReplyAdded);
+        };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [socket, courseId]);
 
     const fetchDiscussions = async () => {
         setLoading(true);
         try {
             const response = await apiConnector(
                 'GET',
-                `${discussionEndpoints.GET_DISCUSSIONS}/${courseId}`
+                `${GET_DISCUSSIONS}/${courseId}`,
+                null,
+                { Authorization: `Bearer ${token}` }
             );
-
             if (response.data.success) {
                 setDiscussions(response.data.data.discussions || []);
             } else {
@@ -63,94 +85,65 @@ export default function DiscussionPage() {
             }
         } catch (error) {
             console.error('Error fetching discussions:', error);
-            toast.error(error?.response?.data?.message || 'Failed to fetch discussions. Please try again.');
+            toast.error(error?.response?.data?.message || 'Failed to fetch discussions');
         } finally {
             setLoading(false);
         }
     };
 
-    const handleDiscussionCreated = (data) => {
-        if (data.courseId === courseId) {
-            setDiscussions(prev => [data.discussion, ...prev]);
-            toast.success('New discussion created!');
-        }
-    };
-
-    const handleDiscussionEnabled = (data) => {
-        if (data.courseId === courseId) {
-            setDiscussionEnabled(true);
-            toast.success('Discussion forum has been enabled for this course!');
-        }
-    };
-
-    const handleStatusChange = (enabled) => {
-        setDiscussionEnabled(enabled);
-    };
-
     const handleCreateDiscussion = (discussion) => {
-        setDiscussions(prev => [discussion, ...prev]);
-        setShowCreateForm(false);
-        toast.success('Discussion created successfully!');
+        // If socket connected, the 'discussion:created' event fires for everyone
+        // including the sender — so don't add locally to avoid duplicates.
+        // Only add locally as fallback when socket is offline.
+        if (!isConnected) {
+            setDiscussions((prev) => [discussion, ...prev]);
+        }
     };
 
     const handleDeleteDiscussion = (discussionId) => {
-        setDiscussions(prev => prev.filter(discussion => discussion._id !== discussionId));
-        toast.success('Discussion deleted successfully!');
+        setDiscussions((prev) => prev.filter((d) => d._id !== discussionId));
+    };
+
+    const handleReplyAdded = (discussionId, reply) => {
+        setDiscussions((prev) =>
+            prev.map((d) =>
+                d._id === discussionId
+                    ? { ...d, replies: [...d.replies, reply] }
+                    : d
+            )
+        );
+    };
+
+    const handleDeleteReply = (discussionId, replyId) => {
+        setDiscussions((prev) =>
+            prev.map((d) =>
+                d._id === discussionId
+                    ? { ...d, replies: d.replies.filter((r) => r._id !== replyId) }
+                    : d
+            )
+        );
     };
 
     return (
-        <div className="space-y-6">
-            {/* Discussion Activation Banner */}
-            {!discussionEnabled && (
-                <DiscussionActivation 
-                    courseData={courseEntireData} 
-                    onStatusChange={handleStatusChange}
-                />
-            )}
+        <div className="space-y-6 pb-12">
+            {/* Header */}
+            <h2 className="text-2xl font-bold text-white">Discussion Forum</h2>
 
-            {/* Discussion Content */}
-            {discussionEnabled ? (
-                <div>
-                    {/* Create Discussion Button */}
-                    <div className="flex justify-between items-center mb-6">
-                        <h2 className="text-2xl font-bold text-white">Discussion Forum</h2>
-                        <button
-                            onClick={() => setShowCreateForm(!showCreateForm)}
-                            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                        >
-                            {showCreateForm ? 'Cancel' : 'Create New Discussion'}
-                        </button>
-                    </div>
+            {/* Post Form — always visible */}
+            <DiscussionForm
+                courseId={courseId}
+                onCreateDiscussion={handleCreateDiscussion}
+            />
 
-                    {/* Create Discussion Form */}
-                    {showCreateForm && (
-                        <div className="mb-6">
-                            <DiscussionForm
-                                courseId={courseId}
-                                onCreateDiscussion={handleCreateDiscussion}
-                                onCancel={() => setShowCreateForm(false)}
-                            />
-                        </div>
-                    )}
-
-                    {/* Discussion List */}
-                    <DiscussionList
-                        discussions={discussions}
-                        loading={loading}
-                        onDeleteDiscussion={handleDeleteDiscussion}
-                    />
-                </div>
-            ) : (
-                <div className="text-center py-12 bg-gray-50 rounded-lg">
-                    <div className="text-6xl mb-4">💬</div>
-                    <h2 className="text-2xl font-semibold text-gray-600 mb-2">
-                        Discussion Forum Coming Soon
-                    </h2>
-                    <p className="text-gray-500">
-                        The instructor will enable the discussion forum when ready.
-                    </p>
-                </div>
-            )}
+            {/* Discussion List */}
+            <DiscussionList
+                discussions={discussions}
+                loading={loading}
+                courseId={courseId}
+                onDeleteDiscussion={handleDeleteDiscussion}
+                onReplyAdded={handleReplyAdded}
+                onDeleteReply={handleDeleteReply}
+            />
         </div>
     );
 }

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react"
 import { BsChevronDown } from "react-icons/bs"
 import { IoIosArrowBack } from "react-icons/io"
+import { MdForum } from "react-icons/md"
 import { useSelector } from "react-redux"
 import { useLocation, useNavigate, useParams } from "react-router-dom"
 import IconBtn from "../../common/IconBtn"
@@ -163,6 +164,24 @@ export default function VideoDetailsSidebar({ setReviewModal }) {
             />
           </div>
         )}
+      </div>
+
+      {/* Discussion Forum Link */}
+      <div className="border-b border-richblack-600 px-3 py-2">
+        <button
+          onClick={() => {
+            navigate(`/view-course/${courseEntireData?._id}/discussion`);
+            if (isMobile) setIsSidebarOpen(false);
+          }}
+          className={`flex w-full items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors ${
+            location.pathname.includes('/discussion')
+              ? 'bg-yellow-200 text-richblack-800 font-semibold'
+              : 'text-richblack-200 hover:bg-richblack-700 hover:text-white'
+          }`}
+        >
+          <MdForum size={18} />
+          Discussion Forum
+        </button>
       </div>
 
       {/* Course Content */}

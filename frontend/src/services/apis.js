@@ -88,6 +88,15 @@ export const smartStudyEndpoints = {
   CHECK_JSON2_STATUS_API: API_GATEWAY_URL + "/smart-study/checkJson2Status",
 }
 
+// DISCUSSION ENDPOINTS (Routed through API Gateway to Course Service)
+export const discussionEndpoints = {
+  GET_DISCUSSIONS:   API_GATEWAY_URL + '/course/discussion',
+  CREATE_DISCUSSION: API_GATEWAY_URL + '/course/discussion',
+  DELETE_DISCUSSION: API_GATEWAY_URL + '/course/discussion',
+  ADD_REPLY:         API_GATEWAY_URL + '/course/discussion',
+  DELETE_REPLY:      API_GATEWAY_URL + '/course/discussion',
+};
+
 // ADMIN API ENDPOINTS (Routed through API Gateway with dynamic service routing)
 export const adminEndpoints = {
   // User Service Admin Endpoints

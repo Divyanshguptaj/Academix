@@ -6,6 +6,7 @@ import { authorize } from '../../shared-utils/middlewares/auth.js'
 import { createSection, updateSection, deleteSection } from '../controllers/Section.js'
 import { createSubSection, deleteSubSection, updateSubSection } from '../controllers/Subsection.js'
 import { createRating, getAverageRating, getAllReviews } from '../controllers/RatingAndReview.js';
+import discussionRouter from './Discussion.js';
 
 // Course — Instructor only
 router.post('/createCourse', authorize('Instructor'), createCourse)
@@ -46,5 +47,8 @@ router.get('/details/:courseId', getCourseDetailsForPayment);
 router.post('/enroll', enrollStudentInCourse);
 router.get('/get-courses-by-ids', getCourseByIds);
 router.get('/getEnrolledStudents/:courseId', getEnrolledStudentsWithProgress);
+
+// Discussion Forum
+router.use('/discussion', discussionRouter);
 
 export default router
