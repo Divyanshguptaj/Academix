@@ -34,8 +34,9 @@ app.use(cors({
 
 app.use(cookieParser());
 
-// Request timeout — return 408 if a request hangs for more than 30s
+// Request timeout — 30s for normal requests; skip for multipart (file/video uploads)
 app.use((req, res, next) => {
+  if (req.is('multipart/form-data')) return next();
   const timeout = setTimeout(() => {
     if (!res.headersSent) {
       res.status(408).json({ success: false, message: 'Request timeout' });

@@ -9,26 +9,22 @@ import {
 
 const router = express.Router()
 
-// List courses (supports query params: status, page, limit, search)
-router.get('/list', adminListCourses)
+// List courses — hit via /admin/course/admin → gateway rewrites → /admin/admin → router sees /admin
 router.get('/', authorize('Admin'), adminListCourses)
-router.get('/admin', adminListCourses) // Support /admin/admin path
+router.get('/list', authorize('Admin'), adminListCourses)
+router.get('/admin', authorize('Admin'), adminListCourses)
 
-// Approve / reject (support body { courseId } or URL param)
+// Approve / reject — hit via /admin/course/admin/approve → router sees /admin/approve
 router.post('/approve', authorize('Admin'), approveCourse)
 router.post('/reject', authorize('Admin'), rejectCourse)
+router.post('/admin/approve', authorize('Admin'), approveCourse)
+router.post('/admin/reject', authorize('Admin'), rejectCourse)
 router.post('/:id/approve', authorize('Admin'), approveCourse)
 router.post('/:id/reject', authorize('Admin'), rejectCourse)
 
-// Support for /admin/admin/approve and /admin/admin/reject paths
-router.post('/admin/approve', authorize('Admin'), approveCourse)
-router.post('/admin/reject', authorize('Admin'), rejectCourse)
-
-// Analytics
+// Analytics — hit via /admin/course/admin/analytics/:courseId → router sees /admin/analytics/:courseId
 router.get('/analytics/:courseId', authorize('Admin'), getCourseAnalytics)
-router.get('/:id/analytics', authorize('Admin'), getCourseAnalytics)
-
-// Support for /admin/admin/analytics path
 router.get('/admin/analytics/:courseId', authorize('Admin'), getCourseAnalytics)
+router.get('/:id/analytics', authorize('Admin'), getCourseAnalytics)
 
 export default router

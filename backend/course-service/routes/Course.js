@@ -1,65 +1,50 @@
 import express from 'express';
 const router = express.Router();
 import { createCategory, findAllCategory, categoryPageDetails } from '../controllers/Category.js'
-import {createCourse, showAllCourses, getCourseDetails, getCoursePublicDetails, editCourse,getInstructorCourses, deleteCourse, getCourseDetailsForPayment, enrollStudentInCourse, getCourseByIds, getEnrolledStudentsWithProgress, updateCourseProgress, adminListCourses, approveCourse, rejectCourse, getCourseAnalytics} from '../controllers/Course.js'
+import { createCourse, showAllCourses, getCourseDetails, getCoursePublicDetails, editCourse, getInstructorCourses, deleteCourse, getCourseDetailsForPayment, enrollStudentInCourse, getCourseByIds, getEnrolledStudentsWithProgress, updateCourseProgress } from '../controllers/Course.js'
 import { authorize } from '../../shared-utils/middlewares/auth.js'
-import {createSection, updateSection, deleteSection} from '../controllers/Section.js'
-import {createSubSection,deleteSubSection, updateSubSection} from '../controllers/Subsection.js'
-import {createRating, getAverageRating, getAllReviews} from '../controllers/RatingAndReview.js';
+import { createSection, updateSection, deleteSection } from '../controllers/Section.js'
+import { createSubSection, deleteSubSection, updateSubSection } from '../controllers/Subsection.js'
+import { createRating, getAverageRating, getAllReviews } from '../controllers/RatingAndReview.js';
 
-//course -
-router.post('/editCourse', editCourse)
-router.post('/createCourse', createCourse)
-router.post('/deleteCourse', deleteCourse)
-router.post('/updateCourseProgress', updateCourseProgress)
+// Course — Instructor only
+router.post('/createCourse', authorize('Instructor'), createCourse)
+router.post('/editCourse', authorize('Instructor'), editCourse)
+router.post('/deleteCourse', authorize('Instructor'), deleteCourse)
+router.get('/getInstructorCourses', authorize('Instructor'), getInstructorCourses);
+
+// Course — Public
 router.get('/showAllCoures', showAllCourses);
-router.get('/getInstructorCourses', getInstructorCourses);
-router.post('/getFullCourseDetails',getCourseDetails);
 router.post('/getCoursePublicDetails', getCoursePublicDetails);
 
-// Payment Service communication endpoints
+// Course — Authenticated (enrolled student)
+router.post('/getFullCourseDetails', authorize('Student'), getCourseDetails);
+router.post('/updateCourseProgress', authorize('Student'), updateCourseProgress)
+
+// Section — Instructor only
+router.post('/createSection', authorize('Instructor'), createSection)
+router.post('/updateSection', authorize('Instructor'), updateSection);
+router.post('/deleteSection', authorize('Instructor'), deleteSection);
+
+// Sub-section — Instructor only
+router.post('/addSubSection', authorize('Instructor'), createSubSection)
+router.post('/updateSubSection', authorize('Instructor'), updateSubSection)
+router.post('/deleteSubSection', authorize('Instructor'), deleteSubSection)
+
+// Category — public reads, Admin-only writes
+router.post('/createCategory', authorize('Admin'), createCategory)
+router.get('/showAllCategories', findAllCategory);
+router.post('/getCategoryPageDetails', categoryPageDetails);
+
+// Rating & Reviews — public reads, Student-only writes
+router.post('/createRating', authorize('Student'), createRating)
+router.get('/getAverageRating', getAverageRating);
+router.get('/getReviews', getAllReviews);
+
+// Internal service-to-service endpoints (called by payment-service / user-service, no user auth)
 router.get('/details/:courseId', getCourseDetailsForPayment);
 router.post('/enroll', enrollStudentInCourse);
-
-// User Service communication endpoint for enrolled courses
 router.get('/get-courses-by-ids', getCourseByIds);
-
-// Get enrolled students with progress for a course
 router.get('/getEnrolledStudents/:courseId', getEnrolledStudentsWithProgress);
-
-//section -
-router.post('/createSection',createSection)
-router.post('/updateSection',updateSection);
-router.post('/deleteSection',deleteSection);
-
-//sub-section -
-router.post('/addSubSection',createSubSection)
-router.post('/deleteSubSection', deleteSubSection)
-router.post('/updateSubSection', updateSubSection)
-
-//category -
-router.post('/createCategory',authorize('Admin'), createCategory)
-router.get('/showAllCategories',findAllCategory);
-router.post('/getCategoryPageDetails',categoryPageDetails);
-
-// Admin - course management
-// Support both REST-style and explicit routes so gateway/frontend variants work
-router.get('/admin', authorize('Admin'), adminListCourses);
-router.get('/admin/list', authorize('Admin'), adminListCourses);
-
-// Approve/reject by body { courseId } or by URL param /admin/:id/approve
-router.post('/admin/approve', authorize('Admin'), approveCourse);
-router.post('/admin/reject', authorize('Admin'), rejectCourse);
-router.post('/admin/:id/approve', authorize('Admin'), approveCourse);
-router.post('/admin/:id/reject', authorize('Admin'), rejectCourse);
-
-// Analytics: support /admin/analytics/:courseId and /admin/:id/analytics
-router.get('/admin/analytics/:courseId', authorize('Admin'), getCourseAnalytics);
-router.get('/admin/:id/analytics', authorize('Admin'), getCourseAnalytics);
-
-//review and rating -
-router.post('/createRating', authorize('Student'), createRating)
-router.get('/getAverageRating',getAverageRating);
-router.get('/getReviews',getAllReviews);
 
 export default router

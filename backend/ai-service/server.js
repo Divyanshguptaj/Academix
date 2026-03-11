@@ -48,8 +48,9 @@ app.use(cookieParser());
 // File upload middleware (needed for generateSummary)
 app.use(fileUpload({ limits: { fileSize: 50 * 1024 * 1024 } }));
 
-// Request timeout — return 408 if a request hangs for more than 30s
+// Request timeout — 30s for normal requests; skip for multipart (file uploads like generateSummary)
 app.use((req, res, next) => {
+  if (req.is('multipart/form-data')) return next();
   const timeout = setTimeout(() => {
     if (!res.headersSent) {
       res.status(408).json({ success: false, message: 'Request timeout' });

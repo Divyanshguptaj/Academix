@@ -131,10 +131,11 @@ export const createSection = async (data) => {
 // create a subsection
 export const createSubSection = async (data) => {
   let result = null;
-  const toastId = toast.loading("Loading...");
+  const toastId = toast.loading("Uploading lecture...");
 
   try {
-    const response = await apiConnector("POST", CREATE_SUBSECTION_API, data);
+    // timeout: 0 = no timeout — video uploads can take any amount of time
+    const response = await apiConnector("POST", CREATE_SUBSECTION_API, data, {}, null, 0);
 
     console.log("CREATE SUB-SECTION API RESPONSE:", response);
 
@@ -143,7 +144,7 @@ export const createSubSection = async (data) => {
     }
 
     toast.success("Lecture Added");
-    result = response?.data?.data; // 🔹 Get updated course details
+    result = response?.data?.data;
 
   } catch (error) {
     console.log("CREATE SUB-SECTION API ERROR:", error);
@@ -177,9 +178,10 @@ export const updateSection = async (data,) => {
 // update a subsection
 export const updateSubSection = async (data) => {
   let result = null
-  const toastId = toast.loading("Loading...")
+  const toastId = toast.loading("Uploading lecture...")
   try {
-    const response = await apiConnector("POST", UPDATE_SUBSECTION_API, data)
+    // timeout: 0 = no timeout — video re-upload can take any amount of time
+    const response = await apiConnector("POST", UPDATE_SUBSECTION_API, data, {}, null, 0)
     console.log("UPDATE SUB-SECTION API RESPONSE............", response)
     if (!response?.data?.success) {
       throw new Error("Could Not Update Lecture")

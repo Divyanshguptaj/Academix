@@ -1,4 +1,5 @@
 import express from 'express';
+import fileUpload from 'express-fileupload';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
@@ -39,13 +40,17 @@ app.use(cors({
   credentials: true,
 }));
 
+// File upload — must be before routes; useTempFiles required by Cloudinary uploader (uses file.tempFilePath)
+app.use(fileUpload({ useTempFiles: true, tempFileDir: '/tmp/' }));
+
 // Body parsing & cookies
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
-// Request timeout — return 408 if a request hangs for more than 30s
+// Request timeout — 30s for normal requests; skip for multipart (file/video uploads)
 app.use((req, res, next) => {
+  if (req.is('multipart/form-data')) return next();
   const timeout = setTimeout(() => {
     if (!res.headersSent) {
       res.status(408).json({ success: false, message: 'Request timeout' });

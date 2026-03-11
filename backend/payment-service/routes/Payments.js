@@ -10,7 +10,4 @@ router.post("/capturePayment", authorize('Student'), capturePayment);
 // Verify payment signature and complete enrollment - students only
 router.post("/verifyPayment", authorize('Student'), verifyPayment);
 
-// Manual refund - admin only
-router.post("/refund", authorize('Admin'), refundPayment);
-
 export default router
