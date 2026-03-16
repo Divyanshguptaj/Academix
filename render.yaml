@@ -21,7 +21,9 @@ envVarGroups:
 
   - name: academix-mail
     envVars:
-      - key: BREVO_API_KEY
+      - key: MAILJET_API_KEY
+        sync: false
+      - key: MAILJET_SECRET_KEY
         sync: false
       - key: MAIL_FROM
         sync: false
