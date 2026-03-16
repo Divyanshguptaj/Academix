@@ -1,23 +1,19 @@
-import { Resend } from 'resend'
+import * as Brevo from '@getbrevo/brevo'
 
-const resend = new Resend(process.env.RESEND_API_KEY)
+const apiInstance = new Brevo.TransactionalEmailsApi()
+apiInstance.setApiKey(Brevo.TransactionalEmailsApiApiKeys.apiKey, process.env.BREVO_API_KEY)
 
 const mailSender = async (email, title, body) => {
   try {
-    const { data, error } = await resend.emails.send({
-      from: `Academix <${process.env.MAIL_FROM || 'onboarding@resend.dev'}>`,
-      to: email,
-      subject: title,
-      html: body,
-    })
+    const sendSmtpEmail = new Brevo.SendSmtpEmail()
+    sendSmtpEmail.to = [{ email }]
+    sendSmtpEmail.sender = { email: process.env.MAIL_FROM, name: 'Academix' }
+    sendSmtpEmail.subject = title
+    sendSmtpEmail.htmlContent = body
 
-    if (error) {
-      console.error('Error sending email:', error)
-      throw new Error(error.message)
-    }
-
-    console.log('Email sent successfully:', data.id)
-    return data
+    const result = await apiInstance.sendTransacEmail(sendSmtpEmail)
+    console.log('Email sent successfully:', result.body?.messageId)
+    return result
   } catch (error) {
     console.error('Error sending email:', error)
     throw error
