@@ -27,6 +27,7 @@ validateEnv(
 
 const app = express();
 const PORT = process.env.PORT || 4001;
+app.set('trust proxy', 1);
 
 await database();
 mongoose.connection.once("open", async () => {
