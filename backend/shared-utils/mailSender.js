@@ -1,18 +1,24 @@
-import * as Brevo from '@getbrevo/brevo'
+import Mailjet from 'node-mailjet'
 
-const apiInstance = new Brevo.TransactionalEmailsApi()
-apiInstance.setApiKey(Brevo.TransactionalEmailsApiApiKeys.apiKey, process.env.BREVO_API_KEY)
+const mailjet = Mailjet.apiConnect(
+  process.env.MAILJET_API_KEY,
+  process.env.MAILJET_SECRET_KEY
+)
 
 const mailSender = async (email, title, body) => {
   try {
-    const sendSmtpEmail = new Brevo.SendSmtpEmail()
-    sendSmtpEmail.to = [{ email }]
-    sendSmtpEmail.sender = { email: process.env.MAIL_FROM, name: 'Academix' }
-    sendSmtpEmail.subject = title
-    sendSmtpEmail.htmlContent = body
+    const result = await mailjet.post('send', { version: 'v3.1' }).request({
+      Messages: [
+        {
+          From: { Email: process.env.MAIL_FROM, Name: 'Academix' },
+          To: [{ Email: email }],
+          Subject: title,
+          HTMLPart: body,
+        },
+      ],
+    })
 
-    const result = await apiInstance.sendTransacEmail(sendSmtpEmail)
-    console.log('Email sent successfully:', result.body?.messageId)
+    console.log('Email sent successfully:', result.body.Messages[0].Status)
     return result
   } catch (error) {
     console.error('Error sending email:', error)
