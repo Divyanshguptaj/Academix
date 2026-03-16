@@ -1,28 +1,23 @@
-import nodemailer from 'nodemailer'
+import { Resend } from 'resend'
+
+const resend = new Resend(process.env.RESEND_API_KEY)
 
 const mailSender = async (email, title, body) => {
   try {
-    // Create transporter
-    const transporter = nodemailer.createTransport({
-      host: process.env.MAIL_HOST,
-      port: parseInt(process.env.MAIL_PORT) || 465,
-      secure: process.env.MAIL_SECURE === 'true',
-      auth: {
-        user: process.env.MAIL_USER,
-        pass: process.env.MAIL_PASS
-      }
-    })
-
-    // Send email
-    const info = await transporter.sendMail({
-      from: `"Academix" <${process.env.MAIL_USER}>`,
+    const { data, error } = await resend.emails.send({
+      from: `Academix <${process.env.MAIL_FROM || 'onboarding@resend.dev'}>`,
       to: email,
       subject: title,
-      html: body
+      html: body,
     })
 
-    console.log('Email sent successfully:', info.messageId)
-    return info
+    if (error) {
+      console.error('Error sending email:', error)
+      throw new Error(error.message)
+    }
+
+    console.log('Email sent successfully:', data.id)
+    return data
   } catch (error) {
     console.error('Error sending email:', error)
     throw error
