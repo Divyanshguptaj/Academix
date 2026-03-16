@@ -36,9 +36,8 @@ services:
     name: academix-api-gateway
     runtime: node
     plan: free
-    rootDir: backend/api-gateway
-    buildCommand: npm install
-    startCommand: node server.js
+    buildCommand: cd backend/api-gateway && npm install
+    startCommand: cd backend/api-gateway && node server.js
     envVars:
       - fromGroup: academix-shared
       - key: CORS_ORIGINS
@@ -57,9 +56,8 @@ services:
     name: academix-user-service
     runtime: node
     plan: free
-    rootDir: backend/user-service
-    buildCommand: npm install
-    startCommand: node server.js
+    buildCommand: cd backend/user-service && npm install
+    startCommand: cd backend/user-service && node server.js
     envVars:
       - fromGroup: academix-shared
       - fromGroup: academix-cloudinary
@@ -84,9 +82,8 @@ services:
     name: academix-course-service
     runtime: node
     plan: free
-    rootDir: backend/course-service
-    buildCommand: npm install
-    startCommand: node server.js
+    buildCommand: cd backend/course-service && npm install
+    startCommand: cd backend/course-service && node server.js
     envVars:
       - fromGroup: academix-shared
       - fromGroup: academix-cloudinary
@@ -104,9 +101,8 @@ services:
     name: academix-payment-service
     runtime: node
     plan: free
-    rootDir: backend/payment-service
-    buildCommand: npm install
-    startCommand: node server.js
+    buildCommand: cd backend/payment-service && npm install
+    startCommand: cd backend/payment-service && node server.js
     envVars:
       - fromGroup: academix-shared
       - fromGroup: academix-mail
@@ -132,9 +128,8 @@ services:
     name: academix-ai-service
     runtime: node
     plan: free
-    rootDir: backend/ai-service
-    buildCommand: npm install
-    startCommand: node server.js
+    buildCommand: cd backend/ai-service && npm install
+    startCommand: cd backend/ai-service && node server.js
     envVars:
       - fromGroup: academix-shared
       - key: GEMINI_API_KEY
