@@ -21,15 +21,9 @@ envVarGroups:
 
   - name: academix-mail
     envVars:
-      - key: MAIL_HOST
-        value: smtp.gmail.com
-      - key: MAIL_PORT
-        value: "465"
-      - key: MAIL_SECURE
-        value: "true"
-      - key: MAIL_USER
+      - key: RESEND_API_KEY
         sync: false
-      - key: MAIL_PASS
+      - key: MAIL_FROM
         sync: false
 
 services:
