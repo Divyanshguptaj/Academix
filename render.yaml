@@ -1,0 +1,142 @@
+envVarGroups:
+  - name: academix-shared
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: MONGODB_URL
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: INTERNAL_SERVICE_SECRET
+        sync: false
+
+  - name: academix-cloudinary
+    envVars:
+      - key: CLOUD_NAME
+        value: dfocfto1r
+      - key: API_KEY
+        sync: false
+      - key: API_SECRET
+        sync: false
+
+  - name: academix-mail
+    envVars:
+      - key: MAIL_HOST
+        value: smtp.gmail.com
+      - key: MAIL_PORT
+        value: "587"
+      - key: MAIL_USER
+        sync: false
+      - key: MAIL_PASS
+        sync: false
+
+services:
+  # ─── API GATEWAY ──────────────────────────────────────────────
+  - type: web
+    name: academix-api-gateway
+    runtime: node
+    rootDir: backend/api-gateway
+    buildCommand: npm install
+    startCommand: node server.js
+    envVars:
+      - fromGroup: academix-shared
+      - key: CORS_ORIGINS
+        value: https://academix-sigma.vercel.app
+      - key: USER_SERVICE_URL
+        value: https://academix-user-service.onrender.com
+      - key: COURSE_SERVICE_URL
+        value: https://academix-course-service.onrender.com
+      - key: PAYMENT_SERVICE_URL
+        value: https://academix-payment-service.onrender.com
+      - key: AI_SERVICE_URL
+        value: https://academix-ai-service.onrender.com
+
+  # ─── USER SERVICE ─────────────────────────────────────────────
+  - type: web
+    name: academix-user-service
+    runtime: node
+    rootDir: backend/user-service
+    buildCommand: npm install
+    startCommand: node server.js
+    envVars:
+      - fromGroup: academix-shared
+      - fromGroup: academix-cloudinary
+      - fromGroup: academix-mail
+      - key: FOLDER_NAME
+        value: study_notion_user
+      - key: ADMIN_MAIL
+        sync: false
+      - key: CORS_ORIGINS
+        value: https://academix-api-gateway.onrender.com
+      - key: COURSE_SERVICE_URL
+        value: https://academix-course-service.onrender.com
+      - key: PAYMENT_SERVICE_URL
+        value: https://academix-payment-service.onrender.com
+      - key: API_GATEWAY_URL
+        value: https://academix-api-gateway.onrender.com
+      - key: FRONTEND_URL
+        value: https://academix-sigma.vercel.app
+
+  # ─── COURSE SERVICE ───────────────────────────────────────────
+  - type: web
+    name: academix-course-service
+    runtime: node
+    rootDir: backend/course-service
+    buildCommand: npm install
+    startCommand: node server.js
+    envVars:
+      - fromGroup: academix-shared
+      - fromGroup: academix-cloudinary
+      - key: FOLDER_NAME
+        value: study_notion_course
+      - key: CORS_ORIGINS
+        value: https://academix-api-gateway.onrender.com
+      - key: API_GATEWAY_URL
+        value: https://academix-api-gateway.onrender.com
+      - key: USER_SERVICE_URL
+        value: https://academix-user-service.onrender.com
+
+  # ─── PAYMENT SERVICE ──────────────────────────────────────────
+  - type: web
+    name: academix-payment-service
+    runtime: node
+    rootDir: backend/payment-service
+    buildCommand: npm install
+    startCommand: node server.js
+    envVars:
+      - fromGroup: academix-shared
+      - fromGroup: academix-mail
+      - key: RAZORPAY_KEY
+        sync: false
+      - key: RAZORPAY_SECRET
+        sync: false
+      - key: COURSE_SERVICE_URL
+        value: https://academix-course-service.onrender.com
+      - key: USER_SERVICE_URL
+        value: https://academix-user-service.onrender.com
+      - key: MAX_RETRY_ATTEMPTS
+        value: "3"
+      - key: RETRY_DELAY_BASE
+        value: "1000"
+      - key: RETRY_DELAY_MAX
+        value: "8000"
+      - key: CORS_ORIGINS
+        value: https://academix-api-gateway.onrender.com
+
+  # ─── AI SERVICE ───────────────────────────────────────────────
+  - type: web
+    name: academix-ai-service
+    runtime: node
+    rootDir: backend/ai-service
+    buildCommand: npm install
+    startCommand: node server.js
+    envVars:
+      - fromGroup: academix-shared
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: FOLDER_NAME
+        value: study_notion_ai
+      - key: CORS_ORIGINS
+        value: https://academix-api-gateway.onrender.com
+      - key: API_GATEWAY_URL
+        value: https://academix-api-gateway.onrender.com/api/v1
