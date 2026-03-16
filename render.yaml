@@ -36,7 +36,7 @@ services:
     name: academix-api-gateway
     runtime: node
     plan: free
-    buildCommand: cd backend/api-gateway && npm install
+    buildCommand: cd backend && npm install
     startCommand: cd backend/api-gateway && node server.js
     envVars:
       - fromGroup: academix-shared
@@ -56,7 +56,7 @@ services:
     name: academix-user-service
     runtime: node
     plan: free
-    buildCommand: cd backend/user-service && npm install
+    buildCommand: cd backend && npm install
     startCommand: cd backend/user-service && node server.js
     envVars:
       - fromGroup: academix-shared
@@ -82,7 +82,7 @@ services:
     name: academix-course-service
     runtime: node
     plan: free
-    buildCommand: cd backend/course-service && npm install
+    buildCommand: cd backend && npm install
     startCommand: cd backend/course-service && node server.js
     envVars:
       - fromGroup: academix-shared
@@ -101,7 +101,7 @@ services:
     name: academix-payment-service
     runtime: node
     plan: free
-    buildCommand: cd backend/payment-service && npm install
+    buildCommand: cd backend && npm install
     startCommand: cd backend/payment-service && node server.js
     envVars:
       - fromGroup: academix-shared
@@ -128,7 +128,7 @@ services:
     name: academix-ai-service
     runtime: node
     plan: free
-    buildCommand: cd backend/ai-service && npm install
+    buildCommand: cd backend && npm install
     startCommand: cd backend/ai-service && node server.js
     envVars:
       - fromGroup: academix-shared
