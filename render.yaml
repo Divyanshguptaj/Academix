@@ -35,6 +35,7 @@ services:
   - type: web
     name: academix-api-gateway
     runtime: node
+    plan: free
     rootDir: backend/api-gateway
     buildCommand: npm install
     startCommand: node server.js
@@ -55,6 +56,7 @@ services:
   - type: web
     name: academix-user-service
     runtime: node
+    plan: free
     rootDir: backend/user-service
     buildCommand: npm install
     startCommand: node server.js
@@ -81,6 +83,7 @@ services:
   - type: web
     name: academix-course-service
     runtime: node
+    plan: free
     rootDir: backend/course-service
     buildCommand: npm install
     startCommand: node server.js
@@ -100,6 +103,7 @@ services:
   - type: web
     name: academix-payment-service
     runtime: node
+    plan: free
     rootDir: backend/payment-service
     buildCommand: npm install
     startCommand: node server.js
@@ -127,6 +131,7 @@ services:
   - type: web
     name: academix-ai-service
     runtime: node
+    plan: free
     rootDir: backend/ai-service
     buildCommand: npm install
     startCommand: node server.js
