@@ -1,33 +1,59 @@
 import RefundRequest from '../models/RefundRequest.js'
-import User from '../../user-service/models/User.js'
-import Course from '../../course-service/models/Course.js'
 import PaymentTransaction from '../models/PaymentTransaction.js'
 import { capturePayment, refundPayment } from './Payments.js'
+import mongoose from 'mongoose'
+import { withRetry, courseService, userService } from '../utils/serviceClients.js'
 
 // Refund Management
 export const getRefundRequests = async (req, res) => {
   try {
-    const refundRequests = await RefundRequest.find()
-      .populate('studentId', 'firstName lastName email image')
-      .populate('courseId', 'courseName instructor')
-      .sort({ createdAt: -1 })
+    // Removed native Mongoose populate since student and course models reside in different microservices
+    const refundRequests = await RefundRequest.find().sort({ createdAt: -1 })
 
     // Enrich with additional data
     const enrichedRequests = await Promise.all(
       refundRequests.map(async (request) => {
-        const course = await Course.findById(request.courseId)
-        const instructor = await User.findById(course.instructor)
+        let student = null;
+        let course = null;
+        let instructor = null;
+
+        try {
+          const studentResponse = await withRetry(() => userService.get(`/profile/user/${request.studentId}`));
+          student = studentResponse.data?.user || null;
+        } catch (err) {
+          console.warn(`Could not fetch student details for ${request.studentId}`);
+        }
+
+        try {
+          const courseResponse = await withRetry(() => courseService.get(`/course/details/${request.courseId}`));
+          course = courseResponse.data?.course || null;
+
+          if (course && course.instructor) {
+            const instructorId = typeof course.instructor === 'object' ? course.instructor._id : course.instructor;
+            const instructorResponse = await withRetry(() => userService.get(`/profile/user/${instructorId}`));
+            instructor = instructorResponse.data?.user || null;
+          }
+        } catch (err) {
+          console.warn(`Could not fetch course/instructor details for ${request.courseId}`);
+        }
         
         return {
           ...request.toObject(),
-          course: {
-            ...course.toObject(),
-            instructor: {
-              firstName: instructor?.firstName,
-              lastName: instructor?.lastName,
-              email: instructor?.email
-            }
-          }
+          studentId: student ? {
+            _id: student._id,
+            firstName: student.firstName,
+            lastName: student.lastName,
+            email: student.email,
+            image: student.image
+          } : request.studentId,
+          course: course ? {
+            ...course,
+            instructor: instructor ? {
+              firstName: instructor.firstName,
+              lastName: instructor.lastName,
+              email: instructor.email
+            } : course.instructor
+          } : { _id: request.courseId }
         }
       })
     )
@@ -46,12 +72,17 @@ export const getRefundRequests = async (req, res) => {
 }
 
 export const processRefund = async (req, res) => {
+  const session = await mongoose.startSession()
+  session.startTransaction()
+
   try {
     const { id } = req.params
     const adminId = req.user.id
 
-    const refundRequest = await RefundRequest.findById(id)
+    const refundRequest = await RefundRequest.findById(id).session(session)
     if (!refundRequest) {
+      await session.abortTransaction()
+      session.endSession()
       return res.status(404).json({
         success: false,
         message: 'Refund request not found'
@@ -59,6 +90,8 @@ export const processRefund = async (req, res) => {
     }
 
     if (refundRequest.status !== 'pending') {
+      await session.abortTransaction()
+      session.endSession()
       return res.status(400).json({
         success: false,
         message: 'Refund request has already been processed'
@@ -73,13 +106,17 @@ export const processRefund = async (req, res) => {
       refundRequest.status = 'approved'
       refundRequest.processedBy = adminId
       refundRequest.processedAt = new Date()
-      await refundRequest.save()
+      await refundRequest.save({ session })
 
       // Update payment transaction status
       await PaymentTransaction.findOneAndUpdate(
-        { transactionId: refundRequest.transactionId },
-        { status: 'refunded', refundId: refundResult.id }
+        { _id: refundRequest.transactionId },
+        { status: 'refunded', refundId: refundResult.id },
+        { session }
       )
+
+      await session.commitTransaction()
+      session.endSession()
 
       res.status(200).json({
         success: true,
@@ -93,12 +130,15 @@ export const processRefund = async (req, res) => {
     } catch (refundError) {
       console.error('Refund processing error:', refundError)
       
+      await session.abortTransaction()
+      session.endSession()
+
       // Update refund request status to failed
       refundRequest.status = 'failed'
       refundRequest.processedBy = adminId
       refundRequest.processedAt = new Date()
       refundRequest.rejectionReason = 'Payment gateway error'
-      await refundRequest.save()
+      await refundRequest.save() // Saved outside of transaction so the failure state persists
 
       res.status(500).json({
         success: false,
@@ -107,6 +147,8 @@ export const processRefund = async (req, res) => {
     }
   } catch (error) {
     console.error('Process refund error:', error)
+    await session.abortTransaction()
+    session.endSession()
     res.status(500).json({
       success: false,
       message: 'Failed to process refund'

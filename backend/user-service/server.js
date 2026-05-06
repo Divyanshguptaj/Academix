@@ -30,11 +30,6 @@ const PORT = process.env.PORT || 4001;
 app.set('trust proxy', 1);
 
 await database();
-mongoose.connection.once("open", async () => {
-  const db = mongoose.connection.getClient().db("StudyNotion");
-  const collections = await db.listCollections().toArray();
-  console.log("Collections:", collections.map(c => c.name));
-});
 
 // Security headers
 app.use(helmet());

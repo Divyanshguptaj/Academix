@@ -21,6 +21,7 @@
   "dependencies": {
     "axios": "^1.7.9",
     "bcryptjs": "^2.4.3",
+    "bullmq": "^5.76.5",
     "cloudinary": "^2.5.1",
     "compression": "^1.7.5",
     "cookie-parser": "^1.4.7",
@@ -32,12 +33,13 @@
     "express-rate-limit": "^7.5.0",
     "express-validator": "^7.2.0",
     "helmet": "^8.0.0",
+    "ioredis": "^5.10.1",
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.9.1",
+    "node-mailjet": "^6.0.0",
     "nodemailer": "^6.9.16",
     "otp-generator": "^4.0.1",
-    "razorpay": "^2.9.6",
-    "node-mailjet": "^6.0.0"
+    "razorpay": "^2.9.6"
   },
   "devDependencies": {
     "concurrently": "^8.2.2",

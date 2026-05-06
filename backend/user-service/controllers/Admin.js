@@ -152,45 +152,6 @@ export const getAllUsers = async (req, res) => {
   }
 }
 
-export const updateUserStatus = async (req, res) => {
-  try {
-    const { id } = req.params
-    const { status } = req.body
-
-    if (!['active', 'suspended'].includes(status)) {
-      return res.status(400).json({
-        success: false,
-        message: 'Invalid status'
-      })
-    }
-
-    const user = await User.findByIdAndUpdate(
-      id,
-      { status },
-      { new: true }
-    ).select('-password -token -resetPasswordExpires')
-
-    if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: 'User not found'
-      })
-    }
-
-    res.status(200).json({
-      success: true,
-      data: user,
-      message: `User ${status === 'active' ? 'activated' : 'suspended'} successfully`
-    })
-  } catch (error) {
-    console.error('Update user status error:', error)
-    res.status(500).json({
-      success: false,
-      message: 'Failed to update user status'
-    })
-  }
-}
-
 export const getUserDetails = async (req, res) => {
   try {
     const { id } = req.params
@@ -266,53 +227,6 @@ export const getAllInstructors = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Failed to fetch instructors'
-    })
-  }
-}
-
-export const approveInstructor = async (req, res) => {
-  try {
-    const { id } = req.params
-    const adminId = req.user.id
-
-    const user = await User.findById(id)
-    if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: 'User not found'
-      })
-    }
-
-    if (user.accountType === 'Instructor') {
-      return res.status(400).json({
-        success: false,
-        message: 'User is already an instructor'
-      })
-    }
-
-    // Update user role
-    user.accountType = 'Instructor'
-    await user.save()
-
-    // Update any pending instructor application
-    await InstructorApplication.findOneAndUpdate(
-      { userId: id },
-      { 
-        status: 'approved',
-        reviewedBy: adminId,
-        reviewedAt: new Date()
-      }
-    )
-
-    res.status(200).json({
-      success: true,
-      message: 'Instructor role granted successfully'
-    })
-  } catch (error) {
-    console.error('Approve instructor error:', error)
-    res.status(500).json({
-      success: false,
-      message: 'Failed to approve instructor'
     })
   }
 }
