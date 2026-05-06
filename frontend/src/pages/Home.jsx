@@ -3,12 +3,12 @@ import { Link } from "react-router-dom";
 import CTAButton from "../components/core/HomePage/Button";
 import HiglightedText from "../components/core/HomePage/HiglightedText";
 import CodeBlocks from "../components/core/HomePage/CodeBlocks";
-import Banner from "../assets/Images/banner.mp4";
 import TimelineSection from "../components/core/HomePage/TimelineSection";
 import LearningLanguageSection from "../components/core/HomePage/LearningLanguageSection";
 import BecomeInstructor from "../components/core/HomePage/BecomeInstructor";
 import ExploreMore from "../components/core/HomePage/ExploreMore";
 import ReviewSlider from "../components/common/ReviewSlider";
+import ImgWithPlaceholder from "../components/common/ImgWithPlaceholder";
 
 const Home = () => {
   return (
@@ -57,9 +57,15 @@ const Home = () => {
               border: "1px solid rgba(255,255,255,0.07)",
             }}
           >
-            <video muted loop autoPlay className="w-full block">
-              <source src={Banner} type="video/mp4" />
-            </video>
+            <ImgWithPlaceholder
+              isVideo
+              src="https://res.cloudinary.com/dfocfto1r/video/upload/v1778090766/banner_j0v3kq.mp4"
+              containerClassName="w-full aspect-video"
+              muted
+              loop
+              autoPlay
+              playsInline
+            />
           </div>
         </div>
       </section>

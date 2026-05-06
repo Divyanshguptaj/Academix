@@ -109,6 +109,7 @@ const ContactUsForm = () => {
     handleSubmit,
     reset,
     setValue,
+    getValues,
     formState: { errors },
   } = useForm();
 
@@ -131,7 +132,7 @@ const ContactUsForm = () => {
         lastname: "",
         message: "",
         phoneNo: "",
-        countrycode: "",
+        countrycode: getValues("countrycode"),
       });
     } catch (error) {
       toast.error(

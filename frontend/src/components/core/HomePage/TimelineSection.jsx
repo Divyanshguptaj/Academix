@@ -1,5 +1,5 @@
 import StudyDetails from "./StudyDetails";
-import study_image from "../../../assets/Images/study_image.jpg";
+import ImgWithPlaceholder from "../../common/ImgWithPlaceholder";
 
 const TimelineSection = () => {
   return (
@@ -35,10 +35,10 @@ const TimelineSection = () => {
 
       {/* Right — image + stats */}
       <div className="w-full lg:w-[55%] flex relative pb-20 lg:pb-0">
-        <img
-          src={study_image}
+        <ImgWithPlaceholder
+          src="https://res.cloudinary.com/dfocfto1r/image/upload/v1778090730/study_image_fw5upc.jpg"
           alt="Study"
-          className="w-full h-56 sm:h-72 lg:h-96 rounded-2xl shadow-2xl object-cover"
+          containerClassName="w-full h-56 sm:h-72 lg:h-96 rounded-2xl shadow-2xl"
         />
 
         {/* Stats overlay */}

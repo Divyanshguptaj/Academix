@@ -1,4 +1,4 @@
-import FoundingStoryImage from '../../../assets/Images/FoundingStory.png'
+import ImgWithPlaceholder from '../../common/ImgWithPlaceholder'
 
 const FoundingStory = () => {
   return (
@@ -29,11 +29,10 @@ const FoundingStory = () => {
           </div>
 
           <div className="w-full lg:w-1/2 flex justify-center">
-            <img
-              src={FoundingStoryImage}
+            <ImgWithPlaceholder
+              src="https://res.cloudinary.com/dfocfto1r/image/upload/v1778090722/FoundingStory_qnigsn.png"
               alt="Founding Story"
-              className="w-full max-w-sm sm:max-w-md lg:max-w-full rounded-xl
-                         shadow-[0_0_40px_-5px_rgba(252,103,103,0.4)]"
+              containerClassName="w-full max-w-sm sm:max-w-md lg:max-w-full rounded-xl shadow-[0_0_40px_-5px_rgba(252,103,103,0.4)] aspect-[4/3] lg:min-h-[400px]"
             />
           </div>
         </div>

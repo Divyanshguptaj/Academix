@@ -1,8 +1,6 @@
 import HiglightedText from "./HiglightedText";
-import Imagells1 from "../../../assets/Images/homeStudy1.png";
-import Imagells2 from "../../../assets/Images/homeStudy2.png";
-import Imagells3 from "../../../assets/Images/homeStudy3.png";
 import CTAButton from "./Button";
+import ImgWithPlaceholder from "../../common/ImgWithPlaceholder";
 
 const LearningLanguageSection = () => {
   return (
@@ -24,24 +22,30 @@ const LearningLanguageSection = () => {
 
         {/* Images */}
         <div className="flex flex-col sm:flex-row w-full items-center justify-center mt-12 gap-8 sm:gap-6">
-          <img
-            src={Imagells1}
-            alt="Learning"
-            className="shadow-2xl w-[70%] sm:w-[28%] max-w-xs"
-            style={{ transform: "rotate(6deg)" }}
-          />
-          <img
-            src={Imagells2}
-            alt="Learning"
-            className="shadow-2xl w-[70%] sm:w-[28%] max-w-xs"
-            style={{ transform: "rotate(-4deg)" }}
-          />
-          <img
-            src={Imagells3}
-            alt="Learning"
-            className="shadow-2xl w-[70%] sm:w-[28%] max-w-xs"
-            style={{ transform: "rotate(6deg)" }}
-          />
+          <div className="shadow-2xl w-[70%] sm:w-[28%] max-w-xs" style={{ transform: "rotate(6deg)" }}>
+            <ImgWithPlaceholder
+              src="https://res.cloudinary.com/dfocfto1r/image/upload/v1778090721/homeStudy1_hmjsbm.png"
+              alt="Learning"
+              containerClassName="w-full aspect-square !bg-transparent"
+              className="!object-contain"
+            />
+          </div>
+          <div className="shadow-2xl w-[70%] sm:w-[28%] max-w-xs" style={{ transform: "rotate(-4deg)" }}>
+            <ImgWithPlaceholder
+              src="https://res.cloudinary.com/dfocfto1r/image/upload/v1778090721/homeStudy2_k0fyeq.png"
+              alt="Learning"
+              containerClassName="w-full aspect-square !bg-transparent"
+              className="!object-contain"
+            />
+          </div>
+          <div className="shadow-2xl w-[70%] sm:w-[28%] max-w-xs" style={{ transform: "rotate(6deg)" }}>
+            <ImgWithPlaceholder
+              src="https://res.cloudinary.com/dfocfto1r/image/upload/v1778090722/homeStudy3_kmvdbs.png"
+              alt="Learning"
+              containerClassName="w-full aspect-square !bg-transparent"
+              className="!object-contain"
+            />
+          </div>
         </div>
 
         <div className="mt-12">

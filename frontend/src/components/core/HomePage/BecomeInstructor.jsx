@@ -1,7 +1,7 @@
-import standing_lady_with_book from "../../../assets/Images/standing_lady_with_book.png";
 import HiglightedText from "./HiglightedText";
 import CTAButton from "./Button";
 import { FaArrowRight } from "react-icons/fa";
+import ImgWithPlaceholder from "../../common/ImgWithPlaceholder";
 
 const BecomeInstructor = () => {
   return (
@@ -9,10 +9,11 @@ const BecomeInstructor = () => {
 
       {/* Image */}
       <div className="w-full md:w-[35%] flex justify-center items-center">
-        <img
-          src={standing_lady_with_book}
+        <ImgWithPlaceholder
+          src="https://res.cloudinary.com/dfocfto1r/image/upload/v1778090728/standing_lady_with_book_uptcdl.png"
           alt="Become an Instructor"
-          className="object-contain w-[70%] sm:w-[55%] md:w-full max-w-xs md:max-w-sm"
+          containerClassName="w-[70%] sm:w-[55%] md:w-full max-w-xs md:max-w-sm aspect-[4/5] !bg-transparent"
+          className="!object-contain"
         />
       </div>
 
