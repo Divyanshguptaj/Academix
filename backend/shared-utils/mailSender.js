@@ -1,25 +1,24 @@
-import Mailjet from 'node-mailjet'
+import nodemailer from 'nodemailer'
 
 const mailSender = async (email, title, body) => {
   try {
-    const mailjet = Mailjet.apiConnect(
-      process.env.MAILJET_API_KEY,
-      process.env.MAILJET_SECRET_KEY
-    )
-
-    const result = await mailjet.post('send', { version: 'v3.1' }).request({
-      Messages: [
-        {
-          From: { Email: process.env.MAIL_FROM, Name: 'Academix' },
-          To: [{ Email: email }],
-          Subject: title,
-          HTMLPart: body,
-        },
-      ],
+    const transporter = nodemailer.createTransport({
+      host: process.env.MAIL_HOST,
+      auth: {
+        user: process.env.MAIL_USER,
+        pass: process.env.MAIL_PASS,
+      },
     })
 
-    console.log('Email sent successfully:', result.body.Messages[0].Status)
-    return result
+    const info = await transporter.sendMail({
+      from: 'Academix | StudyNotion',
+      to: email,
+      subject: title,
+      html: body,
+    })
+
+    console.log('Email sent successfully:', info.response)
+    return info
   } catch (error) {
     console.error('Error sending email:', error)
     throw error

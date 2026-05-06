@@ -9,7 +9,7 @@ import {
 const router = express.Router();
 
 // Rate limiting for contact form
-const contactRateLimit = createRateLimit(3, 15 * 60 * 1000); // 3 attempts per 15 minutes
+const contactRateLimit = createRateLimit(50, 15 * 60 * 1000); // 3 attempts per 15 minutes
 
 router.post('/', 
   contactRateLimit,

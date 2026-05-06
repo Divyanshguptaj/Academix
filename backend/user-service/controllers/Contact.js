@@ -1,4 +1,5 @@
 import mailSender from "../../shared-utils/mailSender.js";
+import { queueEmail } from "../../shared-utils/queue/email/emailQueue.js";
 
 export const contactUsController = async (req, res) => {
   try {
@@ -20,11 +21,13 @@ export const contactUsController = async (req, res) => {
       <p>${message}</p>
     `;
 
-    await mailSender(
-      process.env.ADMIN_MAIL,
-      "New Contact Us Message from StudyNotion",
-      emailBody
-    );
+
+    // Drop the email job into BullMQ instead of sending it synchronously!
+    await queueEmail({
+      email: process.env.ADMIN_MAIL,
+      title: "New Contact Us Message from StudyNotion",
+      body: emailBody
+    });
 
     return res.status(200).json({
       success: true,

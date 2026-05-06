@@ -15,6 +15,7 @@ import contactRoutes from "./routes/Contact.js";
 import adminRoutes from "./routes/admin.js";
 import database from "./config/database.js";
 import { validateEnv } from "../shared-utils/validateEnv.js";
+import '../shared-utils/queue/email/emailWorker.js';
 
 // Load .env from this service's own directory, regardless of what cwd is at startup
 dotenv.config({ path: resolve(dirname(fileURLToPath(import.meta.url)), '.env') });
