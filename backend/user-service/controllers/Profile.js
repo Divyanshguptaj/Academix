@@ -110,17 +110,8 @@ export const updateProfile = async (req, res) => {
 
 export const deleteAccount = async (req, res) => {
   try {
-    const token = req.headers.authorization?.split(" ")[1];
-    if (!token) {
-      return res.status(401).json({
-        success: false,
-        message: "Unauthorized: No token provided",
-      });
-    }
-
-    // Verify token and get user ID
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    const userId = decoded.id;
+    // Get user ID attached by the authenticateToken middleware
+    const userId = req.user.id;
 
     // Find user by ID
     const userDetails = await User.findById(userId);
@@ -565,4 +556,3 @@ export const removeCourseProgressFromProfile = async (req, res) => {
     return res.status(500).json({ success: false, message: 'Internal server error' });
   }
 };
-

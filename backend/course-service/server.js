@@ -51,19 +51,6 @@ app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
-// Request timeout — 30s for normal requests; skip for multipart (file/video uploads)
-app.use((req, res, next) => {
-  if (req.is('multipart/form-data')) return next();
-  const timeout = setTimeout(() => {
-    if (!res.headersSent) {
-      res.status(408).json({ success: false, message: 'Request timeout' });
-    }
-  }, 30000);
-  res.on('finish', () => clearTimeout(timeout));
-  res.on('close', () => clearTimeout(timeout));
-  next();
-});
-
 // Request logging
 app.use((req, res, next) => {
   console.log(`[course-service] ${req.method} ${req.url}`);

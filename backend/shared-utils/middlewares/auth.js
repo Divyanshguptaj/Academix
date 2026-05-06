@@ -20,21 +20,21 @@ export const authenticateToken = async (req, res, next) => {
 
     // Verify JWT
     const decoded = jwt.verify(token, process.env.JWT_SECRET)
-
-    // Validate user exists in database (not just JWT verification!)
     const user = await User.findById(decoded.id).select('-password')
-    if (!user) {
-      return res.status(401).json({
-        success: false,
-        message: 'Invalid token - user not found'
-      })
-    }
 
-    // Check token version - invalidated if user has logged out since this token was issued
+     // Check token version - invalidated if user has logged out since this token was issued
     if (decoded.tokenVersion !== undefined && decoded.tokenVersion !== user.tokenVersion) {
       return res.status(401).json({
         success: false,
         message: 'Session has been invalidated. Please log in again.'
+      })
+    }
+
+    // Validate user exists in database (not just JWT verification!)
+    if (!user) {
+      return res.status(401).json({
+        success: false,
+        message: 'Invalid token - user not found'
       })
     }
 

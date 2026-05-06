@@ -24,7 +24,6 @@ router.post('/login',
   sanitizeInput, 
   mongoSanitizeMiddleware, 
   validateLogin, 
-  handleValidationErrors, 
   login
 );
 
@@ -33,7 +32,6 @@ router.post('/signup',
   sanitizeInput, 
   mongoSanitizeMiddleware, 
   validateSignup, 
-  handleValidationErrors, 
   signUp
 );
 
@@ -42,7 +40,6 @@ router.post('/changepassword',
   sanitizeInput, 
   mongoSanitizeMiddleware, 
   validatePasswordChange, 
-  handleValidationErrors, 
   authenticateToken,  // Add authentication middleware
   changePassword
 );
@@ -52,7 +49,6 @@ router.post('/reset-password-token',
   sanitizeInput, 
   mongoSanitizeMiddleware, 
   validatePasswordReset, 
-  handleValidationErrors, 
   resetPasswordToken
 );
 
@@ -60,7 +56,6 @@ router.post('/reset-password',
   sanitizeInput, 
   mongoSanitizeMiddleware, 
   validatePasswordResetConfirm, 
-  handleValidationErrors, 
   resetPassword
 );
 
@@ -69,7 +64,6 @@ router.post('/sendotp',
   sanitizeInput, 
   mongoSanitizeMiddleware, 
   validateOTP, 
-  handleValidationErrors, 
   sendOTP
 );
 

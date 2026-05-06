@@ -425,90 +425,6 @@ Important guidelines:
   }
 };
 
-exports.textToVideoSummarizer = async (req, res) => {
-  try {
-    const { text } = req.body;
-
-    if (!text || !text.trim()) {
-      return res.status(400).json({
-        success: false,
-        message: "Text is required",
-      });
-    }
-
-    const maxTextLength = MAX_TEXT_LENGTH_SUMMARY;
-    const truncatedText =
-      text.length > maxTextLength
-        ? text.substring(0, maxTextLength) +
-          "... (text truncated for processing)"
-        : text;
-
-    const model = genAI.getGenerativeModel({ model: GEMINI_FLASH_MODEL });
-
-    const prompt = `You are an AI educational content creator specialized in creating comprehensive video scripts from text content. Analyze the following text and create a detailed 2-minute video script that fully explains the concepts to viewers.
-
-Text Content:
-${truncatedText}
-
-Create a comprehensive 2-minute video script (approximately 120 seconds) that includes:
-
-1. **VIDEO OVERVIEW**
-   - Catchy title
-   - Main theme and target audience
-   - 3-5 key learning objectives
-   - Video structure breakdown (8-10 scenes)
-
-2. **DETAILED SCENE-BY-SCENE BREAKDOWN**
-   For each scene (8-10 scenes total), provide:
-   - Scene purpose (Hook, Definition, Why It Matters, Key Points, Examples, Summary, etc.)
-   - On-screen text (short and impactful, 8-12 words)
-   - Complete narration script (what the voice will say)
-   - Suggested duration (10-15 seconds per scene)
-   - Visual description and color theme suggestion
-
-3. **EDUCATIONAL FLOW**
-   - Start with a hook to grab attention
-   - Build concepts progressively
-   - Include real-world examples and analogies
-   - Address common misconceptions
-   - Provide practical applications
-   - End with clear takeaways
-
-4. **ENGAGEMENT ELEMENTS**
-   - Key questions viewers should be able to answer
-   - Visual metaphors or analogies to use
-   - Moments to emphasize (power phrases)
-   - Suggested pacing (when to slow down for complex ideas)
-
-5. **SUMMARY & TAKEAWAYS**
-   - 3-5 key takeaways that viewers should remember
-   - Suggested next steps or further learning resources
-   - Call to action
-
-Format the output as a detailed video production script with clear sections, timing for each scene, specific narration text, and visual recommendations. Make it educational, comprehensive, and engaging enough to fully explain the topic in 2 minutes.
-
-The script should be suitable for direct video production with clear instructions for both visual and audio elements.`;
-
-    const result = await model.generateContent(prompt);
-    const output = result.response.text();
-
-    return res.status(200).json({
-      success: true,
-      output,
-      message: "Comprehensive 2-minute video script generated successfully",
-    });
-  } catch (error) {
-    console.error("Error in text to video summarizer:", error);
-    const status = error.status || 500;
-    return res.status(status).json({
-      success: false,
-      message: error.statusText || "Error generating video summary",
-      error: error.message,
-      details: error.errorDetails || undefined,
-    });
-  }
-};
-
 exports.checkJson2Status = async (req, res) => {
   try {
     const { operationId } = req.body;
@@ -811,3 +727,87 @@ Please provide a helpful, accurate, plain-text response suitable for students.`;
     });
   }
 };
+
+// exports.textToVideoSummarizer = async (req, res) => {
+//   try {
+//     const { text } = req.body;
+
+//     if (!text || !text.trim()) {
+//       return res.status(400).json({
+//         success: false,
+//         message: "Text is required",
+//       });
+//     }
+
+//     const maxTextLength = MAX_TEXT_LENGTH_SUMMARY;
+//     const truncatedText =
+//       text.length > maxTextLength
+//         ? text.substring(0, maxTextLength) +
+//           "... (text truncated for processing)"
+//         : text;
+
+//     const model = genAI.getGenerativeModel({ model: GEMINI_FLASH_MODEL });
+
+//     const prompt = `You are an AI educational content creator specialized in creating comprehensive video scripts from text content. Analyze the following text and create a detailed 2-minute video script that fully explains the concepts to viewers.
+
+// Text Content:
+// ${truncatedText}
+
+// Create a comprehensive 2-minute video script (approximately 120 seconds) that includes:
+
+// 1. **VIDEO OVERVIEW**
+//    - Catchy title
+//    - Main theme and target audience
+//    - 3-5 key learning objectives
+//    - Video structure breakdown (8-10 scenes)
+
+// 2. **DETAILED SCENE-BY-SCENE BREAKDOWN**
+//    For each scene (8-10 scenes total), provide:
+//    - Scene purpose (Hook, Definition, Why It Matters, Key Points, Examples, Summary, etc.)
+//    - On-screen text (short and impactful, 8-12 words)
+//    - Complete narration script (what the voice will say)
+//    - Suggested duration (10-15 seconds per scene)
+//    - Visual description and color theme suggestion
+
+// 3. **EDUCATIONAL FLOW**
+//    - Start with a hook to grab attention
+//    - Build concepts progressively
+//    - Include real-world examples and analogies
+//    - Address common misconceptions
+//    - Provide practical applications
+//    - End with clear takeaways
+
+// 4. **ENGAGEMENT ELEMENTS**
+//    - Key questions viewers should be able to answer
+//    - Visual metaphors or analogies to use
+//    - Moments to emphasize (power phrases)
+//    - Suggested pacing (when to slow down for complex ideas)
+
+// 5. **SUMMARY & TAKEAWAYS**
+//    - 3-5 key takeaways that viewers should remember
+//    - Suggested next steps or further learning resources
+//    - Call to action
+
+// Format the output as a detailed video production script with clear sections, timing for each scene, specific narration text, and visual recommendations. Make it educational, comprehensive, and engaging enough to fully explain the topic in 2 minutes.
+
+// The script should be suitable for direct video production with clear instructions for both visual and audio elements.`;
+
+//     const result = await model.generateContent(prompt);
+//     const output = result.response.text();
+
+//     return res.status(200).json({
+//       success: true,
+//       output,
+//       message: "Comprehensive 2-minute video script generated successfully",
+//     });
+//   } catch (error) {
+//     console.error("Error in text to video summarizer:", error);
+//     const status = error.status || 500;
+//     return res.status(status).json({
+//       success: false,
+//       message: error.statusText || "Error generating video summary",
+//       error: error.message,
+//       details: error.errorDetails || undefined,
+//     });
+//   }
+// };
