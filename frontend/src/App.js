@@ -60,7 +60,8 @@ function App() {
       domain={process.env.REACT_APP_AUTH0_DOMAIN}
       clientId={process.env.REACT_APP_AUTH0_CLIENT_ID}
       authorizationParams={{
-        redirect_uri: `${window.location.origin}/auth0/callback`
+        redirect_uri: `${window.location.origin}/auth0/callback`,
+        audience: process.env.REACT_APP_AUTH0_AUDIENCE
       }}
     >
       <GoogleAuthHandler />

@@ -9,12 +9,12 @@ router.get('/dashboard-stats', authorize('Admin'), adminController.getDashboardS
 
 // User Management
 router.get('/users', authorize('Admin'), adminController.getAllUsers)
-router.put('/users/:id/status', authorize('Admin'), adminController.updateUserStatus)
+// router.put('/users/:id/status', authorize('Admin'), adminController.updateUserStatus)
 router.get('/users/:id/details', authorize('Admin'), adminController.getUserDetails)
 
 // Instructor Management
 router.get('/instructors', authorize('Admin'), adminController.getAllInstructors)
-router.put('/instructors/:id/approve', authorize('Admin'), adminController.approveInstructor)
+// router.put('/instructors/:id/approve', authorize('Admin'), adminController.approveInstructor)
 router.put('/instructors/:id/revoke', authorize('Admin'), adminController.revokeInstructor)
 router.get('/instructor-applications', authorize('Admin'), adminController.getInstructorApplications)
 
