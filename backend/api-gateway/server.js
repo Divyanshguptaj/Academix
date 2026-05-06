@@ -11,6 +11,19 @@ import { createProxyMiddleware } from "http-proxy-middleware";
 // Load .env from this service's own directory, regardless of what cwd is at startup
 dotenv.config({ path: resolve(dirname(fileURLToPath(import.meta.url)), '.env') });
 
+// Helper function to create safe proxies that always return JSON on failure
+const createSafeProxy = (target, pathRewrite) => {
+  return createProxyMiddleware({
+    target,
+    changeOrigin: true,
+    pathRewrite,
+    onError: (err, req, res) => {
+      console.error(`[Proxy Error] ${req.method} ${req.url} -> ${target}: ${err.message}`);
+      res.status(502).json({ success: false, message: "Service is temporarily unavailable. Please try again later." });
+    }
+  });
+};
+
 const app = express();
 const PORT = process.env.PORT || 4000;
 
@@ -75,98 +88,58 @@ app.use(
 // Auth routes proxy
 app.use(
   "/api/v1/auth",
-  createProxyMiddleware({
-    target: USER_SERVICE_URL,
-    changeOrigin: true,
-    pathRewrite: (path) => `/auth${path}`,
-  }),
+  createSafeProxy(USER_SERVICE_URL, (path) => `/auth${path}`)
 );
 
 // Profile routes proxy
 app.use(
   "/api/v1/profile",
-  createProxyMiddleware({
-    target: USER_SERVICE_URL,
-    changeOrigin: true,
-    pathRewrite: (path) => `/profile${path}`,
-  }),
+  createSafeProxy(USER_SERVICE_URL, (path) => `/profile${path}`)
 );
 
 // Course routes proxy
 app.use(
   "/api/v1/course",
-  createProxyMiddleware({
-    target: COURSE_SERVICE_URL,
-    changeOrigin: true,
-    pathRewrite: (path) => `/course${path}`,
-  }),
+  createSafeProxy(COURSE_SERVICE_URL, (path) => `/course${path}`)
 );
 
 // Payment routes proxy
 app.use(
   "/api/v1/payment",
-  createProxyMiddleware({
-    target: PAYMENT_SERVICE_URL,
-    changeOrigin: true,
-    pathRewrite: (path) => `/payment${path}`,
-  }),
+  createSafeProxy(PAYMENT_SERVICE_URL, (path) => `/payment${path}`)
 );
 
 // AI routes proxy
 app.use(
   "/api/v1/smart-study",
-  createProxyMiddleware({
-    target: AI_SERVICE_URL,
-    changeOrigin: true,
-    pathRewrite: (path) => `/smartStudy${path}`,
-  }),
+  createSafeProxy(AI_SERVICE_URL, (path) => `/smartStudy${path}`)
 );
 
 // Contact routes proxy
 app.use(
   "/api/v1/contact",
-  createProxyMiddleware({
-    target: USER_SERVICE_URL,
-    changeOrigin: true,
-    pathRewrite: (path) => `/contact${path}`,
-  }),
+  createSafeProxy(USER_SERVICE_URL, (path) => `/contact${path}`)
 );
 
 // Admin routes — namespaced by service
 app.use(
   "/api/v1/admin/payment",
-  createProxyMiddleware({
-    target: PAYMENT_SERVICE_URL,
-    changeOrigin: true,
-    pathRewrite: (path) => `/admin${path}`,
-  }),
+  createSafeProxy(PAYMENT_SERVICE_URL, (path) => `/admin${path}`)
 );
 
 app.use(
   "/api/v1/admin/user",
-  createProxyMiddleware({
-    target: USER_SERVICE_URL,
-    changeOrigin: true,
-    pathRewrite: (path) => `/admin${path}`,
-  }),
+  createSafeProxy(USER_SERVICE_URL, (path) => `/admin${path}`)
 );
 
 app.use(
   "/api/v1/admin/course",
-  createProxyMiddleware({
-    target: COURSE_SERVICE_URL,
-    changeOrigin: true,
-    pathRewrite: (path) => `/admin${path}`,
-  }),
+  createSafeProxy(COURSE_SERVICE_URL, (path) => `/admin${path}`)
 );
 
 app.use(
   "/api/v1/admin/ai",
-  createProxyMiddleware({
-    target: AI_SERVICE_URL,
-    changeOrigin: true,
-    pathRewrite: (path) => `/admin${path}`,
-  }),
+  createSafeProxy(AI_SERVICE_URL, (path) => `/admin${path}`)
 );
 
 // 404 handler

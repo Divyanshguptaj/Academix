@@ -67,18 +67,24 @@ const Catalog = () => {
 
   // Step 2 — fetch catalog page data
   useEffect(() => {
+    let ignore = false; // Flag to prevent race conditions
+
     const getCategoryDetails = async () => {
       try {
         setPageLoading(true);
         const res = await getCatalogPageData(categoryId);
-        setCatalogPageData(res);
+        if (!ignore) {
+          setCatalogPageData(res);
+        }
       } catch (error) {
         console.error(error);
       } finally {
-        setPageLoading(false);
+        if (!ignore) setPageLoading(false);
       }
     };
     if (categoryId) getCategoryDetails();
+
+    return () => { ignore = true; }; // Cleanup on unmount or ID change
   }, [categoryId]);
 
   /* ── Loading state ── */

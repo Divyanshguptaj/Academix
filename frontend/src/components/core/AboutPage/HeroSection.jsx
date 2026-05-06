@@ -1,7 +1,5 @@
-import BannerImage1 from '../../../assets/Images/aboutus1.webp'
-import BannerImage2 from "../../../assets/Images/aboutus2.webp"
-import BannerImage3 from "../../../assets/Images/aboutus3.webp"
 import HighlightText from '../HomePage/HiglightedText'
+import ImgWithPlaceholder from '../../common/ImgWithPlaceholder'
 
 const HeroSection = () => {
   return (
@@ -28,16 +26,25 @@ const HeroSection = () => {
         {/* Staggered image row — tallest in centre, shorter on sides */}
         <div className="flex items-end justify-center gap-2 sm:gap-3 lg:gap-5 max-w-4xl mx-auto">
           <div className="flex-1 rounded-t-xl overflow-hidden">
-            <img src={BannerImage1} alt="About Academix"
-              className="w-full h-36 sm:h-52 lg:h-64 object-cover" />
+            <ImgWithPlaceholder
+              src="https://res.cloudinary.com/dfocfto1r/image/upload/v1778090720/aboutus1_wdueuh.webp"
+              alt="About Academix"
+              containerClassName="w-full h-36 sm:h-52 lg:h-64"
+            />
           </div>
           <div className="flex-1 rounded-t-xl overflow-hidden">
-            <img src={BannerImage2} alt="About Academix"
-              className="w-full h-48 sm:h-64 lg:h-80 object-cover" />
+            <ImgWithPlaceholder
+              src="https://res.cloudinary.com/dfocfto1r/image/upload/v1778090720/aboutus2_cjixqe.webp"
+              alt="About Academix"
+              containerClassName="w-full h-48 sm:h-64 lg:h-80"
+            />
           </div>
           <div className="flex-1 rounded-t-xl overflow-hidden">
-            <img src={BannerImage3} alt="About Academix"
-              className="w-full h-36 sm:h-52 lg:h-64 object-cover" />
+            <ImgWithPlaceholder
+              src="https://res.cloudinary.com/dfocfto1r/image/upload/v1778090721/aboutus3_vrx4dh.webp"
+              alt="About Academix"
+              containerClassName="w-full h-36 sm:h-52 lg:h-64"
+            />
           </div>
         </div>
 
