@@ -19,6 +19,7 @@ function Navbar() {
   const [loading, setLoading] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [catalogOpen, setCatalogOpen] = useState(false)
+  const [categorySearch, setCategorySearch] = useState("")
 
   useEffect(() => {
     const getCategories = async () => {
@@ -60,6 +61,11 @@ function Navbar() {
     setMobileMenuOpen(false)
     setCatalogOpen(false)
   }
+
+  // Filter categories based on the user's search input in the dropdown
+  const filteredCategories = subLinks.filter((c) =>
+    c.name.toLowerCase().includes(categorySearch.toLowerCase())
+  )
 
   return (
     <div
@@ -104,11 +110,23 @@ function Navbar() {
                     {/* Desktop Dropdown */}
                     <div className="invisible absolute left-1/2 top-full z-[1000] flex w-[280px] xl:w-[320px] translate-x-[-50%] translate-y-2 flex-col rounded-lg bg-white shadow-xl border border-richblack-200 p-2 opacity-0 transition-all duration-200 group-hover:visible group-hover:translate-y-0 group-hover:opacity-100">
                       <div className="absolute left-[50%] top-0 -z-10 h-4 w-4 translate-x-[-50%] translate-y-[-50%] rotate-45 bg-white border-l border-t border-richblack-200"></div>
+                      
+                      {/* Category Filter Input (Desktop) */}
+                      <div className="px-2 pb-2 border-b border-richblack-100 mb-1">
+                        <input
+                          type="text"
+                          placeholder="Filter categories..."
+                          value={categorySearch}
+                          onChange={(e) => setCategorySearch(e.target.value)}
+                          className="w-full bg-richblack-50 border border-richblack-200 text-black text-sm rounded-md px-3 py-1.5 outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400 transition-all"
+                        />
+                      </div>
+
                       {loading ? (
                         <p className="text-center py-4 text-richblack-600">Loading...</p>
-                      ) : subLinks.length ? (
-                        <div className="max-h-[400px] overflow-y-auto">
-                          {subLinks.map((subLink, i) => (
+                      ) : filteredCategories.length ? (
+                        <div className="flex flex-col">
+                          {filteredCategories.slice(0, 8).map((subLink, i) => (
                             <Link
                               to={`/catalog/${subLink.name
                                 .split(" ")
@@ -120,6 +138,15 @@ function Navbar() {
                               <p className="text-sm font-medium">{subLink.name}</p>
                             </Link>
                           ))}
+                          
+                          {/* View All Button */}
+                          <Link
+                            to="/catalog/all"
+                            className="block px-4 py-3 mt-1 text-center bg-richblack-50 text-blue-600 hover:bg-blue-600 hover:text-white rounded-md font-semibold text-sm transition-colors duration-200"
+                            onClick={closeMobileMenu}
+                          >
+                            View All Categories
+                          </Link>
                         </div>
                       ) : (
                         <p className="text-center py-4 text-richblack-500">No Courses Found</p>
@@ -240,11 +267,21 @@ function Navbar() {
                       
                       {/* Mobile Catalog Dropdown */}
                       {catalogOpen && (
-                        <div className="ml-4 space-y-1 border-l-2 border-blue-600 pl-4">
+                        <div className="ml-4 space-y-1 border-l-2 border-blue-600 pl-4 mt-2">
+                          {/* Category Filter Input (Mobile) */}
+                          <input
+                            type="text"
+                            placeholder="Filter categories..."
+                            value={categorySearch}
+                            onChange={(e) => setCategorySearch(e.target.value)}
+                            className="w-[90%] mb-2 bg-richblack-800 border border-richblack-700 text-white text-sm rounded-md px-3 py-2 outline-none focus:border-blue-400"
+                          />
+
                           {loading ? (
                             <p className="py-2 text-richblack-400">Loading...</p>
-                          ) : subLinks.length ? (
-                            subLinks.map((subLink, i) => (
+                          ) : filteredCategories.length ? (
+                            <div className="flex flex-col gap-1">
+                            {filteredCategories.slice(0, 8).map((subLink, i) => (
                               <Link
                                 to={`/catalog/${subLink.name
                                   .split(" ")
@@ -257,6 +294,15 @@ function Navbar() {
                                 <p className="text-sm">{subLink.name}</p>
                               </Link>
                             ))
+                            }
+                              <Link
+                                to="/catalog/all"
+                                onClick={closeMobileMenu}
+                                className="block py-2 px-3 mt-2 text-yellow-400 hover:text-yellow-300 font-semibold text-sm transition-colors duration-200"
+                              >
+                                View All Categories &rarr;
+                              </Link>
+                            </div>
                           ) : (
                             <p className="py-2 text-richblack-400 text-sm">No Courses Found</p>
                           )}

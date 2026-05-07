@@ -2,12 +2,13 @@ import { useEffect } from "react"
 import { useDispatch, useSelector } from "react-redux"
 import { useNavigate } from "react-router-dom"
 import {
-  FiUser, FiMail, FiPhone, FiCalendar, FiFileText, FiEdit2, FiInfo
+  FiUser, FiMail, FiPhone, FiCalendar, FiFileText, FiEdit2, FiInfo, FiBookOpen, FiCheckCircle, FiAward
 } from "react-icons/fi"
 import { BsGenderAmbiguous, BsPersonBadge } from "react-icons/bs"
 import { fetchUserDetails } from "../../../services/operations/profileAPI"
 import { getUserImage, createImageErrorHandler } from "../../../utils/imageUtils"
 import { formattedDate } from "../../../utils/dateFormatter"
+import { motion } from "framer-motion"
 
 const DetailItem = ({ icon: Icon, label, value, placeholder }) => (
   <div className="flex flex-col gap-1">
@@ -20,16 +21,34 @@ const DetailItem = ({ icon: Icon, label, value, placeholder }) => (
   </div>
 )
 
+const fadeIn = {
+  hidden: { opacity: 0, y: 20 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.4, ease: "easeOut" } }
+}
+
 export default function MyProfile() {
   const { user } = useSelector((state) => state.profile)
   const navigate = useNavigate()
   const dispatch = useDispatch()
 
+  const calculateCompletion = () => {
+    let count = 0;
+    if (user?.firstName) count++;
+    if (user?.lastName) count++;
+    if (user?.email) count++;
+    if (user?.additionalDetails?.about) count++;
+    if (user?.additionalDetails?.contactNumber) count++;
+    if (user?.additionalDetails?.gender) count++;
+    if (user?.additionalDetails?.dateOfBirth) count++;
+    return Math.round((count / 7) * 100);
+  }
+  const completionPercentage = calculateCompletion();
+
   useEffect(() => {
     if (user?.email) {
       dispatch(fetchUserDetails(user.email))
     }
-  }, [])
+  }, [dispatch, user?.email])
 
   const editBtn = (
     <button
@@ -41,7 +60,12 @@ export default function MyProfile() {
   )
 
   return (
-    <div className="w-full px-4 py-8 lg:py-0 lg:px-0">
+    <motion.div 
+      variants={fadeIn} 
+      initial="hidden" 
+      animate="visible" 
+      className="w-full px-4 py-8 lg:py-0 lg:px-0"
+    >
 
       {/* Page Header */}
       <div className="flex items-center gap-3 mb-8 sm:mb-10">
@@ -53,6 +77,30 @@ export default function MyProfile() {
           <p className="text-xs text-richblack-400 mt-0.5">View and manage your personal information</p>
         </div>
       </div>
+
+      {/* Profile Completion Bar */}
+      {completionPercentage < 100 && (
+        <div className="mb-6 bg-richblack-800 border border-richblack-700 rounded-xl p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm">
+          <div className="flex-1 w-full">
+            <div className="flex justify-between items-end mb-2">
+              <p className="text-sm font-semibold text-richblack-5">Profile Completion</p>
+              <p className="text-xs font-bold text-yellow-400">{completionPercentage}%</p>
+            </div>
+            <div className="w-full bg-richblack-700 rounded-full h-2 overflow-hidden">
+              <div 
+                className="bg-yellow-400 h-2 rounded-full transition-all duration-1000 ease-out" 
+                style={{ width: `${completionPercentage}%` }}
+              />
+            </div>
+          </div>
+          <button 
+            onClick={() => navigate("/dashboard/settings")}
+            className="text-xs font-semibold text-black bg-yellow-400 hover:bg-yellow-300 px-4 py-2.5 rounded-lg flex-shrink-0 transition-colors"
+          >
+            Complete Profile
+          </button>
+        </div>
+      )}
 
       {/* Profile Hero Card */}
       <div className="rounded-xl border border-richblack-700 bg-richblack-800 overflow-hidden mb-6">
@@ -88,6 +136,37 @@ export default function MyProfile() {
             </div>
           </div>
           {editBtn}
+        </div>
+      </div>
+
+      {/* Quick Stats */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+        <div className="bg-richblack-800 border border-richblack-700 rounded-xl p-5 flex items-center gap-4 shadow-sm hover:bg-richblack-700 transition-colors">
+          <div className="w-12 h-12 bg-blue-500/10 rounded-full flex items-center justify-center flex-shrink-0">
+            <FiBookOpen className="text-blue-400 text-xl" />
+          </div>
+          <div>
+            <h3 className="text-2xl font-bold text-richblack-5">{user?.courses?.length || 0}</h3>
+            <p className="text-[10px] font-medium text-richblack-400 uppercase tracking-wider mt-0.5">Enrolled Courses</p>
+          </div>
+        </div>
+        <div className="bg-richblack-800 border border-richblack-700 rounded-xl p-5 flex items-center gap-4 shadow-sm hover:bg-richblack-700 transition-colors">
+          <div className="w-12 h-12 bg-green-500/10 rounded-full flex items-center justify-center flex-shrink-0">
+            <FiCheckCircle className="text-green-400 text-xl" />
+          </div>
+          <div>
+            <h3 className="text-2xl font-bold text-richblack-5">0</h3>
+            <p className="text-[10px] font-medium text-richblack-400 uppercase tracking-wider mt-0.5">Completed</p>
+          </div>
+        </div>
+        <div className="bg-richblack-800 border border-richblack-700 rounded-xl p-5 flex items-center gap-4 shadow-sm hover:bg-richblack-700 transition-colors">
+          <div className="w-12 h-12 bg-yellow-400/10 rounded-full flex items-center justify-center flex-shrink-0">
+            <FiAward className="text-yellow-400 text-xl" />
+          </div>
+          <div>
+            <h3 className="text-2xl font-bold text-richblack-5">0</h3>
+            <p className="text-[10px] font-medium text-richblack-400 uppercase tracking-wider mt-0.5">Certificates</p>
+          </div>
         </div>
       </div>
 
@@ -174,6 +253,6 @@ export default function MyProfile() {
         </div>
       </div>
 
-    </div>
+    </motion.div>
   )
 }

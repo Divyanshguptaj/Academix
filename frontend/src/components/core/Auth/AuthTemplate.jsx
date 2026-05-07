@@ -1,6 +1,8 @@
 import { useAuth0 } from '@auth0/auth0-react';
 import { useLocation, Link } from 'react-router-dom';
 import loginBackground from '../../../assets/Images/loginBackground.png';
+import ImgWithPlaceholder from '../../common/ImgWithPlaceholder';
+import { motion } from 'framer-motion';
 
 const AuthTemplate = ({
   title,
@@ -28,15 +30,12 @@ const AuthTemplate = ({
       <div className="w-full max-w-5xl flex flex-col lg:flex-row items-center gap-10 lg:gap-16">
 
         {/* ── Form column ── */}
-        <div className="w-full lg:w-[460px] flex-shrink-0">
-
-          {/* Brand */}
-          <Link to="/" className="inline-flex items-center gap-1 mb-8 group">
-            <span className="text-2xl font-bold text-white group-hover:text-yellow-300 transition-colors">
-              Academix
-            </span>
-            <span className="text-yellow-400 text-2xl font-black">.</span>
-          </Link>
+        <motion.div 
+          initial={{ opacity: 0, x: -30 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.5, ease: "easeOut" }}
+          className="w-full lg:w-[460px] flex-shrink-0"
+        >
 
           <div className="bg-[#1d1d1d] border border-gray-800 rounded-2xl p-8 shadow-xl">
             <h1 className="text-2xl font-bold text-white">{title}</h1>
@@ -77,10 +76,15 @@ const AuthTemplate = ({
           {footerLink && (
             <p className="text-center text-sm text-gray-400 mt-5">{footerLink}</p>
           )}
-        </div>
+        </motion.div>
 
         {/* ── Decorative image column (hidden on mobile) ── */}
-        <div className="hidden lg:flex flex-1 justify-center items-center">
+        <motion.div 
+          initial={{ opacity: 0, x: 30 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.5, ease: "easeOut", delay: 0.1 }}
+          className="hidden lg:flex flex-1 justify-center items-center"
+        >
           <div className="relative w-full max-w-sm h-[420px] flex items-center justify-center">
             <img
               src={loginBackground}
@@ -88,13 +92,14 @@ const AuthTemplate = ({
               className="absolute w-[90%] z-0 opacity-70 object-contain"
               style={{ top: '50%', left: '50%', transform: 'translate(-42%, -46%)' }}
             />
-            <img
+            <ImgWithPlaceholder
               src={imageSrc}
               alt="Auth illustration"
-              className="relative z-10 w-[85%] object-contain drop-shadow-2xl"
+              containerClassName="relative z-10 w-[85%] aspect-square flex items-center justify-center drop-shadow-2xl"
+              className="object-contain w-full h-full"
             />
           </div>
-        </div>
+        </motion.div>
 
       </div>
     </div>

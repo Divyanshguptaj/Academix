@@ -11,8 +11,8 @@ import { BsGenderAmbiguous } from "react-icons/bs"
 
 const genders = ["Male", "Female", "Non-Binary", "Prefer not to say", "Other"]
 
-const inputClass =
-  "w-full bg-richblack-700 border border-richblack-600 rounded-lg px-4 py-2.5 text-richblack-5 text-sm placeholder:text-richblack-400 focus:outline-none focus:border-yellow-400/60 transition-colors"
+const inputClass = (hasError) =>
+  `w-full bg-richblack-700 border ${hasError ? 'border-red-500 focus:border-red-500' : 'border-richblack-600 focus:border-yellow-400/60'} rounded-lg px-4 py-2.5 text-richblack-5 text-sm placeholder:text-richblack-400 focus:outline-none transition-colors`
 
 export default function EditProfile() {
   const { user } = useSelector((state) => state.profile)
@@ -155,12 +155,12 @@ export default function EditProfile() {
                   type="text"
                   id="firstName"
                   placeholder="Enter first name"
-                  className={inputClass}
+                  className={inputClass(errors.firstName)}
                   {...register("firstName", { required: true })}
                   defaultValue={user?.firstName}
                 />
                 {errors.firstName && (
-                  <span className="text-[11px] text-yellow-300">Please enter your first name.</span>
+                  <span className="text-[11px] text-red-500 mt-1">Please enter your first name.</span>
                 )}
               </div>
               <div className="flex flex-col gap-1.5">
@@ -171,12 +171,12 @@ export default function EditProfile() {
                   type="text"
                   id="lastName"
                   placeholder="Enter last name"
-                  className={inputClass}
+                  className={inputClass(errors.lastName)}
                   {...register("lastName", { required: true })}
                   defaultValue={user?.lastName}
                 />
                 {errors.lastName && (
-                  <span className="text-[11px] text-yellow-300">Please enter your last name.</span>
+                  <span className="text-[11px] text-red-500 mt-1">Please enter your last name.</span>
                 )}
               </div>
             </div>
@@ -213,14 +213,14 @@ export default function EditProfile() {
                       yearDropdownItemNumber={100}
                       scrollableYearDropdown
                       placeholderText="DD/MM/YYYY"
-                      className={inputClass}
+                      className={inputClass(errors.dateOfBirth)}
                       wrapperClassName="w-full"
                       popperClassName="z-50"
                     />
                   )}
                 />
                 {errors.dateOfBirth && (
-                  <span className="text-[11px] text-yellow-300">{errors.dateOfBirth.message}</span>
+                  <span className="text-[11px] text-red-500 mt-1">{errors.dateOfBirth.message}</span>
                 )}
               </div>
               <div className="flex flex-col gap-1.5">
@@ -229,7 +229,7 @@ export default function EditProfile() {
                 </label>
                 <select
                   id="gender"
-                  className={`${inputClass} cursor-pointer`}
+                  className={`${inputClass(errors.gender)} cursor-pointer`}
                   {...register("gender", { required: true })}
                   defaultValue={user?.additionalDetails?.gender}
                 >
@@ -238,7 +238,7 @@ export default function EditProfile() {
                   ))}
                 </select>
                 {errors.gender && (
-                  <span className="text-[11px] text-yellow-300">Please select your gender.</span>
+                  <span className="text-[11px] text-red-500 mt-1">Please select your gender.</span>
                 )}
               </div>
             </div>
@@ -253,16 +253,18 @@ export default function EditProfile() {
                   type="tel"
                   id="contactNumber"
                   placeholder="Enter contact number"
-                  className={inputClass}
+                  className={inputClass(errors.contactNumber)}
                   {...register("contactNumber", {
                     required: { value: true, message: "Please enter your Contact Number." },
-                    maxLength: { value: 12, message: "Invalid Contact Number" },
-                    minLength: { value: 10, message: "Invalid Contact Number" },
+                    pattern: {
+                      value: /^[0-9]{10}$/,
+                      message: "Contact number must be exactly 10 digits"
+                    }
                   })}
                   defaultValue={user?.additionalDetails?.contactNumber}
                 />
                 {errors.contactNumber && (
-                  <span className="text-[11px] text-yellow-300">{errors.contactNumber.message}</span>
+                  <span className="text-[11px] text-red-500 mt-1">{errors.contactNumber.message}</span>
                 )}
               </div>
               <div className="flex flex-col gap-1.5">
@@ -273,12 +275,12 @@ export default function EditProfile() {
                   type="text"
                   id="about"
                   placeholder="A short bio about yourself"
-                  className={inputClass}
+                  className={inputClass(errors.about)}
                   {...register("about", { required: true })}
                   defaultValue={user?.additionalDetails?.about}
                 />
                 {errors.about && (
-                  <span className="text-[11px] text-yellow-300">Please enter your About.</span>
+                  <span className="text-[11px] text-red-500 mt-1">Please enter your About.</span>
                 )}
               </div>
             </div>

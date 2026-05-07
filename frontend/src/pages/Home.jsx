@@ -1,21 +1,30 @@
+import { lazy, Suspense } from "react";
 import { FaArrowRight } from "react-icons/fa";
 import { Link } from "react-router-dom";
 import CTAButton from "../components/core/HomePage/Button";
 import HiglightedText from "../components/core/HomePage/HiglightedText";
-import CodeBlocks from "../components/core/HomePage/CodeBlocks";
-import TimelineSection from "../components/core/HomePage/TimelineSection";
-import LearningLanguageSection from "../components/core/HomePage/LearningLanguageSection";
-import BecomeInstructor from "../components/core/HomePage/BecomeInstructor";
-import ExploreMore from "../components/core/HomePage/ExploreMore";
-import ReviewSlider from "../components/common/ReviewSlider";
 import ImgWithPlaceholder from "../components/common/ImgWithPlaceholder";
+import { motion } from "framer-motion";
+
+// Lazy load heavy components that are below the fold
+const CodeBlocks = lazy(() => import("../components/core/HomePage/CodeBlocks"));
+const TimelineSection = lazy(() => import("../components/core/HomePage/TimelineSection"));
+const LearningLanguageSection = lazy(() => import("../components/core/HomePage/LearningLanguageSection"));
+const BecomeInstructor = lazy(() => import("../components/core/HomePage/BecomeInstructor"));
+const ExploreMore = lazy(() => import("../components/core/HomePage/ExploreMore"));
+const ReviewSlider = lazy(() => import("../components/common/ReviewSlider"));
+
+const fadeIn = {
+  hidden: { opacity: 0, y: 40 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: "easeOut" } }
+};
 
 const Home = () => {
   return (
     <div className="flex flex-col items-center text-white overflow-x-hidden">
 
       {/* ── Hero ── */}
-      <section className="w-full bg-[#121220] pt-24 pb-12 border-b border-gray-800">
+      <motion.section initial="hidden" animate="visible" variants={fadeIn} className="w-full bg-[#121220] pt-24 pb-12 border-b border-gray-800">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 flex flex-col items-center text-center gap-6">
 
           {/* Pill badge */}
@@ -68,125 +77,159 @@ const Home = () => {
             />
           </div>
         </div>
-      </section>
+      </motion.section>
 
-      {/* ── Code blocks ── */}
-      <section className="w-full bg-[#121220]">
-        <CodeBlocks
-          position="lg:flex-row"
-          heading={
-            <div className="text-2xl sm:text-3xl lg:text-4xl font-semibold">
-              Unlock Your <HiglightedText text="Coding Potential" /> with our
-              online courses
-            </div>
-          }
-          subheading="With our online courses, you can learn at your own pace, from coast to cloud — and unlock a world full of resources, including hands-on projects and personalised feedback."
-          ctabtn1={{
-            text: (<><p>Learn More</p><FaArrowRight /></>),
-            color: "yellow",
-            link: "/login",
-          }}
-          ctabtn2={{ text: "Try it Yourself", color: "black", link: "/signup" }}
-          codeblock={`<!DOCTYPE html>
-<html>
-  <head>
-    <title>Example</title>
-    <link rel="stylesheet" href="styles.css" />
-  </head>
-  <body>
-    <nav>
-      <a href="one/">One</a>
-      <a href="two/">Two</a>
-    </nav>
-  </body>
-</html>`}
-          backgroundGradient="yellow"
-          codeColor="text-yellow-400"
-        />
-
-        <CodeBlocks
-          position="lg:flex-row-reverse"
-          heading={
-            <div className="text-2xl sm:text-3xl lg:text-4xl font-semibold">
-              Start <HiglightedText text="Coding in seconds" />
-            </div>
-          }
-          subheading="Code now — no waiting, no hassle. Learn at your own pace, from anywhere in the world, and get ready to thrive in tomorrow's world with clear roadmaps and guided support."
-          ctabtn1={{
-            text: (<><p>Learn More</p><FaArrowRight /></>),
-            color: "yellow",
-            link: "/login",
-          }}
-          ctabtn2={{ text: "Try it Yourself", color: "black", link: "/signup" }}
-          codeblock={`<!DOCTYPE html>
-<html>
-  <head>
-    <title>Example</title>
-    <link rel="stylesheet" href="styles.css" />
-  </head>
-  <body>
-    <nav>
-      <a href="one/">One</a>
-      <a href="two/">Two</a>
-    </nav>
-  </body>
-</html>`}
-          backgroundGradient="blue"
-          codeColor="text-blue-400"
-        />
-      </section>
-
-      {/* ── Explore more ── */}
-      <section className="w-full bg-[#121220] border-t border-gray-800">
-        <ExploreMore />
-      </section>
-
-      {/* ── CTA banner ── */}
-      <div className="homepage_bg h-[200px] sm:h-[300px] w-full flex flex-col justify-center items-center gap-5">
-        <p className="text-black text-xl sm:text-2xl font-bold text-center px-4 drop-shadow-lg">
-          Explore our full course catalog
-        </p>
-        <div className="flex flex-col sm:flex-row gap-4">
-          <CTAButton
-            text={<><p>View Full Catalog</p><FaArrowRight /></>}
-            color="yellow"
-            link="/catalog"
+      <Suspense fallback={
+        <div className="h-[50vh] w-full flex items-center justify-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-yellow-400"></div>
+        </div>
+      }>
+        {/* ── Code blocks ── */}
+        <motion.section 
+          initial="hidden" 
+          whileInView="visible" 
+          viewport={{ once: true, margin: "-50px" }} 
+          variants={fadeIn} 
+          className="w-full bg-[#121220]">
+          <CodeBlocks
+            position="lg:flex-row"
+            heading={
+              <div className="text-2xl sm:text-3xl lg:text-4xl font-semibold">
+                Unlock Your <HiglightedText text="Coding Potential" /> with our
+                online courses
+              </div>
+            }
+            subheading="With our online courses, you can learn at your own pace, from coast to cloud — and unlock a world full of resources, including hands-on projects and personalised feedback."
+            ctabtn1={{
+              text: (<><p>Learn More</p><FaArrowRight /></>),
+              color: "yellow",
+              link: "/login",
+            }}
+            ctabtn2={{ text: "Try it Yourself", color: "black", link: "/signup" }}
+            codeblock={`<!DOCTYPE html>
+  <html>
+    <head>
+      <title>Example</title>
+      <link rel="stylesheet" href="styles.css" />
+    </head>
+    <body>
+      <nav>
+        <a href="one/">One</a>
+        <a href="two/">Two</a>
+      </nav>
+    </body>
+  </html>`}
+            backgroundGradient="yellow"
+            codeColor="text-yellow-400"
           />
-          <CTAButton text="Learn More" color="black" link="" />
-        </div>
-      </div>
 
-      {/* ── Get the skills ── */}
-      <section className="bg-[#1d1d1d] w-full py-16 lg:py-24 border-y border-gray-800">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col lg:flex-row items-center gap-10 lg:gap-16">
-          <div className="font-bold text-3xl sm:text-4xl text-white lg:w-1/2 text-center lg:text-left leading-tight">
-            Get the skills that{" "}
-            <HiglightedText text="employers are looking for." />
+          <CodeBlocks
+            position="lg:flex-row-reverse"
+            heading={
+              <div className="text-2xl sm:text-3xl lg:text-4xl font-semibold">
+                Start <HiglightedText text="Coding in seconds" />
+              </div>
+            }
+            subheading="Code now — no waiting, no hassle. Learn at your own pace, from anywhere in the world, and get ready to thrive in tomorrow's world with clear roadmaps and guided support."
+            ctabtn1={{
+              text: (<><p>Learn More</p><FaArrowRight /></>),
+              color: "yellow",
+              link: "/login",
+            }}
+            ctabtn2={{ text: "Try it Yourself", color: "black", link: "/signup" }}
+            codeblock={`<!DOCTYPE html>
+  <html>
+    <head>
+      <title>Example</title>
+      <link rel="stylesheet" href="styles.css" />
+    </head>
+    <body>
+      <nav>
+        <a href="one/">One</a>
+        <a href="two/">Two</a>
+      </nav>
+    </body>
+  </html>`}
+            backgroundGradient="blue"
+            codeColor="text-blue-400"
+          />
+        </motion.section>
+
+        {/* ── Explore more ── */}
+        <motion.section 
+          initial="hidden" 
+          whileInView="visible" 
+          viewport={{ once: true, margin: "-50px" }} 
+          variants={fadeIn} 
+          className="w-full bg-[#121220] border-t border-gray-800">
+          <ExploreMore />
+        </motion.section>
+
+        {/* ── CTA banner ── */}
+        <motion.div 
+          initial="hidden" 
+          whileInView="visible" 
+          viewport={{ once: true, margin: "-50px" }} 
+          variants={fadeIn} 
+          className="homepage_bg h-[200px] sm:h-[300px] w-full flex flex-col justify-center items-center gap-5">
+          <p className="text-black text-xl sm:text-2xl font-bold text-center px-4 drop-shadow-lg">
+            Explore our full course catalog
+          </p>
+          <div className="flex flex-col sm:flex-row gap-4">
+            <CTAButton
+              text={<><p>View Full Catalog</p><FaArrowRight /></>}
+              color="yellow"
+              link="/catalog"
+            />
+            <CTAButton text="Learn More" color="black" link="" />
           </div>
-          <div className="flex flex-col gap-5 lg:w-1/2 text-center lg:text-left">
-            <p className="text-gray-400 text-sm sm:text-base leading-relaxed">
-              The modern job market demands more than just professional skills.
-              Build a complete toolkit that sets you apart — with real projects,
-              peer collaboration, and expert guidance from industry professionals.
-            </p>
-            <div className="flex justify-center lg:justify-start">
-              <CTAButton text="Learn More" color="yellow" link="/signup" />
+        </motion.div>
+
+        {/* ── Get the skills ── */}
+        <motion.section 
+          initial="hidden" 
+          whileInView="visible" 
+          viewport={{ once: true, margin: "-50px" }} 
+          variants={fadeIn} 
+          className="bg-[#1d1d1d] w-full py-16 lg:py-24 border-y border-gray-800">
+          <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col lg:flex-row items-center gap-10 lg:gap-16">
+            <div className="font-bold text-3xl sm:text-4xl text-white lg:w-1/2 text-center lg:text-left leading-tight">
+              Get the skills that{" "}
+              <HiglightedText text="employers are looking for." />
+            </div>
+            <div className="flex flex-col gap-5 lg:w-1/2 text-center lg:text-left">
+              <p className="text-gray-400 text-sm sm:text-base leading-relaxed">
+                The modern job market demands more than just professional skills.
+                Build a complete toolkit that sets you apart — with real projects,
+                peer collaboration, and expert guidance from industry professionals.
+              </p>
+              <div className="flex justify-center lg:justify-start">
+                <CTAButton text="Learn More" color="yellow" link="/signup" />
+              </div>
             </div>
           </div>
-        </div>
-      </section>
+        </motion.section>
 
-      {/* ── Timeline ── */}
-      <TimelineSection />
+        {/* ── Timeline ── */}
+        <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-50px" }} variants={fadeIn}>
+          <TimelineSection />
+        </motion.div>
 
-      {/* ── Learning languages ── */}
-      <LearningLanguageSection />
+        {/* ── Learning languages ── */}
+        <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-50px" }} variants={fadeIn}>
+          <LearningLanguageSection />
+        </motion.div>
 
-      {/* ── Become instructor ── */}
-      <BecomeInstructor />
+        {/* ── Become instructor ── */}
+        <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-50px" }} variants={fadeIn}>
+          <BecomeInstructor />
+        </motion.div>
 
-      {/* ── Reviews ── */}
-      <ReviewSlider />
+        {/* ── Reviews ── */}
+        <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-50px" }} variants={fadeIn}>
+          <ReviewSlider />
+        </motion.div>
+      </Suspense>
 
     </div>
   );

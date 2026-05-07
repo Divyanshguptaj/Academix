@@ -2,7 +2,6 @@ import { useState } from "react";
 import { useDispatch } from "react-redux";
 import { useNavigate, Link } from "react-router-dom";
 import { FaRegEye, FaRegEyeSlash } from "react-icons/fa";
-import loginImage from "../assets/Images/loginImage.png";
 import { toast } from "react-hot-toast";
 import AuthTemplate from "../components/core/Auth/AuthTemplate";
 import { login } from "../services/operations/authAPI";
@@ -31,7 +30,7 @@ const Login = () => {
     <AuthTemplate
       title="Welcome back"
       description="Log in to your Academix account to continue learning."
-      imageSrc={loginImage}
+      imageSrc="https://res.cloudinary.com/dfocfto1r/image/upload/v1778090725/loginImage_iiuezd.png"
       showGoogleButton={true}
       footerLink={
         <>

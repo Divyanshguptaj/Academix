@@ -7,8 +7,8 @@ import { useNavigate } from "react-router-dom"
 import { changePassword } from "../../../../services/operations/settingsAPI"
 import { toast } from "react-hot-toast"
 
-const inputClass =
-  "w-full bg-richblack-700 border border-richblack-600 rounded-lg px-4 py-2.5 text-richblack-5 text-sm placeholder:text-richblack-400 focus:outline-none focus:border-yellow-400/60 transition-colors pr-10"
+const inputClass = (hasError) =>
+  `w-full bg-richblack-700 border ${hasError ? 'border-red-500 focus:border-red-500' : 'border-richblack-600 focus:border-yellow-400/60'} rounded-lg px-4 py-2.5 text-richblack-5 text-sm placeholder:text-richblack-400 focus:outline-none transition-colors pr-10`
 
 export default function UpdatePassword() {
   const { token } = useSelector((state) => state.auth)
@@ -17,12 +17,14 @@ export default function UpdatePassword() {
 
   const [showOldPassword, setShowOldPassword] = useState(false)
   const [showNewPassword, setShowNewPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
 
   const {
     register,
     handleSubmit,
     formState: { errors },
     reset,
+    getValues,
   } = useForm()
 
   const submitPasswordForm = async (data) => {
@@ -30,25 +32,13 @@ export default function UpdatePassword() {
       const mail = user.email
       const formData = { ...data, mail }
 
-      if (formData.newPassword.length < 8) {
-        toast.error("Minimum length of password should be 8")
-        return
-      }
-      if (!/\d/.test(formData.newPassword)) {
-        toast.error("Password must include at least one number")
-        return
-      }
-      if (!/[!@#$%^&*(),.?":{}|<>]/.test(formData.newPassword)) {
-        toast.error("Password must include at least one special character")
-        return
-      }
-
       const res = await changePassword(token, formData)
       if (res) {
         toast.success("Password updated successfully")
         reset()
         setShowOldPassword(false)
         setShowNewPassword(false)
+        setShowConfirmPassword(false)
       }
     } catch (error) {
       console.log("ERROR MESSAGE - ", error.message)
@@ -84,8 +74,8 @@ export default function UpdatePassword() {
                   type={showOldPassword ? "text" : "password"}
                   id="oldPassword"
                   placeholder="Enter current password"
-                  className={inputClass}
-                  {...register("oldPassword", { required: true })}
+                  className={inputClass(errors.oldPassword)}
+                  {...register("oldPassword", { required: "Please enter your current password." })}
                 />
                 <span
                   onClick={() => setShowOldPassword((prev) => !prev)}
@@ -97,7 +87,7 @@ export default function UpdatePassword() {
                 </span>
               </div>
               {errors.oldPassword && (
-                <span className="text-[11px] text-yellow-300">Please enter your current password.</span>
+                <span className="text-[11px] text-red-500">{errors.oldPassword.message}</span>
               )}
             </div>
 
@@ -111,8 +101,15 @@ export default function UpdatePassword() {
                   type={showNewPassword ? "text" : "password"}
                   id="newPassword"
                   placeholder="Enter new password"
-                  className={inputClass}
-                  {...register("newPassword", { required: true })}
+                  className={inputClass(errors.newPassword)}
+                  {...register("newPassword", { 
+                    required: "Please enter your new password.",
+                    minLength: { value: 8, message: "Minimum length of password should be 8" },
+                    validate: {
+                      hasNumber: v => /\d/.test(v) || "Password must include at least one number",
+                      hasSpecial: v => /[!@#$%^&*(),.?":{}|<>]/.test(v) || "Password must include at least one special character"
+                    }
+                  })}
                 />
                 <span
                   onClick={() => setShowNewPassword((prev) => !prev)}
@@ -124,10 +121,39 @@ export default function UpdatePassword() {
                 </span>
               </div>
               {errors.newPassword && (
-                <span className="text-[11px] text-yellow-300">Please enter your new password.</span>
+                <span className="text-[11px] text-red-500">{errors.newPassword.message}</span>
               )}
             </div>
 
+            {/* Confirm New Password */}
+            <div className="flex flex-col gap-1.5">
+              <label htmlFor="confirmNewPassword" className="text-sm font-medium text-richblack-300 flex items-center gap-1.5">
+                <FiLock className="text-richblack-400 text-xs" /> Confirm New Password
+              </label>
+              <div className="relative">
+                <input
+                  type={showConfirmPassword ? "text" : "password"}
+                  id="confirmNewPassword"
+                  placeholder="Confirm new password"
+                  className={inputClass(errors.confirmNewPassword)}
+                  {...register("confirmNewPassword", {
+                    required: "Please confirm your new password.",
+                    validate: (value) => value === getValues("newPassword") || "Passwords do not match"
+                  })}
+                />
+                <span
+                  onClick={() => setShowConfirmPassword((prev) => !prev)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 cursor-pointer text-richblack-400 hover:text-richblack-200 transition-colors"
+                >
+                  {showConfirmPassword
+                    ? <AiOutlineEyeInvisible fontSize={18} />
+                    : <AiOutlineEye fontSize={18} />}
+                </span>
+              </div>
+              {errors.confirmNewPassword && (
+                <span className="text-[11px] text-red-500">{errors.confirmNewPassword.message}</span>
+              )}
+            </div>
           </div>
 
           {/* Password requirements hint */}

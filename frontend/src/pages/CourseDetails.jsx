@@ -15,6 +15,13 @@ import { buyCourse } from "../services/operations/studentFeatureAPI";
 import { addToCart } from "../slices/cartSlice";
 import GetAvgRating from "../utils/avgRating";
 import Error from "./Error";
+import ImgWithPlaceholder from "../components/common/ImgWithPlaceholder";
+import { motion } from "framer-motion";
+
+const fadeIn = {
+  hidden: { opacity: 0, y: 30 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: "easeOut" } }
+};
 
 function CourseDetails() {
   const { user }          = useSelector((s) => s.profile);
@@ -135,15 +142,19 @@ function CourseDetails() {
 
           {/* mobile thumbnail */}
           <div className="relative mb-6 lg:hidden rounded-xl overflow-hidden shadow-lg">
-            <img src={thumbnail} alt={courseName} className="w-full object-cover max-h-52" />
-            <div className="absolute inset-0 flex items-center justify-center"
+            <ImgWithPlaceholder 
+              src={thumbnail} 
+              alt={courseName} 
+              containerClassName="w-full max-h-52 aspect-video" 
+            />
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none"
                  style={{ background: "rgba(0,0,0,0.3)" }}>
-              <BsPlayCircle className="text-white text-5xl" />
+              <BsPlayCircle className="text-white text-5xl drop-shadow-md" />
             </div>
           </div>
 
           {/* ── course info ── */}
-          <div className="max-w-3xl">
+          <motion.div initial="hidden" animate="visible" variants={fadeIn} className="max-w-3xl">
             {/* title */}
             <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-white leading-tight mb-3">
               {courseName}
@@ -231,7 +242,7 @@ function CourseDetails() {
                 </div>
               )}
             </div>
-          </div>
+          </motion.div>
         </div>
       </div>
 
@@ -258,7 +269,12 @@ function CourseDetails() {
             </div>
 
             {/* What You'll Learn */}
-            <section className="bg-richblack-800 border border-gray-700 rounded-xl overflow-hidden">
+            <motion.section 
+              initial="hidden" 
+              whileInView="visible" 
+              viewport={{ once: true, margin: "-50px" }} 
+              variants={fadeIn} 
+              className="bg-richblack-800 border border-gray-700 rounded-xl overflow-hidden">
               <SectionHeader title="What you'll learn" />
               <div className="p-5">
                 <ReactMarkdown
@@ -282,10 +298,15 @@ function CourseDetails() {
                   {whatYouWillLearn}
                 </ReactMarkdown>
               </div>
-            </section>
+            </motion.section>
 
             {/* Course Content */}
-            <section className="bg-richblack-800 border border-gray-700 rounded-xl overflow-hidden">
+            <motion.section 
+              initial="hidden" 
+              whileInView="visible" 
+              viewport={{ once: true, margin: "-50px" }} 
+              variants={fadeIn} 
+              className="bg-richblack-800 border border-gray-700 rounded-xl overflow-hidden">
               <SectionHeader
                 title="Course Content"
                 subtitle={`${courseContent.length} section${courseContent.length !== 1 ? "s" : ""} · ${totalNoOfLectures} lecture${totalNoOfLectures !== 1 ? "s" : ""}`}
@@ -303,10 +324,15 @@ function CourseDetails() {
                   <CourseAccordionBar course={c} key={i} isActive={isActive} handleActive={handleActive} />
                 ))}
               </div>
-            </section>
+            </motion.section>
 
             {/* Instructor */}
-            <section className="bg-richblack-800 border border-gray-700 rounded-xl overflow-hidden">
+            <motion.section 
+              initial="hidden" 
+              whileInView="visible" 
+              viewport={{ once: true, margin: "-50px" }} 
+              variants={fadeIn} 
+              className="bg-richblack-800 border border-gray-700 rounded-xl overflow-hidden">
               <SectionHeader title="Instructor" />
               <div className="p-5">
                 <div className="flex items-center gap-4 mb-3">
@@ -328,7 +354,7 @@ function CourseDetails() {
                   </p>
                 )}
               </div>
-            </section>
+            </motion.section>
           </div>
 
           {/* ── RIGHT: sticky card inside a full-height cell ── */}
@@ -337,7 +363,8 @@ function CourseDetails() {
           <div className="hidden lg:block relative">
             <div className="absolute inset-0 bg-richblack-800 border border-gray-700 rounded-xl"
                  style={{ opacity: 0.3 }} />
-            <div className="sticky top-6 z-10 py-2 px-0">
+            {/* Changed top-6 to top-24 to sit below the sticky Navbar! */}
+            <div className="sticky top-24 z-10 py-2 px-0">
               <CourseDetailsCard
                 course={courseData}
                 setConfirmationModal={setConfirmationModal}

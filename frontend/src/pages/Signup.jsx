@@ -3,7 +3,6 @@ import { useState, useEffect } from 'react';
 import { useDispatch } from 'react-redux';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { FaRegEye, FaRegEyeSlash } from 'react-icons/fa';
-import signupImage from '../assets/Images/signupImage.png';
 import { sendOtp } from '../services/operations/authAPI';
 import { toast } from 'react-hot-toast';
 import AuthTemplate from '../components/core/Auth/AuthTemplate';
@@ -76,7 +75,7 @@ const Signup = () => {
           <span className="font-semibold text-blue-300">Future-proof your career.</span>
         </>
       }
-      imageSrc={signupImage}
+      imageSrc="https://res.cloudinary.com/dfocfto1r/image/upload/v1778090728/signupImage_sm98ao.png"
       showGoogleButton={true}
       onGoogleClick={() => sessionStorage.setItem('accountType', 'Student')}
       footerLink={

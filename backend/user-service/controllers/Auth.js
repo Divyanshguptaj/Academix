@@ -6,7 +6,7 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import Profile from "../models/Profile.js";
 import mongoose from "mongoose";
-import mailSender from "../../shared-utils/mailSender.js";
+import { queueEmail } from "../../shared-utils/queue/email/emailQueue.js";
 
 // Maximum number of instructor application submissions per user
 const MAX_INSTRUCTOR_APPLICATIONS = 3;
@@ -648,11 +648,11 @@ export const submitInstructorApplication = async (req, res) => {
       await existingApplication.save();
 
       try {
-        await mailSender(
-          user.email,
-          'Instructor Application Re-submitted — Academix',
-          instructorApplicationEmailTemplate(user.firstName, existingApplication.submissionCount)
-        );
+        await queueEmail({
+          email: user.email,
+          title: 'Instructor Application Re-submitted — Academix',
+          body: instructorApplicationEmailTemplate(user.firstName, existingApplication.submissionCount)
+        });
       } catch (e) {
         console.error('Instructor application email failed:', e.message);
       }
@@ -682,11 +682,11 @@ export const submitInstructorApplication = async (req, res) => {
     });
 
     try {
-      await mailSender(
-        user.email,
-        'Instructor Application Received — Academix',
-        instructorApplicationEmailTemplate(user.firstName, 1)
-      );
+      await queueEmail({
+        email: user.email,
+        title: 'Instructor Application Received — Academix',
+        body: instructorApplicationEmailTemplate(user.firstName, 1)
+      });
     } catch (e) {
       console.error('Instructor application email failed:', e.message);
     }
