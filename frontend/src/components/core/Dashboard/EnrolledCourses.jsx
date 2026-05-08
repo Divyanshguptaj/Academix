@@ -84,9 +84,15 @@ export default function EnrolledCourses(){
               <div
                 className="flex w-full md:w-[45%] cursor-pointer items-start gap-4 mb-4 md:mb-0"
                 onClick={() => {
-                  navigate(
-                    `/view-course/${course?._id}/section/${course.courseContent?.[0]._id}/sub-section/${course.courseContent?.[0]?.subSection?.[0]?._id}`
-                  )
+                  // Use the flat IDs from the optimized backend, or fallback to the old nested array if still present
+                  const sectionId = course?.firstSectionId || course?.courseContent?.[0]?._id;
+                  const subSectionId = course?.firstSubSectionId || course?.courseContent?.[0]?.subSection?.[0]?._id;
+                  
+                  if (sectionId && subSectionId) {
+                    navigate(`/view-course/${course?._id}/section/${sectionId}/sub-section/${subSectionId}`);
+                  } else {
+                    navigate(`/view-course/${course?._id}`);
+                  }
                 }}
               >
                 <img

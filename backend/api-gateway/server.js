@@ -47,14 +47,18 @@ app.use(cors({
 
 app.use(cookieParser());
 
-// Request timeout — 30s for normal requests; skip for multipart (file/video uploads)
+// Request timeout — skip for multipart uploads and SSE streaming; 180s for other AI routes; 30s elsewhere
 app.use((req, res, next) => {
   if (req.is('multipart/form-data')) return next();
+  // SSE streaming endpoints keep the connection open until done — no timeout needed
+  if (req.path.startsWith('/api/v1/smart-study/askDoubt') ||
+      req.path.startsWith('/api/v1/smart-study/chatWithDocument')) return next();
+  const ms = req.path.startsWith('/api/v1/smart-study') ? 180000 : 30000;
   const timeout = setTimeout(() => {
     if (!res.headersSent) {
       res.status(408).json({ success: false, message: 'Request timeout' });
     }
-  }, 30000);
+  }, ms);
   res.on('finish', () => clearTimeout(timeout));
   res.on('close', () => clearTimeout(timeout));
   next();

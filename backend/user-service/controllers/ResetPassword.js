@@ -1,5 +1,5 @@
 import User from '../models/User.js'
-import mailSender from '../../shared-utils/mailSender.js'
+import { queueEmail } from '../../shared-utils/queue/email/emailQueue.js'
 import bcrypt from 'bcryptjs'
 import crypto from 'crypto'
 
@@ -35,8 +35,8 @@ export const resetPasswordToken = async (req, res) => {
         // Create URL
         const url = `${process.env.FRONTEND_URL}/update-password?token=${token}`;
 
-        // Send Mail
-        await mailSender(email, "Password Reset Link", `Password Reset link: ${url}`);
+        // Queue reset email — non-blocking
+        await queueEmail({ email, title: 'Password Reset Link', body: `Password Reset link: ${url}` });
 
         return res.status(200).json({
             success: true,

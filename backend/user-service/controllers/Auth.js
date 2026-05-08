@@ -76,6 +76,13 @@ export const sendOTP = async (req, res) => {
     const otpPayload = { email, otp };
     await OTP.create(otpPayload);
 
+    // Queue the OTP email — non-blocking, worker handles delivery
+    await queueEmail({
+      email,
+      title: 'Verification of Email',
+      body: `<p>Dear User,</p><p>Your OTP for email verification is: <strong>${otp}</strong></p><p>This OTP is valid for 5 minutes.</p><p>Thank you!</p>`,
+    });
+
     return res.status(200).json({
       success: true,
       message: "OTP sent successfully to your email",
@@ -202,7 +209,7 @@ export const signUp = async (req, res) => {
       message: "User is registered successfully",
     });
   } catch (error) {
-    console.log(error);
+    console.error("SignUp Error:", error);
     return res.status(500).json({
       success: false,
       message: "User can't registered!, please try again . . .",
@@ -477,7 +484,7 @@ export const getUserByEmail = async (req, res) => {
       });
     }
 
-    const user = await User.findOne({ email }).select('-password -token -resetPasswordExpires');
+    const user = await User.findOne({ email }).select('-password -token -resetPasswordExpires').lean();
 
     if (!user) {
       return res.status(404).json({
@@ -503,7 +510,6 @@ export const getUserByEmail = async (req, res) => {
 export const getInstructorsByIds = async (req, res) => {
   try {
     const { ids, fields } = req.query;
-    console.log("Received IDs:", ids);
     if (!ids) {
       return res.status(400).json({
         success: false,
@@ -513,7 +519,6 @@ export const getInstructorsByIds = async (req, res) => {
 
     // Split the comma-separated IDs and validate them
     const instructorIds = ids.split(',').map(id => id.trim());
-    console.log("Requested instructor IDs:", instructorIds);
     // Validate all IDs are valid ObjectIds
     for (const id of instructorIds) {
       if (!mongoose.Types.ObjectId.isValid(id)) {
@@ -523,7 +528,6 @@ export const getInstructorsByIds = async (req, res) => {
         });
       }
     }
-    console.log("All instructor IDs are valid.");
     // Build select query based on fields parameter
     let selectFields;
     if (fields) {
@@ -537,11 +541,6 @@ export const getInstructorsByIds = async (req, res) => {
       // Default selection - exclude sensitive fields
       selectFields = 'firstName lastName image additionalDetails';
     }
-    console.log("Select fields:", selectFields);  
-    // First, check if the user exists at all
-    const allUsers = await User.find({ _id: { $in: instructorIds } });
-    console.log("All users found:", allUsers.map(u => ({ id: u._id, accountType: u.accountType, email: u.email })));
-    
     // Fetch instructors with populated additionalDetails
     const instructors = await User.find({ 
       _id: { $in: instructorIds },
@@ -549,8 +548,8 @@ export const getInstructorsByIds = async (req, res) => {
     })
     .select(selectFields)
     .populate('additionalDetails')
+    .lean()
     .exec();
-    console.log("Fetched instructors:", instructors);
     if (!instructors || instructors.length === 0) {
       return res.status(200).json({
         success: true,
@@ -578,7 +577,7 @@ export const getInstructorsByIds = async (req, res) => {
 export const getMyInstructorApplication = async (req, res) => {
   try {
     const userId = req.user.id;
-    const application = await InstructorApplication.findOne({ userId });
+    const application = await InstructorApplication.findOne({ userId }).lean();
     if (!application) {
       return res.status(200).json({ success: true, data: null });
     }

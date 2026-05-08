@@ -1,6 +1,6 @@
 import { instance } from "../config/razorpay.js";
 import crypto from "crypto";
-import mailSender from "../../shared-utils/mailSender.js";
+import { queueEmail } from "../../shared-utils/queue/email/emailQueue.js";
 import mongoose from "mongoose";
 import { paymentSuccessEmail } from "../../shared-utils/mail/templates/paymentSuccessEmail.js";
 import { paymentFailureEmail } from "../../shared-utils/mail/templates/paymentFailureEmail.js";
@@ -470,8 +470,6 @@ const sendSuccessEmail = async (paymentId, amount, email) => {
       return;
     }
 
-    console.log("📧 Sending payment success email to:", email);
-
     const emailSubject = "Payment Received - Enrollment Confirmed";
     const emailBody = paymentSuccessEmail(
       "Student",
@@ -480,8 +478,7 @@ const sendSuccessEmail = async (paymentId, amount, email) => {
       paymentId
     );
 
-    await mailSender(email, emailSubject, emailBody);
-    console.log("✓ Success email sent");
+    await queueEmail({ email, title: emailSubject, body: emailBody });
 
   } catch (error) {
     console.error("Error sending success email:", error.message);
@@ -499,8 +496,6 @@ const sendFailureEmail = async (paymentId, amount, orderId, email, refundId) => 
       return;
     }
 
-    console.log("📧 Sending payment failure email to:", email);
-
     const emailSubject = "Payment Failed - Refund Initiated";
     const emailBody = paymentFailureEmail(
       "Student",
@@ -510,8 +505,7 @@ const sendFailureEmail = async (paymentId, amount, orderId, email, refundId) => 
       refundId
     );
 
-    await mailSender(email, emailSubject, emailBody);
-    console.log("✓ Failure email sent");
+    await queueEmail({ email, title: emailSubject, body: emailBody });
 
   } catch (error) {
     console.error("Error sending failure email:", error.message);

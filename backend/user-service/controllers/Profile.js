@@ -198,46 +198,45 @@ export const getEnrolledCourses = async (req, res) => {
       });
     }
 
-    // 3. Call course-service to get progress data for this user
-    let progressData = [];
+    // 3. Fetch progress for ALL enrolled courses in one query
+    let progressMap = {}; // courseId → completedVideosCount
     try {
-      const progressResponse = await courseService.get(`/course/getEnrolledStudents/${courseIds[0]}`);
+      const progressResponse = await courseService.get('/course/user-progress', {
+        params: { userId, courseIds: courseIds.join(',') },
+      });
       if (progressResponse.data?.success) {
-        progressData = progressResponse.data.data?.enrolledStudents || [];
+        progressMap = progressResponse.data.data || {};
       }
     } catch (err) {
-      // Non-fatal — continue without progress data
-      console.error('Error fetching progress:', err.message);
+      console.error('Error fetching user progress:', err.message);
     }
 
-    // 4. Calculate progress and return complete data
+    // 4. Calculate duration/lectures and attach progress — return only what the UI needs
     const coursesWithDuration = courseDetails.data.map((course) => {
       let totalDurationInSeconds = 0;
       let totalSubSections = 0;
 
       course.courseContent.forEach((section) => {
         totalSubSections += section.subSection.length;
-
         section.subSection.forEach((sub) => {
-          const duration = parseFloat(sub.timeDuration) || 0;
-          totalDurationInSeconds += duration;
+          totalDurationInSeconds += parseFloat(sub.timeDuration) || 0;
         });
       });
 
-      // Find progress for this course
-      const userProgress = progressData.find(
-        (p) => p._id.toString() === userId
-      );
-
-      const completedCount = userProgress?.progress?.completedVideos?.length || 0;
-
+      const completedCount = progressMap[course._id.toString()] || 0;
       const progressPercentage =
         totalSubSections > 0
           ? Math.round((completedCount / totalSubSections) * 100)
           : 0;
 
       return {
-        ...course,
+        _id: course._id,
+        courseName: course.courseName,
+        courseDescription: course.courseDescription,
+        thumbnail: course.thumbnail,
+        price: course.price,
+        firstSectionId: course.courseContent?.[0]?._id,
+        firstSubSectionId: course.courseContent?.[0]?.subSection?.[0]?._id,
         totalDurationInSeconds,
         totalLectures: totalSubSections,
         completedLectures: completedCount,

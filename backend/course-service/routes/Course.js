@@ -1,7 +1,7 @@
 import express from 'express';
 const router = express.Router();
 import { createCategory, findAllCategory, categoryPageDetails } from '../controllers/Category.js'
-import { createCourse, showAllCourses, getCourseDetails, getCoursePublicDetails, editCourse, getInstructorCourses, deleteCourse, getCourseDetailsForPayment, enrollStudentInCourse, getCourseByIds, getEnrolledStudentsWithProgress, updateCourseProgress } from '../controllers/Course.js'
+import { createCourse, showAllCourses, getCourseDetails, getCoursePublicDetails, editCourse, getInstructorCourses, deleteCourse, getCourseDetailsForPayment, enrollStudentInCourse, getCourseByIds, getEnrolledStudentsWithProgress, updateCourseProgress, getUserProgressForCourses } from '../controllers/Course.js'
 import { authorize } from '../../shared-utils/middlewares/auth.js'
 import { createSection, updateSection, deleteSection } from '../controllers/Section.js'
 import { createSubSection, deleteSubSection, updateSubSection } from '../controllers/Subsection.js'
@@ -47,6 +47,7 @@ router.get('/details/:courseId', getCourseDetailsForPayment);
 router.post('/enroll', enrollStudentInCourse);
 router.get('/get-courses-by-ids', getCourseByIds);
 router.get('/getEnrolledStudents/:courseId', getEnrolledStudentsWithProgress);
+router.get('/user-progress', getUserProgressForCourses);
 
 // Discussion Forum
 router.use('/discussion', discussionRouter);

@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { toast } from 'react-hot-toast';
 import { VscRobot } from 'react-icons/vsc';
-import { apiConnector } from '../../../services/apiconnector';
 import { smartStudyEndpoints } from '../../../services/apis';
 
 const { ASK_DOUBT_API } = smartStudyEndpoints;
@@ -15,23 +14,66 @@ const AIStudyAssistant = () => {
     if (!doubtQuestion.trim()) return;
 
     setLoading(true);
+    const currentQuestion = doubtQuestion;
+    setDoubtQuestion('');
+
+    // Optimistically add the entry with empty answer — tokens stream in below
+    setChatHistory(prev => [...prev, { question: currentQuestion, answer: '' }]);
+
     try {
-      const response = await apiConnector('POST', ASK_DOUBT_API, {
-        question: doubtQuestion,
+      const raw = localStorage.getItem('token');
+      let token;
+      try { token = JSON.parse(raw); } catch { token = raw; }
+
+      const response = await fetch(ASK_DOUBT_API, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({ question: currentQuestion, chatHistory }),
       });
 
-      if (response.data.success) {
-        setChatHistory(prev => [...prev, {
-          question: doubtQuestion,
-          answer: response.data.answer,
-        }]);
-        setDoubtQuestion('');
-      } else {
-        toast.error('Failed to get an answer');
+      if (!response.ok || !response.body) throw new Error('Stream request failed');
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop(); // keep incomplete line for next iteration
+
+        for (const line of lines) {
+          if (!line.startsWith('data: ')) continue;
+          const payload = line.slice(6).trim();
+          if (payload === '[DONE]') break;
+          try {
+            const { token: streamToken, error } = JSON.parse(payload);
+            if (error) { toast.error(error); break; }
+            if (streamToken) {
+              setChatHistory(prev => {
+                const next = [...prev];
+                next[next.length - 1] = {
+                  ...next[next.length - 1],
+                  answer: next[next.length - 1].answer + streamToken,
+                };
+                return next;
+              });
+            }
+          } catch { /* malformed chunk, skip */ }
+        }
       }
     } catch (error) {
       console.error('Doubt error:', error);
       toast.error('An error occurred while asking the doubt');
+      // Remove the empty optimistic entry on failure
+      setChatHistory(prev => prev.slice(0, -1));
+      setDoubtQuestion(currentQuestion); // restore question so user can retry
     } finally {
       setLoading(false);
     }

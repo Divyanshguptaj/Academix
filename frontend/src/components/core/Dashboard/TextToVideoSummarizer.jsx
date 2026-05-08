@@ -48,7 +48,7 @@ const TextToVideoSummarizer = () => {
         // Start polling for status
         videoIntervalRef.current = setInterval(async () => {
           await checkVideoStatus(response.data.operationId);
-        }, 15000); // Check every 15 seconds for json2video
+        }, 35000); // Check every 35 seconds — json2video takes 2-3 minutes
       } else {
         toast.error(response.data.message || 'Failed to start video generation');
         setVideoGenerating(false);

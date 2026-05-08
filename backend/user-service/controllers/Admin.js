@@ -1,7 +1,7 @@
 import User from '../models/User.js'
 import InstructorApplication from '../models/InstructorApplication.js'
 import { courseService, paymentService } from '../utils/serviceClients.js'
-import mailSender from '../../shared-utils/mailSender.js'
+import { queueEmail } from '../../shared-utils/queue/email/emailQueue.js'
 import { instructorApprovalEmail } from '../../shared-utils/mail/templates/instructorApprovalEmail.js'
 import { instructorRejectionEmail } from '../../shared-utils/mail/templates/instructorRejectionEmail.js'
 import { instructorRevokeEmail } from '../../shared-utils/mail/templates/instructorRevokeEmail.js'
@@ -25,7 +25,7 @@ export const getDashboardStats = async (req, res) => {
     };
     
     try {
-      const courseResponse = await courseService.get('/admin/list');
+      const courseResponse = await courseService.get('/course/admin/list?limit=1000');
       const courseData = courseResponse.data;
       if (courseData.success && courseData.data) {
         const courses = Array.isArray(courseData.data) ? courseData.data : [];
@@ -46,7 +46,7 @@ export const getDashboardStats = async (req, res) => {
     };
     
     try {
-      const paymentResponse = await paymentService.get('/admin/refunds/analytics');
+      const paymentResponse = await paymentService.get('/payment/admin/refunds/analytics');
       const paymentData = paymentResponse.data;
       if (paymentData.success && paymentData.data) {
         revenueStats.totalRevenue = paymentData.data.totalRevenue || 0;
@@ -63,7 +63,7 @@ export const getDashboardStats = async (req, res) => {
     };
     
     try {
-      const refundResponse = await paymentService.get('/admin/refunds');
+      const refundResponse = await paymentService.get('/payment/admin/refunds');
       const refundData = refundResponse.data;
       if (refundData.success && refundData.data) {
         const refunds = Array.isArray(refundData.data) ? refundData.data : [];
@@ -192,7 +192,7 @@ export const getAllInstructors = async (req, res) => {
     // Fetch all courses from course-service to enrich instructor stats
     let allCourses = []
     try {
-      const courseResponse = await courseService.get('/admin/list')
+      const courseResponse = await courseService.get('/course/admin/list?limit=1000')
       if (courseResponse.data?.success && Array.isArray(courseResponse.data.data)) {
         allCourses = courseResponse.data.data
       }
@@ -260,16 +260,8 @@ export const revokeInstructor = async (req, res) => {
       { status: 'rejected', rejectionReason: 'Instructor access revoked by admin.' }
     )
 
-    // Notify user by email (non-blocking)
-    try {
-      await mailSender(
-        user.email,
-        'Instructor Access Update — Academix',
-        instructorRevokeEmail(user.firstName)
-      )
-    } catch (e) {
-      console.error('Revoke notification email failed:', e.message)
-    }
+    // Queue notification email — non-blocking
+    queueEmail({ email: user.email, title: 'Instructor Access Update — Academix', body: instructorRevokeEmail(user.firstName) }).catch(e => console.error('Revoke email queue failed:', e.message))
 
     res.status(200).json({
       success: true,
@@ -335,16 +327,8 @@ export const approveInstructorApplication = async (req, res) => {
     user.accountType = 'Instructor'
     await user.save()
 
-    // Notify user by email (non-blocking)
-    try {
-      await mailSender(
-        user.email,
-        'Instructor Application Approved — Academix',
-        instructorApprovalEmail(user.firstName)
-      )
-    } catch (e) {
-      console.error('Approval notification email failed:', e.message)
-    }
+    // Queue notification email — non-blocking
+    queueEmail({ email: user.email, title: 'Instructor Application Approved — Academix', body: instructorApprovalEmail(user.firstName) }).catch(e => console.error('Approval email queue failed:', e.message))
 
     res.status(200).json({
       success: true,
@@ -387,19 +371,10 @@ export const rejectInstructorApplication = async (req, res) => {
     application.rejectionReason = rejectionReason
     await application.save()
 
-    // Notify user by email (non-blocking)
-    try {
-      const user = await User.findById(application.userId)
-      if (user) {
-        await mailSender(
-          user.email,
-          'Instructor Application Update — Academix',
-          instructorRejectionEmail(user.firstName, rejectionReason)
-        )
-      }
-    } catch (e) {
-      console.error('Rejection notification email failed:', e.message)
-    }
+    // Queue notification email — non-blocking
+    User.findById(application.userId).then(user => {
+      if (user) queueEmail({ email: user.email, title: 'Instructor Application Update — Academix', body: instructorRejectionEmail(user.firstName, rejectionReason) }).catch(e => console.error('Rejection email queue failed:', e.message))
+    }).catch(() => {})
 
     res.status(200).json({
       success: true,

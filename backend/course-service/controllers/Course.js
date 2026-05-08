@@ -46,7 +46,7 @@ export const editCourse = async (req, res) => {
         const thumbnail = req.files?.thumbnailImage;
 
         // Validate status
-        const validStatuses = ["Draft", "Published"];
+        const validStatuses = ["Draft", "Published", "Pending"];
         if (!validStatuses.includes(status)) {
             return res.status(400).json({
                 success: false,
@@ -262,7 +262,6 @@ export const showAllCourses = async (req,res)=>{
 export const getCourseDetails = async (req,res)=>{
     try {
         const {courseId} = req.body;
-        console.log("courseID", courseId)
         if(!courseId){
             return res.status(400).json({
                 success: false,
@@ -290,11 +289,9 @@ export const getCourseDetails = async (req,res)=>{
                 const instructorResponse = await userService.get('/auth/get-instructors-by-ids', {
                     params: { ids: courseDetails.instructor, fields: 'firstName,lastName,image,additionalDetails' },
                 });
-                console.log("Instructor API response:", instructorResponse.data);
                 instructorDetails = instructorResponse.data?.data?.[0];
             } catch (error) {
                 console.error("Error fetching instructor details:", error.message);
-                // Continue without instructor details if user service is unavailable
             }
         }
 
@@ -516,8 +513,6 @@ export const getCourseDetailsForPayment = async (req, res) => {
   try {
     const { courseId } = req.params;
 
-    console.log("🔍 COURSE SERVICE: getCourseDetailsForPayment called with courseId:", courseId);
-
     if (!courseId) {
       return res.status(400).json({
         success: false,
@@ -527,22 +522,12 @@ export const getCourseDetailsForPayment = async (req, res) => {
 
     const course = await Course.findById(courseId).select('_id courseName price studentsEnrolled');
 
-    console.log("🔍 COURSE SERVICE: Course found:", {
-      _id: course?._id,
-      courseName: course?.courseName,
-      price: course?.price,
-      studentsEnrolled: course?.studentsEnrolled?.length || 0
-    });
-
     if (!course) {
-      console.log("🔍 COURSE SERVICE: Course not found for ID:", courseId);
       return res.status(404).json({
         success: false,
         message: "Course not found",
       });
     }
-
-    console.log("🔍 COURSE SERVICE: Returning course details:", course);
 
     return res.status(200).json({
       success: true,
@@ -821,8 +806,6 @@ export const updateCourseProgress = async (req, res) => {
 // ----------------------- Admin endpoints -----------------------
 export const adminListCourses = async (req, res) => {
   try {
-    console.log("Admin list courses called with query:", req.query);
-    console.log("Authenticated user:");
     const { status, page = 1, limit = 20, search } = req.query;
     const filter = {};
     if (status) filter.status = status;
@@ -963,6 +946,35 @@ export const getCourseAnalytics = async (req, res) => {
     });
   } catch (error) {
     console.error('Error getting course analytics:', error);
+    return res.status(500).json({ success: false, message: 'Internal server error' });
+  }
+};
+
+// Internal endpoint — returns completedVideos count per course for a given user
+// Called by user-service getEnrolledCourses to calculate progress percentages
+export const getUserProgressForCourses = async (req, res) => {
+  try {
+    const { userId, courseIds } = req.query;
+    if (!userId || !courseIds) {
+      return res.status(400).json({ success: false, message: 'userId and courseIds are required' });
+    }
+
+    const ids = courseIds.split(',').map(id => id.trim()).filter(Boolean);
+
+    const progressRecords = await CourseProgress.find({
+      userId,
+      courseID: { $in: ids },
+    });
+
+    // Build a map: courseId → completedVideosCount
+    const progressMap = {};
+    for (const record of progressRecords) {
+      progressMap[record.courseID.toString()] = record.completedVideos?.length || 0;
+    }
+
+    return res.status(200).json({ success: true, data: progressMap });
+  } catch (error) {
+    console.error('Error fetching user progress:', error);
     return res.status(500).json({ success: false, message: 'Internal server error' });
   }
 };

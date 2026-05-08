@@ -34,7 +34,7 @@ export const createCategory = async (req, res) =>{
 
 export const findAllCategory = async (req, res)=>{
     try{
-        const allCategory = await Category.find({}, {name: true, description: true});
+        const allCategory = await Category.find({}, {name: true, description: true}).lean();
         return res.status(200).json({
             success: true,
             message: "All categories found successfully...",

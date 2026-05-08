@@ -17,7 +17,8 @@ const courseProgressSchema = new mongoose.Schema({
   ],
 });
 
-// Prevent OverwriteModelError in dev
+courseProgressSchema.index({ courseID: 1, userId: 1 });
+
 const CourseProgress =
   mongoose.models.CourseProgress ||
   mongoose.model("CourseProgress", courseProgressSchema);

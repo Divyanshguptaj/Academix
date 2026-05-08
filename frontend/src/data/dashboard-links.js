@@ -8,7 +8,7 @@ export const sidebarLinks = [
         name: "My Profile",
         path: '/dashboard/my-profile',
         icon: 'VscAccount',
-        allowedRoles: [ACCOUNT_TYPE.STUDENT, ACCOUNT_TYPE.INSTRUCTOR],
+        allowedRoles: [ACCOUNT_TYPE.STUDENT, ACCOUNT_TYPE.INSTRUCTOR, ACCOUNT_TYPE.ADMIN],
     },
     {
         id: 2,

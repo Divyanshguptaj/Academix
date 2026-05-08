@@ -48,14 +48,17 @@ app.use(cookieParser());
 // File upload middleware (needed for generateSummary)
 app.use(fileUpload({ limits: { fileSize: 50 * 1024 * 1024 } }));
 
-// Request timeout — 30s for normal requests; skip for multipart (file uploads like generateSummary)
+// Request timeout — skip for multipart uploads and SSE streaming; 180s for other AI routes; 30s elsewhere
 app.use((req, res, next) => {
   if (req.is('multipart/form-data')) return next();
+  // SSE streaming endpoints — no timeout, connection closes itself
+  if (req.url === '/smartStudy/askDoubt' || req.url === '/smartStudy/chatWithDocument') return next();
+  const ms = req.url.startsWith('/smartStudy') ? 180000 : 30000;
   const timeout = setTimeout(() => {
     if (!res.headersSent) {
       res.status(408).json({ success: false, message: 'Request timeout' });
     }
-  }, 30000);
+  }, ms);
   res.on('finish', () => clearTimeout(timeout));
   res.on('close', () => clearTimeout(timeout));
   next();

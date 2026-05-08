@@ -594,13 +594,9 @@ exports.generateSummary = async (req, res) => {
     // Use flash model — gemini-2.5-pro has free-tier quota of 0
     const model = genAI.getGenerativeModel({ model: GEMINI_FLASH_MODEL });
 
-    // Chunk → summarize each → merge
+    // Chunk → summarize in parallel → merge
     const chunks = chunkText(text, 12000);
-    const partials = [];
-    for (const c of chunks) {
-      const s = await summarizeChunk(model, c);
-      partials.push(s);
-    }
+    const partials = await Promise.all(chunks.map(c => summarizeChunk(model, c)));
     const summary =
       partials.length === 1
         ? partials[0]
@@ -630,27 +626,18 @@ exports.chatWithDocument = async (req, res) => {
     const { question, documentText } = req.body;
 
     if (!question || !question.trim()) {
-      return res.status(400).json({
-        success: false,
-        message: "Question is required",
-      });
+      return res.status(400).json({ success: false, message: "Question is required" });
     }
-
     if (!documentText || !documentText.trim()) {
-      return res.status(400).json({
-        success: false,
-        message: "Document text is required",
-      });
+      return res.status(400).json({ success: false, message: "Document text is required" });
     }
 
-    // Limit the document text to fit within token limits
-    const maxTextLength = MAX_TEXT_LENGTH_CHAT;
     const truncatedText =
-      documentText.length > maxTextLength
-        ? documentText.substring(0, maxTextLength) + "..."
+      documentText.length > MAX_TEXT_LENGTH_CHAT
+        ? documentText.substring(0, MAX_TEXT_LENGTH_CHAT) + "..."
         : documentText;
 
-    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+    const model = genAI.getGenerativeModel({ model: GEMINI_FLASH_MODEL });
 
     const prompt = `You are a helpful academic assistant. Based on the following document content, please answer the user's question accurately and comprehensively.
 
@@ -661,70 +648,87 @@ Question: ${question}
 
 Please provide a clear, detailed, and helpful answer based on the document. If the document doesn't contain information to answer the question, say so politely.`;
 
-    const result = await model.generateContent(prompt);
-    const answer = result.response.text();
+    res.setHeader("Content-Type", "text/event-stream");
+    res.setHeader("Cache-Control", "no-cache, no-transform");
+    res.setHeader("Connection", "keep-alive");
+    res.setHeader("X-Accel-Buffering", "no");
+    res.flushHeaders();
 
-    return res.status(200).json({
-      success: true,
-      answer,
-      message: "Question answered successfully",
-    });
+    const result = await model.generateContentStream(prompt);
+
+    for await (const chunk of result.stream) {
+      const text = chunk.text();
+      if (text) {
+        res.write(`data: ${JSON.stringify({ token: text })}\n\n`);
+        if (typeof res.flush === "function") res.flush();
+      }
+    }
+
+    res.write("data: [DONE]\n\n");
+    res.end();
   } catch (error) {
-    console.error("Error in chat:");
-    const status = error.status || 500;
-    return res.status(status).json({
-      success: false,
-      message: error.statusText || "Error processing the chat request",
-      error: error.message,
-      details: error.errorDetails || undefined,
-    });
+    console.error("Error in chatWithDocument:", error);
+    if (!res.headersSent) {
+      res.status(500).json({ success: false, message: "Error processing the chat request", error: error.message });
+    } else {
+      res.write(`data: ${JSON.stringify({ error: error.message })}\n\n`);
+      res.end();
+    }
   }
 };
 
 exports.askDoubt = async (req, res) => {
   try {
-    const { question } = req.body;
+    const { question, chatHistory } = req.body;
 
     if (!question || !question.trim()) {
-      return res.status(400).json({
-        success: false,
-        message: "Question is required",
-      });
+      return res.status(400).json({ success: false, message: "Question is required" });
     }
 
-    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+    const model = genAI.getGenerativeModel({ model: GEMINI_FLASH_MODEL });
 
-    const prompt = `You are a helpful AI Study Assistant for an e-learning platform. Answer the student's question about studying, courses, learning techniques, academic subjects, homework help, or general educational doubts.
+    // Build multi-turn history so Gemini has context from previous messages
+    const geminiHistory = [];
+    if (Array.isArray(chatHistory)) {
+      for (const turn of chatHistory) {
+        if (turn.question) geminiHistory.push({ role: "user",  parts: [{ text: turn.question }] });
+        if (turn.answer)   geminiHistory.push({ role: "model", parts: [{ text: turn.answer }] });
+      }
+    }
 
-Be encouraging, provide clear explanations, and suggest practical study tips when relevant.
+    // Seed system context as an initial exchange if no history yet
+    const history = geminiHistory.length > 0 ? geminiHistory : [
+      { role: "user",  parts: [{ text: "You are a helpful AI Study Assistant for an e-learning platform. Answer questions about studying, courses, academic subjects, and educational doubts. Be encouraging. Format math in plain text (e.g. F = m × a). Keep explanations simple and readable." }] },
+      { role: "model", parts: [{ text: "Understood! I'm ready to help students with their academic doubts." }] },
+    ];
 
-IMPORTANT: Format math expressions in plain text. For example:
-- Write equations like: Force (F) = mass (m) × acceleration (a)
-- Use words instead of symbols where possible: e.g., "dimension of mass is [M]" instead of $[M]$
-- For units: write "meters per second squared (m/s²)" instead of LaTeX units
-- Keep explanations simple and readable
+    res.setHeader("Content-Type", "text/event-stream");
+    res.setHeader("Cache-Control", "no-cache, no-transform");
+    res.setHeader("Connection", "keep-alive");
+    res.setHeader("X-Accel-Buffering", "no");
+    res.flushHeaders();
 
-Question: ${question}
+    const chat = model.startChat({ history });
+    const result = await chat.sendMessageStream(question);
 
-Please provide a helpful, accurate, plain-text response suitable for students.`;
+    for await (const chunk of result.stream) {
+      const text = chunk.text();
+      if (text) {
+        res.write(`data: ${JSON.stringify({ token: text })}\n\n`);
+        if (typeof res.flush === "function") res.flush();
+      }
+    }
 
-    const result = await model.generateContent(prompt);
-    const answer = result.response.text();
-
-    return res.status(200).json({
-      success: true,
-      answer,
-      message: "Doubt resolved successfully",
-    });
+    res.write("data: [DONE]\n\n");
+    res.end();
   } catch (error) {
-    console.error("Error in doubt resolution:");
-    const status = error.status || 500;
-    return res.status(status).json({
-      success: false,
-      message: error.statusText || "Error processing the doubt request",
-      error: error.message,
-      details: error.errorDetails || undefined,
-    });
+    console.error("Error in askDoubt:", error);
+    if (!res.headersSent) {
+      res.status(500).json({ success: false, message: "Error processing the doubt request", error: error.message });
+    } else {
+      res.write(`data: ${JSON.stringify({ error: error.message })}\n\n`);
+      res.end();
+    }
   }
 };
 

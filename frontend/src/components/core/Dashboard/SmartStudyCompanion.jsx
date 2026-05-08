@@ -6,6 +6,11 @@ import { smartStudyEndpoints } from '../../../services/apis';
 
 const { GENERATE_SUMMARY_API, CHAT_WITH_DOCUMENT_API } = smartStudyEndpoints;
 
+function getAuthToken() {
+  const raw = localStorage.getItem('token');
+  try { return JSON.parse(raw); } catch { return raw; }
+}
+
 const SmartStudyCompanion = () => {
   const [file, setFile] = useState(null);
   const [summary, setSummary] = useState('');
@@ -76,24 +81,61 @@ const SmartStudyCompanion = () => {
     if (!chatQuestion.trim() || !documentText) return;
 
     setChatLoading(true);
-    try {
-      const response = await apiConnector('POST', CHAT_WITH_DOCUMENT_API, {
-        question: chatQuestion,
-        documentText,
-      }, null, null, 60000);
+    const currentQuestion = chatQuestion;
+    setChatQuestion('');
 
-      if (response.data.success) {
-        setChatHistory(prev => [...prev, {
-          question: chatQuestion,
-          answer: response.data.answer,
-        }]);
-        setChatQuestion('');
-      } else {
-        toast.error('Failed to get an answer');
+    // Optimistically add entry; answer streams in below
+    setChatHistory(prev => [...prev, { question: currentQuestion, answer: '' }]);
+
+    try {
+      const response = await fetch(CHAT_WITH_DOCUMENT_API, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${getAuthToken()}`,
+        },
+        body: JSON.stringify({ question: currentQuestion, documentText }),
+      });
+
+      if (!response.ok || !response.body) throw new Error('Stream request failed');
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop();
+
+        for (const line of lines) {
+          if (!line.startsWith('data: ')) continue;
+          const payload = line.slice(6).trim();
+          if (payload === '[DONE]') break;
+          try {
+            const { token, error } = JSON.parse(payload);
+            if (error) { toast.error(error); break; }
+            if (token) {
+              setChatHistory(prev => {
+                const next = [...prev];
+                next[next.length - 1] = {
+                  ...next[next.length - 1],
+                  answer: next[next.length - 1].answer + token,
+                };
+                return next;
+              });
+            }
+          } catch { /* malformed chunk, skip */ }
+        }
       }
     } catch (error) {
       console.error('Chat error:', error);
       toast.error('An error occurred while chatting');
+      setChatHistory(prev => prev.slice(0, -1));
+      setChatQuestion(currentQuestion);
     } finally {
       setChatLoading(false);
     }
