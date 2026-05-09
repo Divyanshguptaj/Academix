@@ -18,6 +18,8 @@ const courseProgressSchema = new mongoose.Schema({
 });
 
 courseProgressSchema.index({ courseID: 1, userId: 1 });
+// Reversed compound for getUserProgressForCourses: find({ userId, courseID: { $in: [...] } })
+courseProgressSchema.index({ userId: 1, courseID: 1 });
 
 const CourseProgress =
   mongoose.models.CourseProgress ||

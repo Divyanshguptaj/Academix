@@ -25,4 +25,7 @@ const discussionSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+// courseId + createdAt: Discussion.find({ courseId }).sort({ createdAt: -1 })
+discussionSchema.index({ courseId: 1, createdAt: -1 });
+
 export default mongoose.model('Discussion', discussionSchema);

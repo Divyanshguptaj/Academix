@@ -53,6 +53,11 @@ const refundRequestSchema = new mongoose.Schema({
     }
 })
 
+// status + createdAt: admin paginated listing sorted by newest, countDocuments by status
+refundRequestSchema.index({ status: 1, createdAt: -1 });
+// studentId: student-specific refund queries
+refundRequestSchema.index({ studentId: 1 });
+
 // Update the updatedAt field before saving
 refundRequestSchema.pre('save', function(next) {
     this.updatedAt = Date.now()

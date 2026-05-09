@@ -21,4 +21,7 @@ const ratingAndReviews = new mongoose.Schema({
     }
 })
 
+// Covers duplicate-review check (findOne({ user, course })) and reviews-by-course queries
+ratingAndReviews.index({ course: 1, user: 1 });
+
 export default mongoose.model("RatingAndReview",ratingAndReviews);

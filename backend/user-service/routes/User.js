@@ -18,6 +18,7 @@ import {
 
 // Rate limiting for auth endpoints
 const authRateLimit = createRateLimit(5, 15 * 60 * 1000); // 5 attempts per 15 minutes
+const applicationRateLimit = createRateLimit(10, 60 * 60 * 1000); // 10 attempts per hour
 
 router.post('/login', 
   authRateLimit,
@@ -68,6 +69,7 @@ router.post('/sendotp',
 );
 
 router.post('/google-auth',
+  authRateLimit,
   sanitizeInput,
   mongoSanitizeMiddleware,
   googleAuth
@@ -85,6 +87,7 @@ router.post('/logout',
 
 // Instructor Application Routes
 router.post('/submit-instructor-application',
+  applicationRateLimit,
   sanitizeInput,
   mongoSanitizeMiddleware,
   authenticateToken,

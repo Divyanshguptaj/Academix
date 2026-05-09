@@ -51,6 +51,11 @@ const paymentTransactionSchema = new mongoose.Schema({
   }
 });
 
+// userId: fetch a user's payment history
+paymentTransactionSchema.index({ userId: 1 });
+// status: admin filtering by pending/verified/completed/failed/refunded
+paymentTransactionSchema.index({ status: 1 });
+
 // Update updatedAt before saving
 paymentTransactionSchema.pre('save', function(next) {
   this.updatedAt = Date.now();

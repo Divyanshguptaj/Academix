@@ -233,16 +233,27 @@ export const createCourse = async (req, res) => {
 
 export const showAllCourses = async (req,res)=>{
     try{
-        const allCourses = await Course.find({}, {
+        const { search } = req.query
+        const filter = { status: "Published" }
+        const projection = {
             courseName: true,
             price: true,
             thumbnail: true,
-            instuctor: true,
+            instructor: true,
             ratingAndReviews: true,
             studentsEnrolled: true,
-        }).exec();
+        }
 
-        // console.log(allCourses)
+        let query
+        if (search?.trim()) {
+            filter.$text = { $search: search.trim() }
+            query = Course.find(filter, { ...projection, score: { $meta: "textScore" } })
+                .sort({ score: { $meta: "textScore" } })
+        } else {
+            query = Course.find(filter, projection).sort({ createdAt: -1 })
+        }
+
+        const allCourses = await query.exec()
 
         return res.status(200).json({
             success: true,
@@ -809,19 +820,20 @@ export const adminListCourses = async (req, res) => {
     const { status, page = 1, limit = 15, search } = req.query;
     const filter = {};
     if (status && status !== 'all') filter.status = status;
-    if (search?.trim()) {
-      const safe = search.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&');
-      filter.courseName = { $regex: safe, $options: 'i' };
-    }
+    const hasSearch = !!search?.trim()
+    if (hasSearch) filter.$text = { $search: search.trim() }
 
     const pageNum = Number(page);
     const limitNum = Number(limit);
     const skip = (pageNum - 1) * limitNum;
 
+    const sortStage = hasSearch ? { score: { $meta: "textScore" } } : { createdAt: -1 }
+    const projection = hasSearch ? { score: { $meta: "textScore" } } : {}
+
     const [totalCourses, courses] = await Promise.all([
       Course.countDocuments(filter),
-      Course.find(filter)
-        .sort({ createdAt: -1 })
+      Course.find(filter, projection)
+        .sort(sortStage)
         .skip(skip)
         .limit(limitNum)
         .populate('category', 'name')

@@ -61,4 +61,7 @@ const courseSchema = new mongoose.Schema({
     }
 })
 
+// Speeds up showAllCourses (filter by Published + sort newest first) and adminListCourses
+courseSchema.index({ status: 1, createdAt: -1 });
+
 export default mongoose.model('Course', courseSchema);

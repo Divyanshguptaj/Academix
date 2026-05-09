@@ -65,4 +65,21 @@ const userSchema = new mongoose.Schema({
     ]
 })
 
+// Text index for fast, optimized search queries on Users
+userSchema.index(
+    {
+        firstName: "text",
+        lastName: "text",
+        email: "text"
+    },
+    {
+        name: "user_text_search",
+    }
+)
+
+// token: reset-password lookup (findOne({ token })) — sparse so null tokens aren't indexed
+userSchema.index({ token: 1 }, { sparse: true });
+// accountType: admin dashboard counts + instructor/student filters
+userSchema.index({ accountType: 1 });
+
 export default mongoose.model('User', userSchema);

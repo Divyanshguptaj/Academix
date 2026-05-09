@@ -75,6 +75,9 @@ const instructorApplicationSchema = new mongoose.Schema({
     }
 })
 
+// status: admin countDocuments({ status: 'pending' }) and paginated listing
+instructorApplicationSchema.index({ status: 1 });
+
 // Update the updatedAt field before saving
 instructorApplicationSchema.pre('save', function(next) {
     this.updatedAt = Date.now()
