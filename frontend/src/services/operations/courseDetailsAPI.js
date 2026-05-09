@@ -20,6 +20,9 @@ const {
   GET_FULL_COURSE_DETAILS_AUTHENTICATED,
   CREATE_RATING_API,
   LECTURE_COMPLETION_API,
+  GET_UPLOAD_SIGNATURE_API,
+  REORDER_SECTIONS_API,
+  REORDER_SUBSECTIONS_API,
 } = courseEndpoints
 
 export const fetchCourseDetails = async (courseId) => {
@@ -128,32 +131,59 @@ export const createSection = async (data) => {
   return result
 }
 
-// create a subsection
+// fetch a short-lived Cloudinary signed upload token from our backend
+export const getUploadSignature = async () => {
+  const res = await apiConnector("GET", GET_UPLOAD_SIGNATURE_API)
+  if (!res?.data?.success) throw new Error("Could not get upload signature")
+  return res.data.data
+}
+
+// upload a video file directly to Cloudinary via XHR for accurate progress tracking
+// progress is scaled 0→90 to leave room for the backend save step
+export const uploadVideoToCloudinary = (file, onProgress) =>
+  getUploadSignature().then(({ signature, timestamp, cloudName, apiKey, folder }) =>
+    new Promise((resolve, reject) => {
+      const fd = new FormData()
+      fd.append("file", file)
+      fd.append("signature", signature)
+      fd.append("timestamp", timestamp)
+      fd.append("api_key", apiKey)
+      fd.append("folder", folder)
+
+      const xhr = new XMLHttpRequest()
+      xhr.open("POST", `https://api.cloudinary.com/v1_1/${cloudName}/video/upload`)
+      xhr.upload.addEventListener("progress", (e) => {
+        if (e.lengthComputable) onProgress?.(Math.round((e.loaded / e.total) * 100))
+      })
+      xhr.addEventListener("load", () => {
+        if (xhr.status >= 200 && xhr.status < 300) {
+          const data = JSON.parse(xhr.responseText)
+          resolve({ videoURL: data.secure_url, timeDuration: Math.round(data.duration || 0) })
+        } else {
+          const msg = (() => { try { return JSON.parse(xhr.responseText)?.error?.message } catch { return null } })()
+          reject(new Error(msg || "Upload failed"))
+        }
+      })
+      xhr.addEventListener("error", () => reject(new Error("Network error during video upload")))
+      xhr.send(fd)
+    })
+  )
+
+// create a subsection — plain JSON body, video URL comes from Cloudinary direct upload
 export const createSubSection = async (data) => {
-  let result = null;
-  const toastId = toast.loading("Uploading lecture...");
-
+  let result = null
+  const toastId = toast.loading("Saving lecture...")
   try {
-    // timeout: 0 = no timeout — video uploads can take any amount of time
-    const response = await apiConnector("POST", CREATE_SUBSECTION_API, data, {}, null, 0);
-
-    console.log("CREATE SUB-SECTION API RESPONSE:", response);
-
-    if (!response?.data?.success) {
-      throw new Error("Could Not Add Lecture");
-    }
-
-    toast.success("Lecture Added");
-    result = response?.data?.data;
-
+    const response = await apiConnector("POST", CREATE_SUBSECTION_API, data)
+    if (!response?.data?.success) throw new Error("Could Not Add Lecture")
+    toast.success("Lecture Added")
+    result = response?.data?.data
   } catch (error) {
-    console.log("CREATE SUB-SECTION API ERROR:", error);
-    toast.error(error.message);
+    toast.error(error.message)
   }
-
-  toast.dismiss(toastId);
-  return result;
-};
+  toast.dismiss(toastId)
+  return result
+}
 
 // update a section
 export const updateSection = async (data,) => {
@@ -175,21 +205,16 @@ export const updateSection = async (data,) => {
   return result
 }
 
-// update a subsection
+// update a subsection — plain JSON body, video URL comes from Cloudinary direct upload
 export const updateSubSection = async (data) => {
   let result = null
-  const toastId = toast.loading("Uploading lecture...")
+  const toastId = toast.loading("Saving lecture...")
   try {
-    // timeout: 0 = no timeout — video re-upload can take any amount of time
-    const response = await apiConnector("POST", UPDATE_SUBSECTION_API, data, {}, null, 0)
-    console.log("UPDATE SUB-SECTION API RESPONSE............", response)
-    if (!response?.data?.success) {
-      throw new Error("Could Not Update Lecture")
-    }
+    const response = await apiConnector("POST", UPDATE_SUBSECTION_API, data)
+    if (!response?.data?.success) throw new Error("Could Not Update Lecture")
     toast.success("Lecture Updated")
     result = response?.data?.data
   } catch (error) {
-    console.log("UPDATE SUB-SECTION API ERROR............", error)
     toast.error(error.message)
   }
   toast.dismiss(toastId)
@@ -216,6 +241,30 @@ export const deleteSection = async (data) => {
   toast.dismiss(toastId)
   return result
 }
+// reorder sections — persists new section order to DB silently
+export const reorderSections = async (data) => {
+  try {
+    const response = await apiConnector("POST", REORDER_SECTIONS_API, data)
+    if (!response?.data?.success) throw new Error("Could not reorder sections")
+    return response?.data?.data
+  } catch (error) {
+    toast.error(error.message)
+    return null
+  }
+}
+
+// reorder subsections within a section — persists new order silently
+export const reorderSubSections = async (data) => {
+  try {
+    const response = await apiConnector("POST", REORDER_SUBSECTIONS_API, data)
+    if (!response?.data?.success) throw new Error("Could not reorder lectures")
+    return response?.data?.data
+  } catch (error) {
+    toast.error(error.message)
+    return null
+  }
+}
+
 // delete a subsection
 export const deleteSubSection = async (data) => {
   let result = null

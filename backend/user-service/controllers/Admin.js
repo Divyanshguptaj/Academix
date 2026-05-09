@@ -28,8 +28,10 @@ export const getDashboardStats = async (req, res) => {
       const courseResponse = await courseService.get('/admin/list?limit=1000');
       const courseData = courseResponse.data;
       if (courseData.success && courseData.data) {
-        const courses = Array.isArray(courseData.data) ? courseData.data : [];
-        courseStats.totalCourses = courses.length;
+        // Support both response shapes: new { courses, totalCourses } and old flat array
+        const payload = courseData.data;
+        const courses = Array.isArray(payload) ? payload : (payload.courses || []);
+        courseStats.totalCourses = payload.totalCourses ?? courses.length;
         courseStats.publishedCourses = courses.filter(c => c.status === 'Published').length;
         courseStats.draftCourses = courses.filter(c => c.status === 'Draft').length;
         courseStats.pendingCourseApprovals = courses.filter(c => c.status === 'Pending').length;

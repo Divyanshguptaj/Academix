@@ -3,7 +3,6 @@ import axios from 'axios'
 // Create axios instance with default configuration
 export const axiosInstance = axios.create({
   baseURL: process.env.REACT_APP_API_GATEWAY_URL || "http://localhost:4000/api/v1",
-  timeout: 10000,
   headers: {
     'Content-Type': 'application/json',
   }
@@ -51,10 +50,16 @@ axiosInstance.interceptors.response.use(
   }
 )
 
-export const apiConnector = (method, url, bodyData, headers, params, timeout = 15000) => {
+// config can be a plain number (legacy timeout) or { timeout, onUploadProgress }
+export const apiConnector = (method, url, bodyData, headers, params, config = {}) => {
+    const resolved = typeof config === 'number' ? { timeout: config } : config
+    const isFormData = bodyData instanceof FormData
+    // File uploads can be slow — disable timeout for FormData requests
+    const { timeout = isFormData ? 0 : 15000, onUploadProgress } = resolved
+
     const requestHeaders = headers ? { ...headers } : {};
     // For FormData, remove Content-Type so the browser sets multipart/form-data with boundary
-    if (bodyData instanceof FormData) {
+    if (isFormData) {
         requestHeaders['Content-Type'] = undefined;
     }
     return axiosInstance({
@@ -64,5 +69,6 @@ export const apiConnector = (method, url, bodyData, headers, params, timeout = 1
         headers: requestHeaders,
         params: params ? params : null,
         timeout,
+        ...(onUploadProgress && { onUploadProgress }),
     });
 }

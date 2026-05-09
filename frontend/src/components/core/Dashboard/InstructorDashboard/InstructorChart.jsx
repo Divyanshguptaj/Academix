@@ -1,85 +1,130 @@
-import { useState } from "react"
+import { useState, useMemo } from "react"
 import { Chart, registerables } from "chart.js"
-import { Pie } from "react-chartjs-2"
+import { Doughnut } from "react-chartjs-2"
 
 Chart.register(...registerables)
 
+const PALETTE = [
+  "rgba(251,191,36,0.85)",
+  "rgba(96,165,250,0.85)",
+  "rgba(52,211,153,0.85)",
+  "rgba(167,139,250,0.85)",
+  "rgba(251,146,60,0.85)",
+  "rgba(248,113,113,0.85)",
+  "rgba(34,211,238,0.85)",
+  "rgba(163,230,53,0.85)",
+]
+
+const PALETTE_BORDER = [
+  "rgba(251,191,36,1)",
+  "rgba(96,165,250,1)",
+  "rgba(52,211,153,1)",
+  "rgba(167,139,250,1)",
+  "rgba(251,146,60,1)",
+  "rgba(248,113,113,1)",
+  "rgba(34,211,238,1)",
+  "rgba(163,230,53,1)",
+]
+
+const truncate = (str, n = 22) => str.length > n ? str.slice(0, n) + "…" : str
+
 export default function InstructorChart({ courses }) {
-  // State to keep track of the currently selected chart
   const [currChart, setCurrChart] = useState("students")
 
-  // Function to generate random colors for the chart
-  const generateRandomColors = (numColors) => {
-    const colors = []
-    for (let i = 0; i < numColors; i++) {
-      const color = `rgb(${Math.floor(Math.random() * 256)}, ${Math.floor(
-        Math.random() * 256
-      )}, ${Math.floor(Math.random() * 256)})`
-      colors.push(color)
-    }
-    return colors
-  }
+  const colors = useMemo(
+    () => courses.map((_, i) => PALETTE[i % PALETTE.length]),
+    [courses.length]
+  )
+  const borderColors = useMemo(
+    () => courses.map((_, i) => PALETTE_BORDER[i % PALETTE_BORDER.length]),
+    [courses.length]
+  )
 
-  // Data for the chart displaying student information
-  const chartDataStudents = {
-    labels: courses.map((course) => course.courseName),
-    datasets: [
-      {
-        data: courses.map((course) => course.studentsEnrolled?.length || 0),
-        backgroundColor: generateRandomColors(courses.length),
-      },
-    ],
-  }
+  const studentData = useMemo(() => ({
+    labels: courses.map((c) => truncate(c.courseName)),
+    datasets: [{
+      data: courses.map((c) => c.studentsEnrolled?.length || 0),
+      backgroundColor: colors,
+      borderColor: borderColors,
+      borderWidth: 2,
+      hoverOffset: 8,
+    }],
+  }), [courses, colors, borderColors])
 
-  // Data for the chart displaying income information
-  const chartIncomeData = {
-    labels: courses.map((course) => course.courseName),
-    datasets: [
-      {
-        data: courses.map((course) => (course.price || 0) * (course.studentsEnrolled?.length || 0)),
-        backgroundColor: generateRandomColors(courses.length),
-      },
-    ],
-  }
+  const incomeData = useMemo(() => ({
+    labels: courses.map((c) => truncate(c.courseName)),
+    datasets: [{
+      data: courses.map((c) => (c.price || 0) * (c.studentsEnrolled?.length || 0)),
+      backgroundColor: colors,
+      borderColor: borderColors,
+      borderWidth: 2,
+      hoverOffset: 8,
+    }],
+  }), [courses, colors, borderColors])
 
-  // Options for the chart
   const options = {
-    maintainAspectRatio: false,
+    cutout: "62%",
+    responsive: true,
+    maintainAspectRatio: true,
+    plugins: {
+      legend: {
+        position: "bottom",
+        labels: {
+          color: "#9AA0B4",
+          font: { size: 11 },
+          padding: 14,
+          usePointStyle: true,
+          pointStyleWidth: 8,
+          boxHeight: 8,
+        },
+      },
+      tooltip: {
+        backgroundColor: "#161D29",
+        borderColor: "#2C333F",
+        borderWidth: 1,
+        titleColor: "#F1F2FF",
+        bodyColor: "#999DAA",
+        padding: 10,
+        cornerRadius: 8,
+        callbacks: {
+          label: (ctx) =>
+            currChart === "income"
+              ? ` ₹${ctx.raw.toLocaleString("en-IN")}`
+              : ` ${ctx.raw} student${ctx.raw !== 1 ? "s" : ""}`,
+        },
+      },
+    },
   }
+
+  const activeData = currChart === "students" ? studentData : incomeData
 
   return (
-    <div className="flex flex-1 flex-col gap-y-4 rounded-md bg-richblack-800 p-6">
-      <p className="text-lg font-bold text-richblack-300">Visualize</p>
-      <div className="space-x-4 font-semibold">
-        {/* Button to switch to the "students" chart */}
-        <button
-          onClick={() => setCurrChart("students")}
-          className={`rounded-sm p-1 px-3 transition-all duration-200 ${
-            currChart === "students"
-              ? "border-b border-1 border-yellow-500 text-yellow-500"
-              : "text-white"
-          }`}
-        >
-          Students
-        </button>
-        {/* Button to switch to the "income" chart */}
-        <button
-          onClick={() => setCurrChart("income")}
-          className={`rounded-sm p-1 px-3 transition-all duration-200 ${
-            currChart === "income"
-              ? "border-b border-1 border-yellow-500 text-yellow-500"
-              : "text-white"
-          }`}
-        >
-          Income
-        </button>
+    <div className="flex flex-col gap-4 rounded-xl bg-richblack-800 border border-richblack-700 p-5 h-full">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <p className="text-sm font-semibold text-richblack-300 uppercase tracking-wide">Visualize</p>
+        <div className="flex items-center gap-1 bg-richblack-700 rounded-lg p-1">
+          {["students", "income"].map((tab) => (
+            <button
+              key={tab}
+              onClick={() => setCurrChart(tab)}
+              className={`px-3 py-1 rounded-md text-xs font-semibold transition-all capitalize ${
+                currChart === tab
+                  ? "bg-yellow-400 text-richblack-900"
+                  : "text-richblack-300 hover:text-richblack-100"
+              }`}
+            >
+              {tab}
+            </button>
+          ))}
+        </div>
       </div>
-      <div className="relative mx-auto aspect-square h-[70%] w-[70%]">
-        {/* Render the Pie chart based on the selected chart */}
-        <Pie
-          data={currChart === "students" ? chartDataStudents : chartIncomeData}
-          options={options}
-        />
+
+      {/* Chart */}
+      <div className="flex-1 flex items-center justify-center" style={{ minHeight: 0 }}>
+        <div style={{ width: "100%", maxWidth: 320, margin: "0 auto" }}>
+          <Doughnut data={activeData} options={options} />
+        </div>
       </div>
     </div>
   )

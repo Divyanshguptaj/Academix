@@ -31,7 +31,6 @@ import UserManagement from './components/core/Admin/UserManagement';
 import InstructorManagement from './components/core/Admin/InstructorManagement';
 import CourseManagement from './components/core/Admin/CourseManagement';
 import RefundManagement from './components/core/Admin/RefundManagement';
-import AdminSettings from './components/core/Admin/AdminSettings';
 import About from './pages/About';
 import Catalog from './pages/Catalog';
 import ViewCourse from "./pages/ViewCourse";
@@ -136,9 +135,7 @@ function App() {
               <Route path="users" element={<UserManagement />} />
               <Route path="instructors" element={<InstructorManagement />} />
               <Route path="courses" element={<CourseManagement />} />
-              <Route path="refunds" element={<RefundManagement />} />
-<Route path="settings" element={<AdminSettings />} />
-            </Route>
+              <Route path="refunds" element={<RefundManagement />} />            </Route>
 
             {/* Course View — login + enrollment required */}
             <Route

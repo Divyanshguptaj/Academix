@@ -7,34 +7,67 @@ import { withRetry, courseService, userService } from '../utils/serviceClients.j
 // Refund Management
 export const getRefundRequests = async (req, res) => {
   try {
-    // Removed native Mongoose populate since student and course models reside in different microservices
-    const refundRequests = await RefundRequest.find().sort({ createdAt: -1 })
+    const { page = 1, limit = 10, status = "all" } = req.query;
+    
+    const query = {};
+    if (status && status !== "all") {
+      query.status = status;
+    }
 
-    // Enrich with additional data
-    const enrichedRequests = await Promise.all(
-      refundRequests.map(async (request) => {
-        let student = null;
-        let course = null;
-        let instructor = null;
+    const skip = (Number(page) - 1) * Number(limit);
 
-        try {
-          const studentResponse = await withRetry(() => userService.get(`/profile/user/${request.studentId}`));
-          student = studentResponse.data?.user || null;
-        } catch (err) {
-          console.warn(`Could not fetch student details for ${request.studentId}`);
+    const [totalRefunds, refundRequests] = await Promise.all([
+      RefundRequest.countDocuments(query),
+      RefundRequest.find(query).sort({ _id: -1 }).skip(skip).limit(Number(limit))
+    ]);
+
+    // Gather unique IDs for bulk fetching
+    const studentIds = [...new Set(refundRequests.map(r => r.studentId.toString()))];
+    const courseIds = [...new Set(refundRequests.map(r => r.courseId.toString()))];
+
+    // Bulk fetch students
+    let studentsMap = {};
+    if (studentIds.length > 0) {
+      try {
+        const studentRes = await withRetry(() => userService.get(`/auth/get-users-by-ids?ids=${studentIds.join(',')}`));
+        const students = studentRes.data?.data || [];
+        students.forEach(s => studentsMap[s._id] = s);
+      } catch (err) {
+        console.warn('Could not fetch students in bulk');
+      }
+    }
+
+    // Bulk fetch courses and instructors
+    let coursesMap = {};
+    let instructorsMap = {};
+    if (courseIds.length > 0) {
+      try {
+        const courseRes = await withRetry(() => courseService.get(`/course/getCourseByIds?ids=${courseIds.join(',')}`));
+        const courses = courseRes.data?.data || [];
+        
+        const instructorIds = [...new Set(courses.map(c => typeof c.instructor === 'object' ? c.instructor._id : c.instructor).filter(Boolean))];
+        
+        if (instructorIds.length > 0) {
+          const instRes = await withRetry(() => userService.get(`/auth/get-instructors-by-ids?ids=${instructorIds.join(',')}`));
+          const instructors = instRes.data?.data || [];
+          instructors.forEach(i => instructorsMap[i._id] = i);
         }
 
-        try {
-          const courseResponse = await withRetry(() => courseService.get(`/course/details/${request.courseId}`));
-          course = courseResponse.data?.course || null;
+        courses.forEach(c => coursesMap[c._id] = c);
+      } catch (err) {
+        console.warn('Could not fetch courses or instructors in bulk');
+      }
+    }
 
-          if (course && course.instructor) {
-            const instructorId = typeof course.instructor === 'object' ? course.instructor._id : course.instructor;
-            const instructorResponse = await withRetry(() => userService.get(`/profile/user/${instructorId}`));
-            instructor = instructorResponse.data?.user || null;
-          }
-        } catch (err) {
-          console.warn(`Could not fetch course/instructor details for ${request.courseId}`);
+    // Enrich with additional data
+    const enrichedRequests = refundRequests.map((request) => {
+        const student = studentsMap[request.studentId.toString()] || null;
+        const course = coursesMap[request.courseId.toString()] || null;
+        let instructor = null;
+        
+        if (course && course.instructor) {
+          const instId = typeof course.instructor === 'object' ? course.instructor._id : course.instructor;
+          instructor = instructorsMap[instId.toString()] || null;
         }
         
         return {
@@ -56,11 +89,15 @@ export const getRefundRequests = async (req, res) => {
           } : { _id: request.courseId }
         }
       })
-    )
 
     return res.status(200).json({
       success: true,
-      data: enrichedRequests
+      data: {
+        refunds: enrichedRequests,
+        totalRefunds,
+        totalPages: Math.ceil(totalRefunds / Number(limit)) || 1,
+        currentPage: Number(page)
+      }
     })
   } catch (error) {
     console.error('Get refund requests error:', error)

@@ -77,6 +77,24 @@ export const updateSection = async (req, res)=>{
     }
 }
 
+export const reorderSections = async (req, res) => {
+    try {
+        const { courseId, sectionIds } = req.body
+        if (!courseId || !Array.isArray(sectionIds)) {
+            return res.status(400).json({ success: false, message: "courseId and sectionIds are required" })
+        }
+        await Course.findByIdAndUpdate(courseId, { courseContent: sectionIds })
+        const updatedCourse = await Course.findById(courseId)
+            .populate({ path: "courseContent", populate: { path: "subSection" } })
+            .populate("instructor")
+            .populate("category")
+            .exec()
+        return res.status(200).json({ success: true, data: updatedCourse })
+    } catch (error) {
+        return res.status(500).json({ success: false, message: "Could not reorder sections" })
+    }
+}
+
 export const deleteSection = async (req, res)=>{
     try {
         const {sectionId, courseId} = req.body;

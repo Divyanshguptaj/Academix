@@ -5,6 +5,7 @@ import { adminEndpoints } from "../../../services/apis"
 import { toast } from "react-hot-toast"
 import { FaRupeeSign, FaClock, FaCheckCircle, FaTimesCircle, FaSearch, FaTimes, FaCalendar } from "react-icons/fa"
 import { format } from "date-fns"
+import RefreshButton from "../../common/RefreshButton"
 
 const decodeImg = (url) =>
   url?.replace(/&#x2F;/gi, "/").replace(/&#x27;/gi, "'").replace(/&amp;/gi, "&") || ""
@@ -20,20 +21,42 @@ export default function RefundManagement() {
   const [refunds, setRefunds] = useState([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
+  const [debouncedSearch, setDebouncedSearch] = useState("")
   const [statusFilter, setStatusFilter] = useState("all")
   const [sortBy, setSortBy] = useState("createdAt")
   const [sortOrder, setSortOrder] = useState("desc")
   const [actionLoading, setActionLoading] = useState(null)
 
+  const [page, setPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
+  const [totalCount, setTotalCount] = useState(0)
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchTerm)
+    }, 500)
+    return () => clearTimeout(timer)
+  }, [searchTerm])
+
+  useEffect(() => {
+    setPage(1)
+  }, [statusFilter])
+
   useEffect(() => {
     if (user?.accountType === "Admin") fetchRefunds()
-  }, [user])
+  }, [user, page, statusFilter])
 
   const fetchRefunds = async () => {
     try {
       setLoading(true)
-      const response = await apiConnector("GET", adminEndpoints.GET_REFUND_REQUESTS)
-      setRefunds(response.data.data || [])
+      const queryParams = new URLSearchParams({ page, limit: 10, status: statusFilter }).toString()
+      const response = await apiConnector("GET", `${adminEndpoints.GET_REFUND_REQUESTS}?${queryParams}`)
+      const responseData = response?.data?.data
+      
+      // Safely handle both new object payload and legacy array payload
+      setRefunds(responseData?.refunds || (Array.isArray(responseData) ? responseData : []))
+      setTotalPages(responseData?.totalPages || 1)
+      setTotalCount(responseData?.totalRefunds || (Array.isArray(responseData) ? responseData.length : 0))
     } catch {
       toast.error("Failed to load refund requests")
     } finally {
@@ -59,14 +82,13 @@ export default function RefundManagement() {
 
   const filtered = refunds
     .filter((r) => {
-      const q = searchTerm.toLowerCase()
+      const q = debouncedSearch.toLowerCase()
       const matchesSearch =
         (r.student?.firstName || "").toLowerCase().includes(q) ||
         (r.student?.lastName || "").toLowerCase().includes(q) ||
         (r.course?.courseName || "").toLowerCase().includes(q) ||
         (r.transactionId || "").toLowerCase().includes(q)
-      const matchesStatus = statusFilter === "all" || r.status === statusFilter
-      return matchesSearch && matchesStatus
+      return matchesSearch // Status filter is now handled strictly by the backend
     })
     .sort((a, b) => {
       let av = a[sortBy], bv = b[sortBy]
@@ -82,22 +104,11 @@ export default function RefundManagement() {
   const approvedAmount = refunds.filter((r) => r.status === "approved").reduce((s, r) => s + (r.amount || 0), 0)
 
   const statCards = [
-    { label: "Total Requests", value: refunds.length, color: "text-blue-400" },
+    { label: "Total Requests", value: totalCount, color: "text-blue-400" },
     { label: "Pending", value: refunds.filter((r) => r.status === "pending").length, color: "text-yellow-400" },
     { label: "Approved", value: refunds.filter((r) => r.status === "approved").length, color: "text-green-400" },
     { label: "Rejected", value: refunds.filter((r) => r.status === "rejected").length, color: "text-red-400" },
   ]
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-[50vh]">
-        <div className="relative w-16 h-16">
-          <div className="absolute inset-0 border-4 border-richblack-600 rounded-full" />
-          <div className="absolute inset-0 border-4 border-t-yellow-400 rounded-full animate-spin" />
-        </div>
-      </div>
-    )
-  }
 
   return (
     <div className="space-y-6">
@@ -107,12 +118,7 @@ export default function RefundManagement() {
           <h1 className="text-2xl font-bold text-richblack-5">Refund Management</h1>
           <p className="text-sm text-richblack-400 mt-0.5">Process and track student refund requests</p>
         </div>
-        <button
-          onClick={fetchRefunds}
-          className="flex items-center gap-2 bg-richblack-700 hover:bg-richblack-600 border border-richblack-600 text-richblack-100 px-4 py-2 rounded-lg text-sm font-medium transition-colors"
-        >
-          Refresh
-        </button>
+        <RefreshButton onClick={fetchRefunds} loading={loading} />
       </div>
 
       {/* Stats + Financial Summary */}
@@ -205,7 +211,18 @@ export default function RefundManagement() {
               </tr>
             </thead>
             <tbody className="divide-y divide-richblack-700">
-              {filtered.map((refund) => {
+              {loading ? (
+                <tr>
+                  <td colSpan={7} className="py-12">
+                    <div className="flex items-center justify-center">
+                      <div className="relative w-12 h-12">
+                        <div className="absolute inset-0 border-4 border-richblack-600 rounded-full" />
+                        <div className="absolute inset-0 border-4 border-t-yellow-400 rounded-full animate-spin" />
+                      </div>
+                    </div>
+                  </td>
+                </tr>
+              ) : filtered.map((refund) => {
                 const studentName = `${refund.student?.firstName || ""} ${refund.student?.lastName || ""}`.trim()
                 const img = decodeImg(refund.student?.image)
                 const approveLoading = actionLoading === `${refund._id}-process`
@@ -284,16 +301,31 @@ export default function RefundManagement() {
           </table>
         </div>
 
-        {filtered.length === 0 && (
+        {!loading && filtered.length === 0 && (
           <div className="text-center py-12 text-richblack-400 text-sm">
             No refund requests found matching your criteria.
           </div>
         )}
       </div>
 
-      <p className="text-xs text-richblack-500 text-right">
-        Showing {filtered.length} of {refunds.length} requests
-      </p>
+      {/* Pagination & Result count */}
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-6">
+        <p className="text-xs text-richblack-500">
+          Showing {filtered.length} of {totalCount} requests
+        </p>
+
+        {totalPages > 1 && (
+          <div className="flex items-center gap-2">
+            <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1 || loading} className="px-3 py-1.5 rounded bg-richblack-800 border border-richblack-700 text-white text-sm disabled:opacity-50 hover:bg-richblack-700 transition">Prev</button>
+            {Array.from({ length: totalPages }).map((_, idx) => (
+              <button key={idx} onClick={() => setPage(idx + 1)} disabled={loading} className={`w-8 h-8 flex items-center justify-center rounded text-sm transition-colors border border-richblack-700 ${page === idx + 1 ? 'bg-yellow-400 text-black font-bold border-yellow-400' : 'bg-richblack-800 text-white hover:bg-richblack-700'}`}>
+                {idx + 1}
+              </button>
+            ))}
+            <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages || loading} className="px-3 py-1.5 rounded bg-richblack-800 border border-richblack-700 text-white text-sm disabled:opacity-50 hover:bg-richblack-700 transition">Next</button>
+          </div>
+        )}
+      </div>
     </div>
   )
 }

@@ -3,8 +3,8 @@ const router = express.Router();
 import { createCategory, findAllCategory, categoryPageDetails } from '../controllers/Category.js'
 import { createCourse, showAllCourses, getCourseDetails, getCoursePublicDetails, editCourse, getInstructorCourses, deleteCourse, getCourseDetailsForPayment, enrollStudentInCourse, unenrollStudentFromCourse, getCourseByIds, getEnrolledStudentsWithProgress, updateCourseProgress, getUserProgressForCourses } from '../controllers/Course.js'
 import { authorize, authenticateInternal } from '../../shared-utils/middlewares/auth.js'
-import { createSection, updateSection, deleteSection } from '../controllers/Section.js'
-import { createSubSection, deleteSubSection, updateSubSection } from '../controllers/Subsection.js'
+import { createSection, updateSection, deleteSection, reorderSections } from '../controllers/Section.js'
+import { createSubSection, deleteSubSection, updateSubSection, getUploadSignature, reorderSubSections } from '../controllers/Subsection.js'
 import { createRating, getAverageRating, getAllReviews } from '../controllers/RatingAndReview.js';
 import discussionRouter from './Discussion.js';
 
@@ -26,11 +26,14 @@ router.post('/updateCourseProgress', authorize('Student'), updateCourseProgress)
 router.post('/createSection', authorize('Instructor'), createSection)
 router.post('/updateSection', authorize('Instructor'), updateSection);
 router.post('/deleteSection', authorize('Instructor'), deleteSection);
+router.post('/reorderSections', authorize('Instructor'), reorderSections);
 
 // Sub-section — Instructor only
+router.get('/upload-signature', authorize('Instructor'), getUploadSignature)
 router.post('/addSubSection', authorize('Instructor'), createSubSection)
 router.post('/updateSubSection', authorize('Instructor'), updateSubSection)
 router.post('/deleteSubSection', authorize('Instructor'), deleteSubSection)
+router.post('/reorderSubSections', authorize('Instructor'), reorderSubSections)
 
 // Category — public reads, Admin-only writes
 router.post('/createCategory', authorize('Admin'), createCategory)

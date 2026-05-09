@@ -82,13 +82,8 @@ export default function CourseBuilderForm() {
   }
 
   const goToNext = () => {
-    console.log("Course Content:", course.courseContent);
     if (course.courseContent.length === 0) {
-      toast.error("Please add atleast one section")
-      return
-    }
-    if (course.courseContent.some((section) => section.subSection.length === 0)) {
-      toast.error("Please add atleast one lecture in each section")
+      toast.error("Please add at least one section")
       return
     }
     dispatch(setStep(3))
@@ -228,18 +223,9 @@ export default function CourseBuilderForm() {
           {/* Progress Indicator */}
           <div className="mt-4 text-center">
             <p className="text-xs text-white/50">
-              {course.courseContent.length > 0 ? (
-                <>
-                  {course.courseContent.length} section{course.courseContent.length !== 1 ? 's' : ''} created
-                  {course.courseContent.some((section) => section.subSection.length === 0) && (
-                    <span className="text-pink-200 ml-2">
-                      • Add lectures to continue
-                    </span>
-                  )}
-                </>
-              ) : (
-                "Add at least one section to continue"
-              )}
+              {course.courseContent.length > 0
+                ? `${course.courseContent.length} section${course.courseContent.length !== 1 ? 's' : ''} created — lectures and videos can be added now or later`
+                : "Add at least one section to continue"}
             </p>
           </div>
         </div>

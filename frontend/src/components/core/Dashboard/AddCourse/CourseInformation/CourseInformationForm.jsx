@@ -4,8 +4,7 @@ import { toast } from "react-hot-toast"
 import { HiOutlineCurrencyRupee } from "react-icons/hi"
 import { MdNavigateNext } from "react-icons/md";
 import { useDispatch, useSelector } from "react-redux"
-import { addCourseDetails, editCourseDetails } from "../../../../../services/operations/courseDetailsAPI"
-import { fetchCategories } from "../../../../../slices/courseSlice"
+import { addCourseDetails, editCourseDetails, fetchCourseCategories } from "../../../../../services/operations/courseDetailsAPI"
 import { setCourse, setStep } from "../../../../../slices/courseSlice"
 import { COURSE_STATUS } from "../../../../../utils/constants"
 import IconBtn from "../../../../common/IconBtn"
@@ -13,45 +12,36 @@ import Upload from "../Upload"
 import ChipInput from "./ChipInput"
 import RequirementsField from "./RequirementField"
 
+const DRAFT_KEY = "academix_course_draft_step1"
+
 export default function CourseInformationForm() {
   const {
     register,
-    handleSubmit, 
+    handleSubmit,
     setValue,
     getValues,
+    watch,
     formState: { errors },
   } = useForm()
 
   const dispatch = useDispatch()
-  // const { token } = useSelector((state) => state.auth)
-  const { user} = useSelector((state) => state.profile)
+  const { user } = useSelector((state) => state.profile)
   const { course, editCourse } = useSelector((state) => state.course)
-  const storeCategories = useSelector((state) => state.course.categories)
   const [loading, setLoading] = useState(false)
+  const [categoriesLoading, setCategoriesLoading] = useState(false)
   const [courseCategories, setCourseCategories] = useState([])
 
   useEffect(() => {
     const getCategories = async () => {
-      setLoading(true)
+      setCategoriesLoading(true)
       try {
-        const categories = await dispatch(fetchCategories()).unwrap()
-        if (categories && categories.length > 0) {
-          setCourseCategories(categories)
-        }
-      } catch (error) {
-        if (error.name !== 'ConditionError') {
-          console.error("Error fetching categories", error)
-        } else {
-          console.debug("Categories fetch condition returned false, using categories from store.")
-          if (storeCategories && storeCategories.length > 0) {
-            setCourseCategories(storeCategories)
-          }
-        }
+        const categories = await fetchCourseCategories()
+        setCourseCategories(categories ?? [])
       } finally {
-        setLoading(false)
+        setCategoriesLoading(false)
       }
     }
-    
+
     // if form is in edit mode
     if (editCourse) {
       // Extract course data from either _doc property or direct properties
@@ -62,14 +52,44 @@ export default function CourseInformationForm() {
       setValue("coursePrice", courseData.price)
       setValue("courseTags", courseData.tag)
       setValue("courseBenefits", courseData.whatYouWillLearn)
-      setValue("courseCategory", courseData.category)
+      setValue("courseCategory", courseData.category?._id ?? courseData.category)
       setValue("courseRequirements", courseData.instructions)
       setValue("courseImage", courseData.thumbnail)
     }
     getCategories()
 
+    // Restore localStorage draft only when creating a brand-new course
+    // (skip if editCourse=true, which means the form is populated from the course object above)
+    if (!editCourse) {
+      try {
+        const saved = localStorage.getItem(DRAFT_KEY)
+        if (saved) {
+          const data = JSON.parse(saved)
+          if (data.courseTitle)                setValue("courseTitle", data.courseTitle)
+          if (data.courseShortDesc)            setValue("courseShortDesc", data.courseShortDesc)
+          if (data.coursePrice)                setValue("coursePrice", data.coursePrice)
+          if (data.courseBenefits)             setValue("courseBenefits", data.courseBenefits)
+          if (data.courseTags?.length)         setValue("courseTags", data.courseTags)
+          if (data.courseRequirements?.length) setValue("courseRequirements", data.courseRequirements)
+          toast.success("Draft restored", { duration: 2000, icon: "📝" })
+        }
+      } catch { /* ignore bad JSON */ }
+    }
+
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  // Auto-save form values to localStorage (new course only, debounced 800ms)
+  const watchedValues = watch()
+  useEffect(() => {
+    if (editCourse) return
+    const t = setTimeout(() => {
+      const { courseImage, ...saveable } = watchedValues // skip File objects
+      try { localStorage.setItem(DRAFT_KEY, JSON.stringify(saveable)) } catch { /* quota full */ }
+    }, 800)
+    return () => clearTimeout(t)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [JSON.stringify(watchedValues), editCourse])
 
   const isFormUpdated = () => {
     const currentValues = getValues()
@@ -139,7 +159,13 @@ export default function CourseInformationForm() {
         setLoading(false)
         if (result) {
           dispatch(setStep(2))
-          dispatch(setCourse(result))
+          // Preserve existing sections — editCourse only updates metadata fields
+          dispatch(setCourse({
+            ...result,
+            courseContent: result.courseContent?.length > 0
+              ? result.courseContent
+              : course?.courseContent ?? [],
+          }))
         }
       } else {
         toast.error("No changes made to the form")
@@ -161,6 +187,7 @@ export default function CourseInformationForm() {
     setLoading(true)
     const result = await addCourseDetails(formData)
     if (result) {
+      localStorage.removeItem(DRAFT_KEY)
       dispatch(setStep(2))
       dispatch(setCourse(result))
     }
@@ -244,18 +271,17 @@ export default function CourseInformationForm() {
           {...register("courseCategory", { required: true })}
           defaultValue=""
           id="courseCategory"
-          className="form-style w-full bg-richblack-800 rounded-md text-white border border-richblack-600 p-2 text-sm sm:text-base"
+          disabled={categoriesLoading}
+          className="form-style w-full bg-richblack-800 rounded-md text-white border border-richblack-600 p-2 text-sm sm:text-base disabled:opacity-60"
         >
           <option value="" disabled className="bg-richblack-800 text-white">
-            Choose a Category
+            {categoriesLoading ? "Loading categories…" : "Choose a Category"}
           </option>
-
-          {!loading &&
-            courseCategories?.map((category, indx) => (
-              <option key={indx} value={category?._id} className="bg-richblack-800 text-white">
-                {category?.name}
-              </option>
-            ))}
+          {courseCategories.map((category, indx) => (
+            <option key={indx} value={category?._id} className="bg-richblack-800 text-white">
+              {category?.name}
+            </option>
+          ))}
         </select>
         {errors.courseCategory && (
           <span className="ml-2 text-xs tracking-wide text-pink-200">

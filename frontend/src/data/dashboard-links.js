@@ -90,13 +90,6 @@ export const sidebarLinks = [
         icon: 'VscHistory',
         allowedRoles: [ACCOUNT_TYPE.ADMIN],
     },
-    {
-        id: 16,
-        name: "System Settings",
-        path: '/admin/settings',
-        icon: 'VscSettingsGear',
-        allowedRoles: [ACCOUNT_TYPE.ADMIN],
-    },
         {
         id: 4,
         name: "Smart Study Companion",
@@ -116,7 +109,7 @@ export const sidebarLinks = [
         name: "Text to Video Summarizer",
         path: '/dashboard/text-to-video-summarizer',
         icon: 'BiVideo',
-        allowedRoles: [ACCOUNT_TYPE.STUDENT, ACCOUNT_TYPE.INSTRUCTOR],
+        allowedRoles: [ACCOUNT_TYPE.STUDENT],
     },
 ]
 

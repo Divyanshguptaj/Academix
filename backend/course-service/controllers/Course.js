@@ -71,7 +71,7 @@ export const editCourse = async (req, res) => {
         }
 
         // Update course details
-        const updatedCourse = await Course.findByIdAndUpdate(
+        await Course.findByIdAndUpdate(
             courseId,
             {
                 courseName: courseName || existingCourse.courseName,
@@ -83,16 +83,14 @@ export const editCourse = async (req, res) => {
                 tag: tags.length > 0 ? tags : existingCourse.tag,
                 instructions: instructions.length > 0 ? instructions : existingCourse.instructions,
                 thumbnail: updatedThumbnail,
-            },
-            { new: true }
-        )
-        .populate("category")
-        .populate({
-            path: "courseContent",
-            populate: {
-                path: "subSection",
-            },
-        });
+            }
+        );
+
+        // Fetch fresh populated course after update (chaining populate on findByIdAndUpdate is unreliable)
+        const updatedCourse = await Course.findById(courseId)
+            .populate("category")
+            .populate({ path: "courseContent", populate: { path: "subSection" } })
+            .exec();
 
         // Get instructor details via user-service
         let instructorDetails = null;
@@ -326,6 +324,8 @@ export const getCourseDetails = async (req,res)=>{
         const result = {
           ...courseDetails.toObject(),
           instructor: instructorDetails || courseDetails.instructor,
+          tag: courseDetails.tag || [],
+          instructions: courseDetails.instructions || [],
           // keep existing students details if available, but also include a compact progress list
           studentsEnrolled: studentsDetails?.length > 0 ? studentsDetails : courseDetails.studentsEnrolled,
           studentsProgress: studentsProgress,
@@ -806,30 +806,36 @@ export const updateCourseProgress = async (req, res) => {
 // ----------------------- Admin endpoints -----------------------
 export const adminListCourses = async (req, res) => {
   try {
-    const { status, page = 1, limit = 20, search } = req.query;
+    const { status, page = 1, limit = 15, search } = req.query;
     const filter = {};
-    if (status) filter.status = status;
-    if (search) filter.courseName = { $regex: search, $options: 'i' };
+    if (status && status !== 'all') filter.status = status;
+    if (search?.trim()) {
+      const safe = search.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&');
+      filter.courseName = { $regex: safe, $options: 'i' };
+    }
 
-    const skip = (Number(page) - 1) * Number(limit);
+    const pageNum = Number(page);
+    const limitNum = Number(limit);
+    const skip = (pageNum - 1) * limitNum;
 
-    const [total, courses] = await Promise.all([
+    const [totalCourses, courses] = await Promise.all([
       Course.countDocuments(filter),
       Course.find(filter)
         .sort({ createdAt: -1 })
         .skip(skip)
-        .limit(Number(limit))
-        .populate('category')
-        .populate({ path: 'courseContent', populate: { path: 'subSection' } }),
+        .limit(limitNum)
+        .populate('category', 'name')
+        .populate('instructor', 'firstName lastName email'),
     ]);
 
     return res.status(200).json({
       success: true,
-      message: 'Admin course list fetched successfully',
-      total,
-      page: Number(page),
-      limit: Number(limit),
-      data: courses,
+      data: {
+        courses,
+        totalCourses,
+        totalPages: Math.ceil(totalCourses / limitNum) || 1,
+        currentPage: pageNum,
+      },
     });
   } catch (error) {
     console.error('Error in adminListCourses:', error);

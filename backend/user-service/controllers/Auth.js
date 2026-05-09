@@ -573,6 +573,49 @@ export const getInstructorsByIds = async (req, res) => {
   }
 };
 
+// Get generic users by IDs (for Payment Service & cross-platform communication)
+export const getUsersByIds = async (req, res) => {
+  try {
+    const { ids, fields } = req.query;
+    if (!ids) {
+      return res.status(400).json({
+        success: false,
+        message: "User IDs are required",
+      });
+    }
+
+    // Split the comma-separated IDs and validate them
+    const userIds = ids.split(',').map(id => id.trim());
+    for (const id of userIds) {
+      if (!mongoose.Types.ObjectId.isValid(id)) {
+        return res.status(400).json({
+          success: false,
+          message: `Invalid user ID: ${id}`,
+        });
+      }
+    }
+
+    let selectFields = 'firstName lastName email image additionalDetails accountType';
+    if (fields) {
+      const requestedFields = fields.split(',').map(field => field.trim());
+      const allowedFields = ['firstName', 'lastName', 'email', 'image', 'additionalDetails', 'accountType'];
+      const validFields = requestedFields.filter(field => allowedFields.includes(field));
+      selectFields = validFields.join(' ');
+    }
+
+    const users = await User.find({ _id: { $in: userIds } })
+      .select(selectFields)
+      .populate('additionalDetails')
+      .lean()
+      .exec();
+
+    return res.status(200).json({ success: true, message: "Users fetched successfully", data: users || [] });
+  } catch (error) {
+    console.error("Get Users by IDs Error:", error);
+    return res.status(500).json({ success: false, message: "Internal Server Error", error: error.message });
+  }
+};
+
 // Get current user's instructor application status
 export const getMyInstructorApplication = async (req, res) => {
   try {

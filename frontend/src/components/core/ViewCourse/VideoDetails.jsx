@@ -143,24 +143,38 @@ const VideoDetails = () => {
       {/* ── Video Player ─────────────────────────────────────────── */}
       <div className="relative bg-black rounded-xl overflow-hidden shadow-2xl ring-1 ring-richblack-700">
         {!videoData ? (
+          /* No lecture selected — show course thumbnail */
           <div className="relative aspect-video">
-            <img
-              src={previewSource}
-              alt="Course preview"
-              className="w-full h-full object-cover"
-            />
+            <img src={previewSource} alt="Course preview" className="w-full h-full object-cover" />
             <div className="absolute inset-0 flex items-center justify-center bg-black/50">
               <MdOutlinePlayCircle className="text-white/60 text-7xl" />
             </div>
           </div>
+        ) : !videoData.videoURL ? (
+          /* Lecture exists but has no video yet */
+          <div className="relative aspect-video flex flex-col items-center justify-center gap-4 bg-richblack-900 px-6 text-center">
+            <div className="w-20 h-20 rounded-full bg-richblack-700 flex items-center justify-center">
+              <MdOutlinePlayCircle className="text-richblack-400 text-5xl" />
+            </div>
+            <div>
+              <p className="text-lg font-semibold text-richblack-200 mb-1">{videoData.title}</p>
+              <p className="text-sm text-richblack-400">Video coming soon — check back later</p>
+            </div>
+            {videoData.description && (
+              <p className="text-xs text-richblack-500 max-w-sm leading-relaxed line-clamp-3">
+                {videoData.description}
+              </p>
+            )}
+          </div>
         ) : (
+          /* Full video player */
           <div className="relative aspect-video">
             <Player
               ref={playerRef}
               aspectRatio="16:9"
               playsInline
               onEnded={() => setVideoEnded(true)}
-              src={videoData?.videoURL}
+              src={videoData.videoURL}
               className="w-full h-full"
             >
               <BigPlayButton position="center" />
@@ -183,14 +197,9 @@ const VideoDetails = () => {
                     {loading ? "Saving…" : "Mark as Complete"}
                   </button>
                 )}
-
                 <div className="flex items-center gap-3">
                   <button
-                    onClick={() => {
-                      playerRef.current?.seek(0);
-                      playerRef.current?.play();
-                      setVideoEnded(false);
-                    }}
+                    onClick={() => { playerRef.current?.seek(0); playerRef.current?.play(); setVideoEnded(false) }}
                     className="flex items-center gap-2 bg-richblack-700 hover:bg-richblack-600 text-white px-4 py-2 rounded-lg text-sm transition-all"
                   >
                     <MdReplay size={16} /> Rewatch

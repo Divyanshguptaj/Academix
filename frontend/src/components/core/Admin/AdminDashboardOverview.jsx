@@ -5,11 +5,78 @@ import { apiConnector } from "../../../services/apiconnector"
 import { adminEndpoints } from "../../../services/apis"
 import { toast } from "react-hot-toast"
 import {
-  FaUsers, FaBook, FaRupeeSign, FaSync,
-  FaUserTie, FaShieldAlt, FaClock, FaCheckCircle,
-  FaArrowRight, FaExclamationTriangle, FaChartBar, FaUserGraduate,
+  FaUsers, FaBook, FaRupeeSign, FaClock,
+  FaUserTie, FaArrowRight, FaExclamationTriangle, FaCheckCircle,
 } from "react-icons/fa"
 import { format } from "date-fns"
+import RefreshButton from "../../common/RefreshButton"
+
+function getGreeting() {
+  const h = new Date().getHours()
+  if (h < 12) return "morning"
+  if (h < 17) return "afternoon"
+  return "evening"
+}
+
+function LoadingSpinner() {
+  return (
+    <div className="flex items-center justify-center min-h-[50vh]">
+      <div className="relative w-16 h-16">
+        <div className="absolute inset-0 border-4 border-richblack-600 rounded-full" />
+        <div className="absolute inset-0 border-4 border-t-yellow-400 rounded-full animate-spin" />
+      </div>
+    </div>
+  )
+}
+
+function BreakdownCard({ title, total, rows }) {
+  return (
+    <div className="bg-richblack-800 border border-richblack-700 rounded-xl p-5">
+      <div className="flex items-center justify-between mb-5">
+        <h3 className="text-sm font-semibold text-richblack-300 uppercase tracking-wide">{title}</h3>
+        <span className="text-2xl font-bold text-richblack-5">{total.toLocaleString()}</span>
+      </div>
+      <div className="space-y-4">
+        {rows.map((row) => (
+          <div key={row.label}>
+            <div className="flex justify-between text-xs mb-1.5">
+              <span className="text-richblack-400 flex items-center gap-2">
+                <span className={`w-2 h-2 rounded-full ${row.bar}`} />
+                {row.label}
+              </span>
+              <span className="text-richblack-200 font-semibold">
+                {row.value.toLocaleString()} <span className="text-richblack-500 font-normal">({row.pct}%)</span>
+              </span>
+            </div>
+            <div className="h-2 bg-richblack-700 rounded-full overflow-hidden">
+              <div
+                className={`h-full ${row.bar} rounded-full transition-all duration-700`}
+                style={{ width: `${row.pct}%` }}
+              />
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function PendingButton({ icon: Icon, label, count, to, navigate, colorClass }) {
+  return (
+    <button
+      onClick={() => navigate(to)}
+      className="flex items-center justify-between bg-richblack-800 hover:bg-richblack-700 border border-richblack-700 px-4 py-3 rounded-lg transition-colors w-full"
+    >
+      <div className="flex items-center gap-2.5">
+        <Icon className={`${colorClass} text-sm`} />
+        <span className="text-sm text-richblack-200">{label}</span>
+      </div>
+      <span className={`text-xs font-bold px-2 py-0.5 rounded-full bg-richblack-700 ${colorClass}`}>
+        {count}
+      </span>
+    </button>
+  )
+}
 
 export default function AdminDashboardOverview() {
   const { user } = useSelector((state) => state.profile)
@@ -20,18 +87,16 @@ export default function AdminDashboardOverview() {
   const [lastUpdated, setLastUpdated] = useState(null)
 
   useEffect(() => {
-    if (user?.accountType === "Admin") fetchDashboardStats()
+    if (user?.accountType === "Admin") fetchStats()
   }, [user])
 
-  const fetchDashboardStats = async () => {
+  const fetchStats = async () => {
     try {
       setRefreshing(true)
-      const response = await apiConnector("GET", adminEndpoints.ADMIN_DASHBOARD_STATS)
-      console.log('[AdminDashboard] raw response:', response.data)
-      setStats(response.data.data)
+      const res = await apiConnector("GET", adminEndpoints.ADMIN_DASHBOARD_STATS)
+      setStats(res.data.data)
       setLastUpdated(new Date())
-    } catch (err) {
-      console.error('[AdminDashboard] fetch error:', err.response?.data || err.message)
+    } catch {
       toast.error("Failed to load dashboard stats")
     } finally {
       setLoading(false)
@@ -39,374 +104,198 @@ export default function AdminDashboardOverview() {
     }
   }
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-[50vh]">
-        <div className="relative w-16 h-16">
-          <div className="absolute inset-0 border-4 border-richblack-600 rounded-full" />
-          <div className="absolute inset-0 border-4 border-t-yellow-400 rounded-full animate-spin" />
-        </div>
-      </div>
-    )
-  }
+  if (loading) return <LoadingSpinner />
 
-  // Derived values
-  const totalUsers = stats?.totalUsers ?? 0
-  const studentCount = stats?.studentCount ?? 0
-  const instructorCount = stats?.instructorCount ?? 0
-  const adminCount = stats?.adminCount ?? 0
-  const totalCourses = stats?.totalCourses ?? 0
-  const publishedCourses = stats?.publishedCourses ?? 0
-  const draftCourses = stats?.draftCourses ?? 0
-  const pendingCourseApprovals = stats?.pendingCourseApprovals ?? 0
-  const totalRevenue = stats?.totalRevenue ?? 0
-  const monthlyRevenue = stats?.monthlyRevenue ?? 0
-  const pendingRevenue = stats?.pendingRevenue ?? 0
-  const publishRate = totalCourses > 0 ? Math.round((publishedCourses / totalCourses) * 100) : 0
+  const s = stats || {}
+  const totalUsers = s.totalUsers ?? 0
+  const totalCourses = s.totalCourses ?? 0
+  const totalRevenue = s.totalRevenue ?? 0
+  const pendingActions = s.pendingActions ?? 0
+  const publishedCourses = s.publishedCourses ?? 0
+  const draftCourses = s.draftCourses ?? 0
+  const studentCount = s.studentCount ?? 0
+  const instructorCount = s.instructorCount ?? 0
+  const adminCount = s.adminCount ?? 0
 
-  const statCards = [
+  const kpiCards = [
     {
-      title: "Total Users",
-      value: totalUsers,
+      label: "Total Users",
+      value: totalUsers.toLocaleString(),
+      sub: `${studentCount.toLocaleString()} students · ${instructorCount.toLocaleString()} instructors`,
       icon: FaUsers,
-      details: [
-        { label: "Students", value: studentCount, color: "text-blue-400" },
-        { label: "Instructors", value: instructorCount, color: "text-purple-400" },
-        { label: "Admins", value: adminCount, color: "text-yellow-400" },
-      ],
-      accent: "from-blue-500/20 to-blue-600/10",
+      gradient: "from-blue-500/15 to-transparent",
+      border: "border-blue-500/25",
       iconBg: "bg-blue-500/20",
       iconColor: "text-blue-400",
     },
     {
-      title: "Total Courses",
-      value: totalCourses,
+      label: "Total Courses",
+      value: totalCourses.toLocaleString(),
+      sub: `${publishedCourses.toLocaleString()} published · ${draftCourses.toLocaleString()} draft`,
       icon: FaBook,
-      details: [
-        { label: "Published", value: publishedCourses, color: "text-green-400" },
-        { label: "Draft", value: draftCourses, color: "text-richblack-300" },
-        { label: "Pending", value: pendingCourseApprovals, color: "text-orange-400" },
-      ],
-      accent: "from-green-500/20 to-green-600/10",
+      gradient: "from-green-500/15 to-transparent",
+      border: "border-green-500/25",
       iconBg: "bg-green-500/20",
       iconColor: "text-green-400",
     },
     {
-      title: "Total Revenue",
+      label: "Total Revenue",
       value: `₹${totalRevenue.toLocaleString("en-IN")}`,
+      sub: `₹${(s.monthlyRevenue ?? 0).toLocaleString("en-IN")} this month`,
       icon: FaRupeeSign,
-      details: [
-        { label: "This Month", value: `₹${monthlyRevenue.toLocaleString("en-IN")}`, color: "text-yellow-400" },
-        { label: "Pending", value: `₹${pendingRevenue.toLocaleString("en-IN")}`, color: "text-orange-400" },
-      ],
-      accent: "from-yellow-500/20 to-yellow-600/10",
+      gradient: "from-yellow-500/15 to-transparent",
+      border: "border-yellow-500/25",
       iconBg: "bg-yellow-500/20",
       iconColor: "text-yellow-400",
     },
     {
-      title: "Pending Actions",
-      value: stats?.pendingActions ?? 0,
+      label: "Pending Actions",
+      value: pendingActions.toLocaleString(),
+      sub: `${s.pendingInstructorApplications ?? 0} applications · ${s.pendingRefundRequests ?? 0} refunds`,
       icon: FaClock,
-      urgent: (stats?.pendingActions ?? 0) > 0,
-      details: [
-        { label: "Applications", value: stats?.pendingInstructorApplications ?? 0, color: "text-orange-400" },
-        { label: "Approvals", value: pendingCourseApprovals, color: "text-yellow-400" },
-        { label: "Refunds", value: stats?.pendingRefundRequests ?? 0, color: "text-red-400" },
-      ],
-      accent: "from-orange-500/20 to-orange-600/10",
-      iconBg: "bg-orange-500/20",
-      iconColor: "text-orange-400",
+      gradient: pendingActions > 0 ? "from-orange-500/15 to-transparent" : "from-richblack-700/50 to-transparent",
+      border: pendingActions > 0 ? "border-orange-500/25" : "border-richblack-700",
+      iconBg: pendingActions > 0 ? "bg-orange-500/20" : "bg-richblack-700",
+      iconColor: pendingActions > 0 ? "text-orange-400" : "text-richblack-400",
     },
   ]
 
   const quickActions = [
-    { label: "User Management", to: "/admin/users", icon: FaUsers, color: "blue", desc: `${totalUsers} users` },
-    { label: "Instructors", to: "/admin/instructors", icon: FaUserTie, color: "purple", desc: `${stats?.pendingInstructorApplications ?? 0} pending` },
-    { label: "Courses", to: "/admin/courses", icon: FaBook, color: "green", desc: `${totalCourses} total` },
-    { label: "Refunds", to: "/admin/refunds", icon: FaRupeeSign, color: "orange", desc: `${stats?.pendingRefundRequests ?? 0} pending` },
+    { label: "Users", desc: `${totalUsers.toLocaleString()} total`, to: "/admin/users", icon: FaUsers, color: "blue" },
+    { label: "Instructors", desc: `${s.pendingInstructorApplications ?? 0} pending`, to: "/admin/instructors", icon: FaUserTie, color: "purple" },
+    { label: "Courses", desc: `${totalCourses.toLocaleString()} total`, to: "/admin/courses", icon: FaBook, color: "green" },
+    { label: "Refunds", desc: `${s.pendingRefundRequests ?? 0} pending`, to: "/admin/refunds", icon: FaRupeeSign, color: "orange" },
   ]
 
-  const actionColorMap = {
-    blue: "bg-blue-500/10 hover:bg-blue-500/20 border-blue-500/20 hover:border-blue-400/40",
-    purple: "bg-purple-500/10 hover:bg-purple-500/20 border-purple-500/20 hover:border-purple-400/40",
-    green: "bg-green-500/10 hover:bg-green-500/20 border-green-500/20 hover:border-green-400/40",
-    orange: "bg-orange-500/10 hover:bg-orange-500/20 border-orange-500/20 hover:border-orange-400/40",
+  const navColor = {
+    blue: { card: "bg-blue-500/10 hover:bg-blue-500/20 border-blue-500/20 hover:border-blue-400/40", icon: "text-blue-400" },
+    purple: { card: "bg-purple-500/10 hover:bg-purple-500/20 border-purple-500/20 hover:border-purple-400/40", icon: "text-purple-400" },
+    green: { card: "bg-green-500/10 hover:bg-green-500/20 border-green-500/20 hover:border-green-400/40", icon: "text-green-400" },
+    orange: { card: "bg-orange-500/10 hover:bg-orange-500/20 border-orange-500/20 hover:border-orange-400/40", icon: "text-orange-400" },
   }
-  const actionIconColor = {
-    blue: "text-blue-400", purple: "text-purple-400", green: "text-green-400", orange: "text-orange-400",
-  }
-
-  const breakdownCards = [
-    {
-      title: "Users",
-      value: totalUsers,
-      icon: FaUsers,
-      iconClass: "text-blue-400",
-      iconBg: "bg-blue-500/10",
-      rows: [
-        { label: "Students", value: studentCount, pct: totalUsers > 0 ? Math.round((studentCount / totalUsers) * 100) : 0, bar: "bg-blue-400" },
-        { label: "Instructors", value: instructorCount, pct: totalUsers > 0 ? Math.round((instructorCount / totalUsers) * 100) : 0, bar: "bg-purple-400" },
-        { label: "Admins", value: adminCount, pct: totalUsers > 0 ? Math.round((adminCount / totalUsers) * 100) : 0, bar: "bg-yellow-400" },
-      ],
-    },
-    {
-      title: "Courses",
-      value: totalCourses,
-      icon: FaBook,
-      iconClass: "text-green-400",
-      iconBg: "bg-green-500/10",
-      rows: [
-        { label: "Published", value: publishedCourses, pct: totalCourses > 0 ? Math.round((publishedCourses / totalCourses) * 100) : 0, bar: "bg-green-400" },
-        { label: "Draft", value: draftCourses, pct: totalCourses > 0 ? Math.round((draftCourses / totalCourses) * 100) : 0, bar: "bg-richblack-400" },
-        { label: "Pending Review", value: pendingCourseApprovals, pct: totalCourses > 0 ? Math.round((pendingCourseApprovals / totalCourses) * 100) : 0, bar: "bg-orange-400" },
-      ],
-    },
-  ]
-
-  const ratios = [
-    {
-      label: "Course Publish Rate",
-      value: `${publishRate}%`,
-      sub: `${publishedCourses} of ${totalCourses} courses`,
-      color: "text-green-400",
-    },
-    {
-      label: "Instructor Ratio",
-      value: totalUsers > 0 ? `${Math.round((instructorCount / totalUsers) * 100)}%` : "0%",
-      sub: `${instructorCount} instructors`,
-      color: "text-purple-400",
-    },
-    {
-      label: "Avg Revenue / Course",
-      value: publishedCourses > 0 ? `₹${Math.round(totalRevenue / publishedCourses).toLocaleString("en-IN")}` : "₹0",
-      sub: "per published course",
-      color: "text-yellow-400",
-    },
-    {
-      label: "Monthly Share",
-      value: totalRevenue > 0 ? `${Math.round((monthlyRevenue / totalRevenue) * 100)}%` : "0%",
-      sub: "of total revenue this month",
-      color: "text-blue-400",
-    },
-  ]
 
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-richblack-5">Admin Dashboard</h1>
+          <h1 className="text-2xl font-bold text-richblack-5">
+            Good {getGreeting()}, {user?.firstName}
+          </h1>
           <p className="text-sm text-richblack-400 mt-0.5">
-            Welcome back,{" "}
-            <span className="text-yellow-400 font-medium">{user?.firstName} {user?.lastName}</span>
-            {" · "}
-            {format(new Date(), "MMM dd, yyyy")}
+            {format(new Date(), "EEEE, MMMM d yyyy")}
+            {lastUpdated && (
+              <span className="text-richblack-600"> · Updated {format(lastUpdated, "h:mm a")}</span>
+            )}
           </p>
         </div>
-        <div className="flex items-center gap-3">
-          {lastUpdated && (
-            <span className="text-xs text-richblack-500">Updated {format(lastUpdated, "h:mm a")}</span>
-          )}
-          <button
-            onClick={fetchDashboardStats}
-            disabled={refreshing}
-            className="flex items-center gap-2 bg-richblack-700 hover:bg-richblack-600 border border-richblack-600 text-richblack-100 px-4 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
-          >
-            <FaSync className={refreshing ? "animate-spin" : ""} />
-            {refreshing ? "Refreshing…" : "Refresh"}
-          </button>
-        </div>
+        <RefreshButton onClick={fetchStats} loading={loading || refreshing} />
       </div>
 
-      {/* Stat Cards */}
+      {/* KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-        {statCards.map((card) => (
+        {kpiCards.map((card) => (
           <div
-            key={card.title}
-            className={`bg-gradient-to-br ${card.accent} border border-richblack-700 rounded-xl p-5`}
+            key={card.label}
+            className={`bg-gradient-to-br ${card.gradient} border ${card.border} rounded-xl p-5`}
           >
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <p className="text-xs font-medium text-richblack-400 uppercase tracking-wide">{card.title}</p>
-                <p className="text-3xl font-bold text-richblack-5 mt-1">{card.value}</p>
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-semibold text-richblack-400 uppercase tracking-wide">{card.label}</p>
+                <p className="text-3xl font-bold text-richblack-5 mt-1.5 mb-1">{card.value}</p>
+                <p className="text-xs text-richblack-500 truncate">{card.sub}</p>
               </div>
-              <div className={`w-12 h-12 ${card.iconBg} rounded-xl flex items-center justify-center`}>
-                <card.icon className={`text-xl ${card.iconColor}`} />
+              <div className={`w-11 h-11 ${card.iconBg} rounded-xl flex items-center justify-center flex-shrink-0`}>
+                <card.icon className={`${card.iconColor} text-lg`} />
               </div>
-            </div>
-            {card.urgent && (
-              <div className="flex items-center gap-2 mb-3 text-orange-400 text-xs font-medium">
-                <FaExclamationTriangle />
-                <span>Requires attention</span>
-              </div>
-            )}
-            <div className="border-t border-richblack-700/60 pt-3 space-y-1.5">
-              {card.details.map((d) => (
-                <div key={d.label} className="flex items-center justify-between text-xs">
-                  <span className="text-richblack-400">{d.label}</span>
-                  <span className={`font-semibold ${d.color || "text-richblack-200"}`}>{d.value}</span>
-                </div>
-              ))}
             </div>
           </div>
         ))}
       </div>
 
-      {/* Quick Actions */}
+      {/* Breakdowns */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <BreakdownCard
+          title="Users"
+          total={totalUsers}
+          rows={[
+            { label: "Students", value: studentCount, pct: totalUsers > 0 ? Math.round((studentCount / totalUsers) * 100) : 0, bar: "bg-blue-400" },
+            { label: "Instructors", value: instructorCount, pct: totalUsers > 0 ? Math.round((instructorCount / totalUsers) * 100) : 0, bar: "bg-purple-400" },
+            { label: "Admins", value: adminCount, pct: totalUsers > 0 ? Math.round((adminCount / totalUsers) * 100) : 0, bar: "bg-yellow-400" },
+          ]}
+        />
+        <BreakdownCard
+          title="Courses"
+          total={totalCourses}
+          rows={[
+            { label: "Published", value: publishedCourses, pct: totalCourses > 0 ? Math.round((publishedCourses / totalCourses) * 100) : 0, bar: "bg-green-400" },
+            { label: "Draft", value: draftCourses, pct: totalCourses > 0 ? Math.round((draftCourses / totalCourses) * 100) : 0, bar: "bg-richblack-400" },
+          ]}
+        />
+      </div>
+
+      {/* Quick Navigation */}
       <div>
-        <h2 className="text-base font-semibold text-richblack-200 mb-3">Quick Actions</h2>
+        <h2 className="text-xs font-semibold text-richblack-400 uppercase tracking-wide mb-3">Quick Navigation</h2>
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          {quickActions.map((action) => (
-            <button
-              key={action.label}
-              onClick={() => navigate(action.to)}
-              className={`flex items-center gap-3 p-4 rounded-xl border transition-all duration-200 text-left group ${actionColorMap[action.color]}`}
-            >
-              <div className="w-9 h-9 rounded-lg bg-richblack-800 flex items-center justify-center flex-shrink-0">
-                <action.icon className={`${actionIconColor[action.color]} text-sm`} />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-richblack-100 truncate">{action.label}</p>
-                <p className="text-xs text-richblack-400 truncate">{action.desc}</p>
-              </div>
-              <FaArrowRight className={`text-xs ${actionIconColor[action.color]} opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0`} />
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Revenue Overview */}
-      <div>
-        <h2 className="text-sm font-semibold text-richblack-400 uppercase tracking-wide mb-3 flex items-center gap-2">
-          <FaRupeeSign /> Revenue Overview
-        </h2>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          {[
-            { label: "Total Revenue", value: totalRevenue, color: "text-yellow-400", bg: "bg-yellow-500/10" },
-            { label: "Monthly Revenue", value: monthlyRevenue, color: "text-green-400", bg: "bg-green-500/10" },
-            { label: "Pending Revenue", value: pendingRevenue, color: "text-orange-400", bg: "bg-orange-500/10" },
-          ].map((card) => (
-            <div key={card.label} className={`${card.bg} border border-richblack-700 rounded-xl p-5`}>
-              <p className="text-xs text-richblack-400 mb-1">{card.label}</p>
-              <p className={`text-2xl font-bold ${card.color}`}>₹{card.value.toLocaleString("en-IN")}</p>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Platform Breakdown */}
-      <div>
-        <h2 className="text-sm font-semibold text-richblack-400 uppercase tracking-wide mb-3 flex items-center gap-2">
-          <FaChartBar /> Platform Breakdown
-        </h2>
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          {breakdownCards.map((card) => (
-            <div key={card.title} className="bg-richblack-800 border border-richblack-700 rounded-xl p-5">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="font-semibold text-richblack-5">{card.title}</h3>
-                <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${card.iconBg}`}>
-                  <card.icon className={`text-base ${card.iconClass}`} />
+          {quickActions.map((action) => {
+            const c = navColor[action.color]
+            return (
+              <button
+                key={action.label}
+                onClick={() => navigate(action.to)}
+                className={`flex items-center gap-3 p-4 rounded-xl border transition-all text-left group ${c.card}`}
+              >
+                <div className="w-9 h-9 rounded-lg bg-richblack-800 flex items-center justify-center flex-shrink-0">
+                  <action.icon className={`${c.icon} text-sm`} />
                 </div>
-              </div>
-              <p className="text-3xl font-bold text-richblack-5 mb-4">{card.value}</p>
-              <div className="space-y-3">
-                {card.rows.map((row) => (
-                  <div key={row.label}>
-                    <div className="flex justify-between text-xs mb-1">
-                      <span className="text-richblack-400">{row.label}</span>
-                      <span className="text-richblack-200 font-medium">{row.value} ({row.pct}%)</span>
-                    </div>
-                    <div className="h-1.5 bg-richblack-700 rounded-full overflow-hidden">
-                      <div
-                        className={`h-full ${row.bar} rounded-full transition-all duration-500`}
-                        style={{ width: `${row.pct}%` }}
-                      />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          ))}
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-richblack-100">{action.label}</p>
+                  <p className="text-xs text-richblack-400 truncate">{action.desc}</p>
+                </div>
+                <FaArrowRight className={`text-xs ${c.icon} opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0`} />
+              </button>
+            )
+          })}
         </div>
       </div>
 
-      {/* Key Platform Ratios */}
-      <div className="bg-richblack-800 border border-richblack-700 rounded-xl p-5">
-        <h2 className="text-sm font-semibold text-richblack-400 uppercase tracking-wide mb-4 flex items-center gap-2">
-          <FaCheckCircle /> Key Platform Ratios
-        </h2>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-          {ratios.map((item) => (
-            <div key={item.label} className="text-center p-3 bg-richblack-700/50 rounded-xl">
-              <p className={`text-2xl font-bold ${item.color}`}>{item.value}</p>
-              <p className="text-xs font-medium text-richblack-300 mt-1">{item.label}</p>
-              <p className="text-xs text-richblack-500 mt-0.5">{item.sub}</p>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Pending Alert */}
-      {(stats?.pendingActions ?? 0) > 0 && (
+      {/* Pending Alert / All Clear */}
+      {pendingActions > 0 ? (
         <div className="bg-orange-500/5 border border-orange-500/20 rounded-xl p-5">
-          <div className="flex items-center gap-2 mb-4">
+          <div className="flex items-center gap-2 mb-3">
             <FaExclamationTriangle className="text-orange-400" />
-            <h2 className="text-base font-semibold text-orange-300">
-              {stats.pendingActions} item{stats.pendingActions !== 1 ? "s" : ""} need your attention
-            </h2>
+            <p className="text-sm font-semibold text-orange-300">
+              {pendingActions} item{pendingActions !== 1 ? "s" : ""} need{pendingActions === 1 ? "s" : ""} your attention
+            </p>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            {(stats?.pendingInstructorApplications ?? 0) > 0 && (
-              <button
-                onClick={() => navigate("/admin/instructors")}
-                className="flex items-center justify-between bg-richblack-800 hover:bg-richblack-700 border border-richblack-700 p-3 rounded-lg transition-colors"
-              >
-                <div className="flex items-center gap-2">
-                  <FaUserTie className="text-orange-400 text-sm" />
-                  <span className="text-sm text-richblack-200">Instructor Applications</span>
-                </div>
-                <span className="bg-orange-500/20 text-orange-300 text-xs font-bold px-2 py-0.5 rounded-full">
-                  {stats.pendingInstructorApplications}
-                </span>
-              </button>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            {(s.pendingInstructorApplications ?? 0) > 0 && (
+              <PendingButton
+                icon={FaUserTie}
+                label="Instructor Applications"
+                count={s.pendingInstructorApplications}
+                to="/admin/instructors"
+                navigate={navigate}
+                colorClass="text-orange-400"
+              />
             )}
-            {(stats?.pendingCourseApprovals ?? 0) > 0 && (
-              <button
-                onClick={() => navigate("/admin/courses")}
-                className="flex items-center justify-between bg-richblack-800 hover:bg-richblack-700 border border-richblack-700 p-3 rounded-lg transition-colors"
-              >
-                <div className="flex items-center gap-2">
-                  <FaBook className="text-yellow-400 text-sm" />
-                  <span className="text-sm text-richblack-200">Course Approvals</span>
-                </div>
-                <span className="bg-yellow-500/20 text-yellow-300 text-xs font-bold px-2 py-0.5 rounded-full">
-                  {stats.pendingCourseApprovals}
-                </span>
-              </button>
-            )}
-            {(stats?.pendingRefundRequests ?? 0) > 0 && (
-              <button
-                onClick={() => navigate("/admin/refunds")}
-                className="flex items-center justify-between bg-richblack-800 hover:bg-richblack-700 border border-richblack-700 p-3 rounded-lg transition-colors"
-              >
-                <div className="flex items-center gap-2">
-                  <FaRupeeSign className="text-red-400 text-sm" />
-                  <span className="text-sm text-richblack-200">Refund Requests</span>
-                </div>
-                <span className="bg-red-500/20 text-red-300 text-xs font-bold px-2 py-0.5 rounded-full">
-                  {stats.pendingRefundRequests}
-                </span>
-              </button>
+            {(s.pendingRefundRequests ?? 0) > 0 && (
+              <PendingButton
+                icon={FaRupeeSign}
+                label="Refund Requests"
+                count={s.pendingRefundRequests}
+                to="/admin/refunds"
+                navigate={navigate}
+                colorClass="text-red-400"
+              />
             )}
           </div>
         </div>
-      )}
-
-      {/* All clear */}
-      {(stats?.pendingActions ?? 0) === 0 && stats && (
+      ) : stats && (
         <div className="flex items-center gap-3 bg-green-500/5 border border-green-500/20 rounded-xl p-4">
-          <FaCheckCircle className="text-green-400 text-lg flex-shrink-0" />
-          <p className="text-sm text-green-300">All caught up! No pending actions right now.</p>
+          <FaCheckCircle className="text-green-400 flex-shrink-0" />
+          <p className="text-sm text-green-300">All caught up — no pending actions.</p>
         </div>
       )}
     </div>

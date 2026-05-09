@@ -3,11 +3,43 @@ import { useSelector } from "react-redux"
 import { apiConnector } from "../../../services/apiconnector"
 import { adminEndpoints } from "../../../services/apis"
 import { toast } from "react-hot-toast"
+import { Doughnut, Bar } from "react-chartjs-2"
 import {
-  FaUsers, FaBook, FaRupeeSign, FaUserGraduate, FaUserTie,
-  FaCheckCircle, FaClock, FaTimesCircle, FaSync, FaChartBar
-} from "react-icons/fa"
-import { format } from "date-fns"
+  Chart as ChartJS,
+  ArcElement,
+  Tooltip,
+  Legend,
+  CategoryScale,
+  LinearScale,
+  BarElement,
+} from "chart.js"
+import { FaUsers, FaBook, FaRupeeSign } from "react-icons/fa"
+import RefreshButton from "../../common/RefreshButton"
+
+ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement)
+
+const TOOLTIP_STYLE = {
+  backgroundColor: "#161D29",
+  borderColor: "#2C333F",
+  borderWidth: 1,
+  titleColor: "#F1F2FF",
+  bodyColor: "#999DAA",
+  padding: 10,
+  cornerRadius: 8,
+}
+
+const LEGEND_STYLE = {
+  labels: {
+    color: "#999DAA",
+    font: { size: 12 },
+    padding: 16,
+    usePointStyle: true,
+    pointStyleWidth: 8,
+  },
+}
+
+const GRID_COLOR = "rgba(255,255,255,0.06)"
+const TICK_COLOR = "#6B7280"
 
 export default function AnalyticsDashboard() {
   const { user } = useSelector((state) => state.profile)
@@ -43,54 +75,138 @@ export default function AnalyticsDashboard() {
     )
   }
 
-  const totalCourses = stats?.totalCourses ?? 0
-  const publishedCourses = stats?.publishedCourses ?? 0
-  const draftCourses = stats?.draftCourses ?? 0
-  const pendingCourseApprovals = stats?.pendingCourseApprovals ?? 0
+  const s = stats || {}
+  const totalUsers = s.totalUsers ?? 0
+  const studentCount = s.studentCount ?? 0
+  const instructorCount = s.instructorCount ?? 0
+  const adminCount = s.adminCount ?? 0
+  const totalCourses = s.totalCourses ?? 0
+  const publishedCourses = s.publishedCourses ?? 0
+  const draftCourses = s.draftCourses ?? 0
+  const totalRevenue = s.totalRevenue ?? 0
+  const monthlyRevenue = s.monthlyRevenue ?? 0
+  const pendingRevenue = s.pendingRevenue ?? 0
+
   const publishRate = totalCourses > 0 ? Math.round((publishedCourses / totalCourses) * 100) : 0
-  const totalUsers = stats?.totalUsers ?? 0
-  const studentCount = stats?.studentCount ?? 0
-  const instructorCount = stats?.instructorCount ?? 0
-  const adminCount = stats?.adminCount ?? 0
-  const totalRevenue = stats?.totalRevenue ?? 0
-  const monthlyRevenue = stats?.monthlyRevenue ?? 0
-  const pendingRevenue = stats?.pendingRevenue ?? 0
+  const instructorRatio = totalUsers > 0 ? Math.round((instructorCount / totalUsers) * 100) : 0
+  const avgRevPerCourse = publishedCourses > 0 ? Math.round(totalRevenue / publishedCourses) : 0
+  const monthlyShare = totalRevenue > 0 ? Math.round((monthlyRevenue / totalRevenue) * 100) : 0
 
-  const metricCards = [
-    {
-      title: "Platform Users",
-      value: totalUsers,
-      icon: FaUsers,
-      color: "blue",
-      rows: [
-        { label: "Students", value: studentCount, pct: totalUsers > 0 ? Math.round((studentCount / totalUsers) * 100) : 0, color: "bg-blue-400" },
-        { label: "Instructors", value: instructorCount, pct: totalUsers > 0 ? Math.round((instructorCount / totalUsers) * 100) : 0, color: "bg-purple-400" },
-        { label: "Admins", value: adminCount, pct: totalUsers > 0 ? Math.round((adminCount / totalUsers) * 100) : 0, color: "bg-yellow-400" },
+  // Chart data
+  const userDoughnutData = {
+    labels: ["Students", "Instructors", "Admins"],
+    datasets: [{
+      data: [studentCount, instructorCount, adminCount],
+      backgroundColor: ["rgba(96,165,250,0.75)", "rgba(167,139,250,0.75)", "rgba(251,191,36,0.75)"],
+      borderColor: ["rgba(96,165,250,1)", "rgba(167,139,250,1)", "rgba(251,191,36,1)"],
+      borderWidth: 2,
+      hoverOffset: 8,
+    }],
+  }
+
+  const courseDoughnutData = {
+    labels: ["Published", "Draft"],
+    datasets: [{
+      data: [publishedCourses, draftCourses],
+      backgroundColor: ["rgba(52,211,153,0.75)", "rgba(100,116,139,0.75)"],
+      borderColor: ["rgba(52,211,153,1)", "rgba(100,116,139,1)"],
+      borderWidth: 2,
+      hoverOffset: 8,
+    }],
+  }
+
+  const revenueBarData = {
+    labels: ["Total", "This Month", "Pending"],
+    datasets: [{
+      label: "Revenue (₹)",
+      data: [totalRevenue, monthlyRevenue, pendingRevenue],
+      backgroundColor: [
+        "rgba(251,191,36,0.7)",
+        "rgba(52,211,153,0.7)",
+        "rgba(251,146,60,0.7)",
       ],
+      borderColor: [
+        "rgba(251,191,36,1)",
+        "rgba(52,211,153,1)",
+        "rgba(251,146,60,1)",
+      ],
+      borderWidth: 2,
+      borderRadius: 8,
+      borderSkipped: false,
+    }],
+  }
+
+  const doughnutOptions = {
+    cutout: "70%",
+    responsive: true,
+    maintainAspectRatio: true,
+    plugins: {
+      legend: LEGEND_STYLE,
+      tooltip: { ...TOOLTIP_STYLE, callbacks: { label: (ctx) => ` ${ctx.label}: ${ctx.raw}` } },
+    },
+  }
+
+  const barOptions = {
+    responsive: true,
+    maintainAspectRatio: true,
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        ...TOOLTIP_STYLE,
+        callbacks: { label: (ctx) => ` ₹${ctx.raw.toLocaleString("en-IN")}` },
+      },
+    },
+    scales: {
+      x: {
+        grid: { color: GRID_COLOR },
+        ticks: { color: TICK_COLOR, font: { size: 12 } },
+        border: { color: GRID_COLOR },
+      },
+      y: {
+        grid: { color: GRID_COLOR },
+        ticks: {
+          color: TICK_COLOR,
+          font: { size: 11 },
+          callback: (v) => v >= 1000 ? `₹${(v / 1000).toFixed(0)}k` : `₹${v}`,
+        },
+        border: { color: GRID_COLOR },
+      },
+    },
+  }
+
+  const ratios = [
+    {
+      label: "Course Publish Rate",
+      value: `${publishRate}%`,
+      sub: `${publishedCourses} of ${totalCourses} courses`,
+      color: "text-green-400",
+      bar: "bg-green-400",
+      pct: publishRate,
     },
     {
-      title: "Courses",
-      value: totalCourses,
-      icon: FaBook,
-      color: "green",
-      rows: [
-        { label: "Published", value: publishedCourses, pct: totalCourses > 0 ? Math.round((publishedCourses / totalCourses) * 100) : 0, color: "bg-green-400" },
-        { label: "Draft", value: draftCourses, pct: totalCourses > 0 ? Math.round((draftCourses / totalCourses) * 100) : 0, color: "bg-richblack-400" },
-        { label: "Pending Review", value: pendingCourseApprovals, pct: totalCourses > 0 ? Math.round((pendingCourseApprovals / totalCourses) * 100) : 0, color: "bg-orange-400" },
-      ],
+      label: "Instructor Ratio",
+      value: `${instructorRatio}%`,
+      sub: `${instructorCount} of ${totalUsers} users`,
+      color: "text-purple-400",
+      bar: "bg-purple-400",
+      pct: instructorRatio,
     },
-  ]
-
-  const revenueCards = [
-    { label: "Total Revenue", value: totalRevenue, color: "text-yellow-400", bg: "bg-yellow-500/10" },
-    { label: "Monthly Revenue", value: monthlyRevenue, color: "text-green-400", bg: "bg-green-500/10" },
-    { label: "Pending Revenue", value: pendingRevenue, color: "text-orange-400", bg: "bg-orange-500/10" },
-  ]
-
-  const pendingItems = [
-    { label: "Instructor Applications", value: stats?.pendingInstructorApplications ?? 0, icon: FaUserTie, color: "text-orange-400" },
-    { label: "Course Approvals", value: stats?.pendingCourseApprovals ?? 0, icon: FaClock, color: "text-yellow-400" },
-    { label: "Refund Requests", value: stats?.pendingRefundRequests ?? 0, icon: FaRupeeSign, color: "text-red-400" },
+    {
+      label: "Avg Revenue / Course",
+      value: `₹${avgRevPerCourse.toLocaleString("en-IN")}`,
+      sub: "per published course",
+      color: "text-yellow-400",
+      bar: null,
+      pct: null,
+    },
+    {
+      label: "Monthly Revenue Share",
+      value: `${monthlyShare}%`,
+      sub: "of total revenue",
+      color: "text-blue-400",
+      bar: "bg-blue-400",
+      pct: monthlyShare,
+    },
   ]
 
   return (
@@ -101,146 +217,142 @@ export default function AnalyticsDashboard() {
           <h1 className="text-2xl font-bold text-richblack-5">Analytics & Reports</h1>
           <p className="text-sm text-richblack-400 mt-0.5">Platform overview — live data from all services</p>
         </div>
-        <div className="flex items-center gap-3">
-          <span className="text-xs text-richblack-500">
-            Last updated: {format(new Date(), "MMM dd, h:mm a")}
-          </span>
-          <button
-            onClick={fetchStats}
-            disabled={refreshing}
-            className="flex items-center gap-2 bg-richblack-700 hover:bg-richblack-600 border border-richblack-600 text-richblack-100 px-4 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
-          >
-            <FaSync className={refreshing ? "animate-spin" : ""} />
-            Refresh
-          </button>
-        </div>
+        <RefreshButton onClick={fetchStats} loading={loading || refreshing} />
       </div>
 
-      {/* Revenue Cards */}
-      <div>
-        <h2 className="text-sm font-semibold text-richblack-400 uppercase tracking-wide mb-3 flex items-center gap-2">
-          <FaRupeeSign /> Revenue Overview
-        </h2>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          {revenueCards.map((card) => (
-            <div key={card.label} className={`${card.bg} border border-richblack-700 rounded-xl p-5`}>
-              <p className="text-xs text-richblack-400 mb-1">{card.label}</p>
-              <p className={`text-2xl font-bold ${card.color}`}>
-                ₹{card.value.toLocaleString("en-IN")}
-              </p>
+      {/* Charts Row */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        {/* User Doughnut */}
+        <div className="bg-richblack-800 border border-richblack-700 rounded-xl p-5 flex flex-col">
+          <div className="flex items-center gap-2 mb-5">
+            <div className="w-8 h-8 bg-blue-500/20 rounded-lg flex items-center justify-center">
+              <FaUsers className="text-blue-400 text-sm" />
             </div>
-          ))}
-        </div>
-      </div>
-
-      {/* User & Course Breakdown */}
-      <div>
-        <h2 className="text-sm font-semibold text-richblack-400 uppercase tracking-wide mb-3 flex items-center gap-2">
-          <FaChartBar /> Platform Breakdown
-        </h2>
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          {metricCards.map((card) => {
-            const iconColorMap = { blue: "text-blue-400 bg-blue-500/10", green: "text-green-400 bg-green-500/10" }
-            const [ic, bg] = (iconColorMap[card.color] || "text-richblack-400 bg-richblack-700").split(" bg-")
-            return (
-              <div key={card.title} className="bg-richblack-800 border border-richblack-700 rounded-xl p-5">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="font-semibold text-richblack-5">{card.title}</h3>
-                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${iconColorMap[card.color]?.split(" ")[1] || "bg-richblack-700"}`}>
-                    <card.icon className={`text-base ${ic}`} />
-                  </div>
-                </div>
-                <p className="text-3xl font-bold text-richblack-5 mb-4">{card.value}</p>
-                <div className="space-y-3">
-                  {card.rows.map((row) => (
-                    <div key={row.label}>
-                      <div className="flex justify-between text-xs mb-1">
-                        <span className="text-richblack-400">{row.label}</span>
-                        <span className="text-richblack-200 font-medium">{row.value} ({row.pct}%)</span>
-                      </div>
-                      <div className="h-1.5 bg-richblack-700 rounded-full overflow-hidden">
-                        <div
-                          className={`h-full ${row.color} rounded-full transition-all duration-500`}
-                          style={{ width: `${row.pct}%` }}
-                        />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )
-          })}
-        </div>
-      </div>
-
-      {/* Pending Actions */}
-      <div>
-        <h2 className="text-sm font-semibold text-richblack-400 uppercase tracking-wide mb-3 flex items-center gap-2">
-          <FaClock /> Pending Actions
-        </h2>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          {pendingItems.map((item) => (
-            <div key={item.label} className="bg-richblack-800 border border-richblack-700 rounded-xl p-4 flex items-center gap-4">
-              <div className="w-10 h-10 bg-richblack-700 rounded-xl flex items-center justify-center flex-shrink-0">
-                <item.icon className={`text-base ${item.color}`} />
-              </div>
-              <div>
-                <p className={`text-2xl font-bold ${item.color}`}>{item.value}</p>
-                <p className="text-xs text-richblack-400 mt-0.5">{item.label}</p>
-              </div>
+            <div>
+              <h3 className="text-sm font-semibold text-richblack-100">User Distribution</h3>
+              <p className="text-xs text-richblack-500">{totalUsers.toLocaleString()} total</p>
             </div>
-          ))}
+          </div>
+          <div className="flex-1 flex items-center justify-center" style={{ maxHeight: 200 }}>
+            {totalUsers > 0 ? (
+              <Doughnut data={userDoughnutData} options={doughnutOptions} />
+            ) : (
+              <p className="text-sm text-richblack-500">No user data</p>
+            )}
+          </div>
+          <div className="mt-4 grid grid-cols-3 gap-2 text-center border-t border-richblack-700 pt-4">
+            <div>
+              <p className="text-base font-bold text-blue-400">{studentCount.toLocaleString()}</p>
+              <p className="text-xs text-richblack-500 mt-0.5">Students</p>
+            </div>
+            <div>
+              <p className="text-base font-bold text-purple-400">{instructorCount.toLocaleString()}</p>
+              <p className="text-xs text-richblack-500 mt-0.5">Instructors</p>
+            </div>
+            <div>
+              <p className="text-base font-bold text-yellow-400">{adminCount.toLocaleString()}</p>
+              <p className="text-xs text-richblack-500 mt-0.5">Admins</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Course Doughnut */}
+        <div className="bg-richblack-800 border border-richblack-700 rounded-xl p-5 flex flex-col">
+          <div className="flex items-center gap-2 mb-5">
+            <div className="w-8 h-8 bg-green-500/20 rounded-lg flex items-center justify-center">
+              <FaBook className="text-green-400 text-sm" />
+            </div>
+            <div>
+              <h3 className="text-sm font-semibold text-richblack-100">Course Distribution</h3>
+              <p className="text-xs text-richblack-500">{totalCourses.toLocaleString()} total</p>
+            </div>
+          </div>
+          <div className="flex-1 flex items-center justify-center" style={{ maxHeight: 200 }}>
+            {totalCourses > 0 ? (
+              <Doughnut data={courseDoughnutData} options={doughnutOptions} />
+            ) : (
+              <p className="text-sm text-richblack-500">No course data</p>
+            )}
+          </div>
+          <div className="mt-4 grid grid-cols-2 gap-2 text-center border-t border-richblack-700 pt-4">
+            <div>
+              <p className="text-base font-bold text-green-400">{publishedCourses.toLocaleString()}</p>
+              <p className="text-xs text-richblack-500 mt-0.5">Published</p>
+            </div>
+            <div>
+              <p className="text-base font-bold text-richblack-400">{draftCourses.toLocaleString()}</p>
+              <p className="text-xs text-richblack-500 mt-0.5">Draft</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Revenue Bar */}
+        <div className="bg-richblack-800 border border-richblack-700 rounded-xl p-5 flex flex-col">
+          <div className="flex items-center gap-2 mb-5">
+            <div className="w-8 h-8 bg-yellow-500/20 rounded-lg flex items-center justify-center">
+              <FaRupeeSign className="text-yellow-400 text-sm" />
+            </div>
+            <div>
+              <h3 className="text-sm font-semibold text-richblack-100">Revenue Breakdown</h3>
+              <p className="text-xs text-richblack-500">₹{totalRevenue.toLocaleString("en-IN")} total</p>
+            </div>
+          </div>
+          <div className="flex-1">
+            <Bar data={revenueBarData} options={barOptions} />
+          </div>
+          <div className="mt-4 grid grid-cols-3 gap-2 text-center border-t border-richblack-700 pt-4">
+            <div>
+              <p className="text-base font-bold text-yellow-400">₹{(totalRevenue / 1000).toFixed(0)}k</p>
+              <p className="text-xs text-richblack-500 mt-0.5">Total</p>
+            </div>
+            <div>
+              <p className="text-base font-bold text-green-400">₹{(monthlyRevenue / 1000).toFixed(0)}k</p>
+              <p className="text-xs text-richblack-500 mt-0.5">Monthly</p>
+            </div>
+            <div>
+              <p className="text-base font-bold text-orange-400">₹{(pendingRevenue / 1000).toFixed(0)}k</p>
+              <p className="text-xs text-richblack-500 mt-0.5">Pending</p>
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* Key Ratios */}
+      {/* Key Metrics */}
       <div className="bg-richblack-800 border border-richblack-700 rounded-xl p-5">
-        <h2 className="text-sm font-semibold text-richblack-400 uppercase tracking-wide mb-4 flex items-center gap-2">
-          <FaCheckCircle /> Key Platform Ratios
-        </h2>
+        <h2 className="text-xs font-semibold text-richblack-400 uppercase tracking-wide mb-5">Key Platform Metrics</h2>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-          {[
-            {
-              label: "Course Publish Rate",
-              value: `${publishRate}%`,
-              sub: `${publishedCourses} of ${totalCourses} courses`,
-              color: "text-green-400",
-            },
-            {
-              label: "Instructor Ratio",
-              value: totalUsers > 0 ? `${Math.round((instructorCount / totalUsers) * 100)}%` : "0%",
-              sub: `${instructorCount} instructors`,
-              color: "text-purple-400",
-            },
-            {
-              label: "Avg Revenue / Course",
-              value: publishedCourses > 0 ? `₹${Math.round(totalRevenue / publishedCourses).toLocaleString("en-IN")}` : "₹0",
-              sub: "per published course",
-              color: "text-yellow-400",
-            },
-            {
-              label: "Monthly Growth",
-              value: totalRevenue > 0 ? `${Math.round((monthlyRevenue / totalRevenue) * 100)}%` : "0%",
-              sub: "of total revenue this month",
-              color: "text-blue-400",
-            },
-          ].map((item) => (
-            <div key={item.label} className="text-center p-3 bg-richblack-700/50 rounded-xl">
+          {ratios.map((item) => (
+            <div key={item.label} className="bg-richblack-700/50 rounded-xl p-4">
               <p className={`text-2xl font-bold ${item.color}`}>{item.value}</p>
-              <p className="text-xs font-medium text-richblack-300 mt-1">{item.label}</p>
+              <p className="text-xs font-medium text-richblack-300 mt-1.5">{item.label}</p>
               <p className="text-xs text-richblack-500 mt-0.5">{item.sub}</p>
+              {item.bar && item.pct != null && (
+                <div className="mt-3 h-1.5 bg-richblack-600 rounded-full overflow-hidden">
+                  <div
+                    className={`h-full ${item.bar} rounded-full transition-all duration-700`}
+                    style={{ width: `${item.pct}%` }}
+                  />
+                </div>
+              )}
             </div>
           ))}
         </div>
       </div>
 
-      {/* Note about detailed analytics */}
-      <div className="flex items-start gap-3 bg-blue-500/5 border border-blue-500/20 rounded-xl p-4 text-sm text-richblack-400">
-        <FaChartBar className="text-blue-400 mt-0.5 flex-shrink-0" />
-        <span>
-          Detailed time-series charts (revenue trends, enrollment growth, user acquisition) are coming soon.
-          This overview uses real-time data from all platform services.
-        </span>
+      {/* Revenue Detail Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        {[
+          { label: "Total Revenue", value: totalRevenue, color: "text-yellow-400", border: "border-yellow-500/20", bg: "bg-yellow-500/5" },
+          { label: "Monthly Revenue", value: monthlyRevenue, color: "text-green-400", border: "border-green-500/20", bg: "bg-green-500/5" },
+          { label: "Pending Revenue", value: pendingRevenue, color: "text-orange-400", border: "border-orange-500/20", bg: "bg-orange-500/5" },
+        ].map((card) => (
+          <div key={card.label} className={`${card.bg} border ${card.border} rounded-xl p-5`}>
+            <p className="text-xs font-semibold text-richblack-400 uppercase tracking-wide mb-1">{card.label}</p>
+            <p className={`text-2xl font-bold ${card.color}`}>
+              ₹{card.value.toLocaleString("en-IN")}
+            </p>
+          </div>
+        ))}
       </div>
     </div>
   )

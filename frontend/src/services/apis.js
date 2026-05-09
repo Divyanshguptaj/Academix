@@ -47,6 +47,9 @@ export const courseEndpoints = {
   GET_FULL_COURSE_DETAILS_AUTHENTICATED: API_GATEWAY_URL + "/course/getFullCourseDetails",
   LECTURE_COMPLETION_API: API_GATEWAY_URL + "/course/updateCourseProgress",
   CREATE_RATING_API: API_GATEWAY_URL + "/course/createRating",
+  GET_UPLOAD_SIGNATURE_API: API_GATEWAY_URL + "/course/upload-signature",
+  REORDER_SECTIONS_API: API_GATEWAY_URL + "/course/reorderSections",
+  REORDER_SUBSECTIONS_API: API_GATEWAY_URL + "/course/reorderSubSections",
 }
 
 // RATINGS AND REVIEWS (Routed through API Gateway to Course Service)
@@ -112,10 +115,10 @@ export const adminEndpoints = {
   REJECT_INSTRUCTOR_APPLICATION: API_GATEWAY_URL + "/admin/user/instructor-applications/:id/reject",
   
   // Course Service Admin Endpoints
-  GET_ALL_COURSES: API_GATEWAY_URL + "/admin/course/admin",
-  APPROVE_COURSE: API_GATEWAY_URL + "/admin/course/admin/approve",
-  REJECT_COURSE: API_GATEWAY_URL + "/admin/course/admin/reject",
-  GET_COURSE_ANALYTICS: API_GATEWAY_URL + "/admin/course/admin/analytics",
+  GET_ALL_COURSES: API_GATEWAY_URL + "/admin/course/list",
+  APPROVE_COURSE: API_GATEWAY_URL + "/admin/course/approve",
+  REJECT_COURSE: API_GATEWAY_URL + "/admin/course/reject",
+  GET_COURSE_ANALYTICS: API_GATEWAY_URL + "/admin/course/analytics",
   
   // Payment Service Admin Endpoints
   GET_REFUND_REQUESTS: API_GATEWAY_URL + "/admin/payment/refunds",
