@@ -198,7 +198,6 @@ export const rejectRefund = async (req, res) => {
 }
 
 export const getRefundAnalytics = async (req, res) => {
-  console.log("Fetching comprehensive analytics...")
   try {
     // Calculate Refund Statistics
     const totalRefunds = await RefundRequest.countDocuments()
@@ -258,7 +257,6 @@ export const getRefundAnalytics = async (req, res) => {
       rejectionRate: totalRefunds > 0 ? Math.round((rejectedRefunds / totalRefunds) * 100) : 0
     }
     
-    console.log("Comprehensive analytics calculated:", analytics)
     return res.status(200).json({
       success: true,
       data: analytics

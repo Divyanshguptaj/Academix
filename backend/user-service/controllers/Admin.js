@@ -23,9 +23,9 @@ export const getDashboardStats = async (req, res) => {
       draftCourses: 0,
       pendingCourseApprovals: 0
     };
-    
+
     try {
-      const courseResponse = await courseService.get('/course/admin/list?limit=1000');
+      const courseResponse = await courseService.get('/admin/list?limit=1000');
       const courseData = courseResponse.data;
       if (courseData.success && courseData.data) {
         const courses = Array.isArray(courseData.data) ? courseData.data : [];
@@ -44,9 +44,9 @@ export const getDashboardStats = async (req, res) => {
       monthlyRevenue: 0,
       pendingRevenue: 0
     };
-    
+
     try {
-      const paymentResponse = await paymentService.get('/payment/admin/refunds/analytics');
+      const paymentResponse = await paymentService.get('/admin/refunds/analytics');
       const paymentData = paymentResponse.data;
       if (paymentData.success && paymentData.data) {
         revenueStats.totalRevenue = paymentData.data.totalRevenue || 0;
@@ -61,9 +61,9 @@ export const getDashboardStats = async (req, res) => {
     let refundStats = {
       pendingRefundRequests: 0
     };
-    
+
     try {
-      const refundResponse = await paymentService.get('/payment/admin/refunds');
+      const refundResponse = await paymentService.get('/admin/refunds');
       const refundData = refundResponse.data;
       if (refundData.success && refundData.data) {
         const refunds = Array.isArray(refundData.data) ? refundData.data : [];
@@ -134,14 +134,44 @@ export const getDashboardStats = async (req, res) => {
 // User Management
 export const getAllUsers = async (req, res) => {
   try {
-    const users = await User.find()
-      .populate('additionalDetails')
-      .select('-password -token -resetPasswordExpires')
-      .sort({ createdAt: -1 })
+    // Support pagination, search, and accountType filtering (removed unused 'status' filter)
+    const { page = 1, limit = 10, search = "", accountType = "all" } = req.query;
+
+    const query = {};
+
+    if (accountType && accountType !== "all") {
+      query.accountType = accountType;
+    }
+
+    if (search && search.trim().length > 0) {
+      const safeSearch = search.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&');
+      query.$or = [
+        { firstName: { $regex: safeSearch, $options: "i" } },
+        { lastName: { $regex: safeSearch, $options: "i" } },
+        { email: { $regex: safeSearch, $options: "i" } },
+      ];
+    }
+
+    const skip = (Number(page) - 1) * Number(limit);
+
+    const [totalUsers, users] = await Promise.all([
+      User.countDocuments(query),
+      User.find(query)
+        .populate('additionalDetails')
+        .select('-password -token -resetPasswordExpires')
+        .sort({ _id: -1 })
+        .skip(skip)
+        .limit(Number(limit))
+    ]);
 
     res.status(200).json({
       success: true,
-      data: users
+      data: {
+        users,
+        totalUsers,
+        totalPages: Math.ceil(totalUsers / Number(limit)) || 1,
+        currentPage: Number(page)
+      }
     })
   } catch (error) {
     console.error('Get all users error:', error)
@@ -184,15 +214,29 @@ export const getUserDetails = async (req, res) => {
 // Instructor Management
 export const getAllInstructors = async (req, res) => {
   try {
-    const instructors = await User.find({ accountType: 'Instructor' })
-      .populate('additionalDetails')
-      .select('-password -token -resetPasswordExpires')
-      .sort({ createdAt: -1 })
+    const { page = 1, limit = 10, search = "" } = req.query;
+    const query = { accountType: 'Instructor' };
+
+    if (search && search.trim().length > 0) {
+      const safeSearch = search.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&');
+      query.$or = [
+        { firstName: { $regex: safeSearch, $options: "i" } },
+        { lastName: { $regex: safeSearch, $options: "i" } },
+        { email: { $regex: safeSearch, $options: "i" } },
+      ];
+    }
+
+    const skip = (Number(page) - 1) * Number(limit);
+
+    const [totalInstructors, instructors] = await Promise.all([
+      User.countDocuments(query),
+      User.find(query).populate('additionalDetails').select('-password -token -resetPasswordExpires').sort({ _id: -1 }).skip(skip).limit(Number(limit))
+    ]);
 
     // Fetch all courses from course-service to enrich instructor stats
     let allCourses = []
     try {
-      const courseResponse = await courseService.get('/course/admin/list?limit=1000')
+      const courseResponse = await courseService.get('/admin/list?limit=1000');
       if (courseResponse.data?.success && Array.isArray(courseResponse.data.data)) {
         allCourses = courseResponse.data.data
       }
@@ -220,7 +264,12 @@ export const getAllInstructors = async (req, res) => {
 
     res.status(200).json({
       success: true,
-      data: enrichedInstructors
+      data: {
+        instructors: enrichedInstructors,
+        totalInstructors,
+        totalPages: Math.ceil(totalInstructors / Number(limit)) || 1,
+        currentPage: Number(page)
+      }
     })
   } catch (error) {
     console.error('Get all instructors error:', error)
@@ -279,13 +328,36 @@ export const revokeInstructor = async (req, res) => {
 // Instructor Applications
 export const getInstructorApplications = async (req, res) => {
   try {
-    const applications = await InstructorApplication.find({ status: 'pending' })
-      .populate('userId', 'firstName lastName email image')
-      .sort({ createdAt: -1 })
+    const { page = 1, limit = 10, search = "" } = req.query;
+    let query = { status: 'pending' };
+
+    if (search && search.trim().length > 0) {
+      const safeSearch = search.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&');
+      const matchingUsers = await User.find({
+        $or: [
+          { firstName: { $regex: safeSearch, $options: "i" } },
+          { lastName: { $regex: safeSearch, $options: "i" } },
+          { email: { $regex: safeSearch, $options: "i" } },
+        ]
+      }).select('_id');
+      query.userId = { $in: matchingUsers.map(u => u._id) };
+    }
+
+    const skip = (Number(page) - 1) * Number(limit);
+
+    const [totalApplications, applications] = await Promise.all([
+      InstructorApplication.countDocuments(query),
+      InstructorApplication.find(query).populate('userId', 'firstName lastName email image').sort({ _id: -1 }).skip(skip).limit(Number(limit))
+    ]);
 
     res.status(200).json({
       success: true,
-      data: applications
+      data: {
+        applications,
+        totalApplications,
+        totalPages: Math.ceil(totalApplications / Number(limit)) || 1,
+        currentPage: Number(page)
+      }
     })
   } catch (error) {
     console.error('Get instructor applications error:', error)

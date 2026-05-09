@@ -4,12 +4,13 @@ import { apiConnector } from "../../../services/apiconnector"
 import { adminEndpoints } from "../../../services/apis"
 import { toast } from "react-hot-toast"
 import {
-  FaUserTie, FaCheckCircle, FaTimesCircle, FaUsers, FaBook,
-  FaRupeeSign, FaClock, FaSearch, FaSync, FaCalendar, FaEnvelope,
+  FaUserTie, FaCheckCircle, FaTimesCircle, FaUsers,
+  FaClock, FaSearch, FaCalendar, FaEnvelope,
   FaExternalLinkAlt, FaTags, FaTimes
 } from "react-icons/fa"
 import { format } from "date-fns"
 import ConfirmationModal from "../../common/ConfirmationModal"
+import RefreshButton from "../../common/RefreshButton"
 
 const decodeImg = (url) =>
   url?.replace(/&#x2F;/gi, "/").replace(/&#x27;/gi, "'").replace(/&amp;/gi, "&") || ""
@@ -27,19 +28,49 @@ export default function InstructorManagement() {
   const [revokeModal, setRevokeModal] = useState(null) // { id, name }
   const [actionLoading, setActionLoading] = useState(null)
 
+  const [debouncedSearch, setDebouncedSearch] = useState("")
+  const [page, setPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
+  const [totalCount, setTotalCount] = useState(0)
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchTerm)
+      setPage(1)
+    }, 500)
+    return () => clearTimeout(timer)
+  }, [searchTerm])
+
+  const handleTabChange = (tab) => {
+    setActiveTab(tab)
+    setSearchTerm("")
+    setDebouncedSearch("")
+    setPage(1)
+  }
+
   useEffect(() => {
     if (user?.accountType === "Admin") fetchInstructorData()
-  }, [user, activeTab])
+  }, [user, activeTab, page, debouncedSearch])
 
   const fetchInstructorData = async () => {
     try {
       setRefreshing(true)
+      const queryParams = new URLSearchParams({ page, limit: 10, search: debouncedSearch }).toString()
+
       if (activeTab === "applications") {
-        const res = await apiConnector("GET", adminEndpoints.GET_INSTRUCTOR_APPLICATIONS)
-        setApplications(res.data.data || [])
+        const res = await apiConnector("GET", `${adminEndpoints.GET_INSTRUCTOR_APPLICATIONS}?${queryParams}`)
+        const responseData = res?.data?.data
+        // Fallback safely in case the backend or cache returns the old flat array format
+        setApplications(responseData?.applications || (Array.isArray(responseData) ? responseData : []))
+        setTotalPages(responseData?.totalPages || 1)
+        setTotalCount(responseData?.totalApplications || (Array.isArray(responseData) ? responseData.length : 0))
       } else {
-        const res = await apiConnector("GET", adminEndpoints.GET_ALL_INSTRUCTORS)
-        setInstructors(res.data.data || [])
+        const res = await apiConnector("GET", `${adminEndpoints.GET_ALL_INSTRUCTORS}?${queryParams}`)
+        const responseData = res?.data?.data
+        // Fallback safely in case the backend or cache returns the old flat array format
+        setInstructors(responseData?.instructors || (Array.isArray(responseData) ? responseData : []))
+        setTotalPages(responseData?.totalPages || 1)
+        setTotalCount(responseData?.totalInstructors || (Array.isArray(responseData) ? responseData.length : 0))
       }
     } catch {
       toast.error("Failed to load instructor data")
@@ -95,24 +126,6 @@ export default function InstructorManagement() {
     }
   }
 
-  // Applications use app.userId for user info, app.* for application fields
-  const filteredApplications = applications.filter((app) => {
-    const firstName = (app.userId?.firstName || "").toLowerCase()
-    const lastName = (app.userId?.lastName || "").toLowerCase()
-    const email = (app.userId?.email || "").toLowerCase()
-    const q = searchTerm.toLowerCase()
-    return firstName.includes(q) || lastName.includes(q) || email.includes(q)
-  })
-
-  const filteredInstructors = instructors.filter((instr) => {
-    const q = searchTerm.toLowerCase()
-    return (
-      (instr.firstName || "").toLowerCase().includes(q) ||
-      (instr.lastName || "").toLowerCase().includes(q) ||
-      (instr.email || "").toLowerCase().includes(q)
-    )
-  })
-
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[50vh]">
@@ -132,20 +145,13 @@ export default function InstructorManagement() {
           <h1 className="text-2xl font-bold text-richblack-5">Instructor Management</h1>
           <p className="text-sm text-richblack-400 mt-0.5">Review applications and manage approved instructors</p>
         </div>
-        <button
-          onClick={fetchInstructorData}
-          disabled={refreshing}
-          className="flex items-center gap-2 bg-richblack-700 hover:bg-richblack-600 border border-richblack-600 text-richblack-100 px-4 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
-        >
-          <FaSync className={refreshing ? "animate-spin" : ""} />
-          {refreshing ? "Refreshing…" : "Refresh"}
-        </button>
+        <RefreshButton onClick={fetchInstructorData} loading={loading || refreshing} />
       </div>
 
       {/* Tabs */}
       <div className="flex gap-1 bg-richblack-800 border border-richblack-700 rounded-xl p-1">
         <button
-          onClick={() => setActiveTab("applications")}
+          onClick={() => handleTabChange("applications")}
           className={`flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-lg text-sm font-medium transition-all ${
             activeTab === "applications"
               ? "bg-richblack-700 text-richblack-5 shadow"
@@ -154,14 +160,14 @@ export default function InstructorManagement() {
         >
           <FaClock className={activeTab === "applications" ? "text-orange-400" : ""} />
           Pending Applications
-          {applications.length > 0 && (
+          {activeTab === "applications" && totalCount > 0 && (
             <span className="bg-orange-500/20 text-orange-300 text-xs font-bold px-2 py-0.5 rounded-full">
-              {applications.length}
+              {totalCount}
             </span>
           )}
         </button>
         <button
-          onClick={() => setActiveTab("approved")}
+          onClick={() => handleTabChange("approved")}
           className={`flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-lg text-sm font-medium transition-all ${
             activeTab === "approved"
               ? "bg-richblack-700 text-richblack-5 shadow"
@@ -170,9 +176,9 @@ export default function InstructorManagement() {
         >
           <FaUsers className={activeTab === "approved" ? "text-green-400" : ""} />
           Approved Instructors
-          {instructors.length > 0 && (
+          {activeTab === "approved" && totalCount > 0 && (
             <span className="bg-green-500/20 text-green-300 text-xs font-bold px-2 py-0.5 rounded-full">
-              {instructors.length}
+              {totalCount}
             </span>
           )}
         </button>
@@ -201,7 +207,7 @@ export default function InstructorManagement() {
       {/* === APPLICATIONS TAB === */}
       {activeTab === "applications" && (
         <div className="space-y-4">
-          {filteredApplications.length === 0 ? (
+          {applications.length === 0 ? (
             <div className="text-center py-16 bg-richblack-800 border border-richblack-700 rounded-xl">
               <div className="w-16 h-16 mx-auto bg-richblack-700 rounded-full flex items-center justify-center mb-4">
                 <FaClock className="text-2xl text-richblack-400" />
@@ -211,7 +217,7 @@ export default function InstructorManagement() {
               </p>
             </div>
           ) : (
-            filteredApplications.map((app) => {
+            applications.map((app) => {
               const name = `${app.userId?.firstName || ""} ${app.userId?.lastName || ""}`.trim() || "Unknown"
               const email = app.userId?.email || ""
               const img = decodeImg(app.userId?.image)
@@ -326,29 +332,33 @@ export default function InstructorManagement() {
               )
             })
           )}
+          
+          {/* Pagination */}
+          {applications.length > 0 && (
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-6">
+              <p className="text-xs text-richblack-500">
+                Showing {applications.length} of {totalCount} applications
+              </p>
+              {totalPages > 1 && (
+                <div className="flex items-center gap-2">
+                  <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1 || loading || refreshing} className="px-3 py-1.5 rounded bg-richblack-800 border border-richblack-700 text-white text-sm disabled:opacity-50 hover:bg-richblack-700 transition">Prev</button>
+                  {Array.from({ length: totalPages }).map((_, idx) => (
+                    <button key={idx} onClick={() => setPage(idx + 1)} className={`w-8 h-8 flex items-center justify-center rounded text-sm transition-colors border border-richblack-700 ${page === idx + 1 ? 'bg-yellow-400 text-black font-bold border-yellow-400' : 'bg-richblack-800 text-white hover:bg-richblack-700'}`}>
+                      {idx + 1}
+                    </button>
+                  ))}
+                  <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages || loading || refreshing} className="px-3 py-1.5 rounded bg-richblack-800 border border-richblack-700 text-white text-sm disabled:opacity-50 hover:bg-richblack-700 transition">Next</button>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       )}
 
       {/* === APPROVED INSTRUCTORS TAB === */}
       {activeTab === "approved" && (
         <div className="space-y-4">
-          {/* Summary bar */}
-          {instructors.length > 0 && (
-            <div className="grid grid-cols-3 gap-3">
-              {[
-                { label: "Total Instructors", value: instructors.length, color: "text-green-400" },
-                { label: "Total Courses", value: instructors.reduce((s, i) => s + (i.courseCount || 0), 0), color: "text-blue-400" },
-                { label: "Total Revenue", value: `₹${instructors.reduce((s, i) => s + (i.totalRevenue || 0), 0).toLocaleString("en-IN")}`, color: "text-yellow-400" },
-              ].map((stat) => (
-                <div key={stat.label} className="bg-richblack-800 border border-richblack-700 rounded-xl p-4 text-center">
-                  <p className={`text-xl font-bold ${stat.color}`}>{stat.value}</p>
-                  <p className="text-xs text-richblack-400 mt-0.5">{stat.label}</p>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {filteredInstructors.length === 0 ? (
+          {instructors.length === 0 ? (
             <div className="text-center py-16 bg-richblack-800 border border-richblack-700 rounded-xl">
               <div className="w-16 h-16 mx-auto bg-richblack-700 rounded-full flex items-center justify-center mb-4">
                 <FaUsers className="text-2xl text-richblack-400" />
@@ -358,7 +368,7 @@ export default function InstructorManagement() {
               </p>
             </div>
           ) : (
-            filteredInstructors.map((instr) => {
+            instructors.map((instr) => {
               const name = `${instr.firstName || ""} ${instr.lastName || ""}`.trim()
               const img = decodeImg(instr.image)
               const isActing = actionLoading === instr._id
@@ -385,20 +395,6 @@ export default function InstructorManagement() {
                         <FaEnvelope className="text-xs" />
                         <span>{instr.email}</span>
                       </div>
-                      <div className="flex gap-4 mt-2">
-                        <span className="flex items-center gap-1 text-xs text-richblack-400">
-                          <FaBook className="text-blue-400" />
-                          <span className="text-richblack-200 font-medium">{instr.courseCount ?? 0}</span> courses
-                        </span>
-                        <span className="flex items-center gap-1 text-xs text-richblack-400">
-                          <FaUsers className="text-green-400" />
-                          <span className="text-richblack-200 font-medium">{instr.studentCount ?? 0}</span> students
-                        </span>
-                        <span className="flex items-center gap-1 text-xs text-richblack-400">
-                          <FaRupeeSign className="text-yellow-400" />
-                          <span className="text-richblack-200 font-medium">₹{(instr.totalRevenue ?? 0).toLocaleString("en-IN")}</span>
-                        </span>
-                      </div>
                     </div>
                   </div>
                   <button
@@ -412,6 +408,26 @@ export default function InstructorManagement() {
                 </div>
               )
             })
+          )}
+
+          {/* Pagination */}
+          {instructors.length > 0 && (
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-6">
+              <p className="text-xs text-richblack-500">
+                Showing {instructors.length} of {totalCount} instructors
+              </p>
+              {totalPages > 1 && (
+                <div className="flex items-center gap-2">
+                  <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1 || loading || refreshing} className="px-3 py-1.5 rounded bg-richblack-800 border border-richblack-700 text-white text-sm disabled:opacity-50 hover:bg-richblack-700 transition">Prev</button>
+                  {Array.from({ length: totalPages }).map((_, idx) => (
+                    <button key={idx} onClick={() => setPage(idx + 1)} className={`w-8 h-8 flex items-center justify-center rounded text-sm transition-colors border border-richblack-700 ${page === idx + 1 ? 'bg-yellow-400 text-black font-bold border-yellow-400' : 'bg-richblack-800 text-white hover:bg-richblack-700'}`}>
+                      {idx + 1}
+                    </button>
+                  ))}
+                  <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages || loading || refreshing} className="px-3 py-1.5 rounded bg-richblack-800 border border-richblack-700 text-white text-sm disabled:opacity-50 hover:bg-richblack-700 transition">Next</button>
+                </div>
+              )}
+            </div>
           )}
         </div>
       )}

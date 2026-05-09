@@ -3,8 +3,8 @@ import { useSelector } from "react-redux"
 import { apiConnector } from "../../../services/apiconnector"
 import { adminEndpoints } from "../../../services/apis"
 import { toast } from "react-hot-toast"
-import { FaUsers, FaUserGraduate, FaUserTie, FaShieldAlt, FaSearch, FaBan, FaCheckCircle, FaTimes } from "react-icons/fa"
-import { format } from "date-fns"
+import { FaSearch, FaTimes } from "react-icons/fa"
+import RefreshButton from "../../common/RefreshButton"
 
 const decodeImg = (url) =>
   url?.replace(/&#x2F;/gi, "/").replace(/&#x27;/gi, "'").replace(/&amp;/gi, "&") || ""
@@ -20,98 +20,69 @@ export default function UserManagement() {
   const [users, setUsers] = useState([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
+  const [debouncedSearch, setDebouncedSearch] = useState("")
   const [roleFilter, setRoleFilter] = useState("all")
-  const [statusFilter, setStatusFilter] = useState("all")
-  const [sortBy, setSortBy] = useState("createdAt")
-  const [sortOrder, setSortOrder] = useState("desc")
-  const [actionLoading, setActionLoading] = useState(null)
+  const [sortBy, setSortBy] = useState("firstName")
+  const [sortOrder, setSortOrder] = useState("asc")
+
+  const [page, setPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
+  const [totalUsersCount, setTotalUsersCount] = useState(0)
+
+  // Debounce search input
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchTerm)
+      setPage(1) // Reset to first page on new search
+    }, 500)
+    return () => clearTimeout(timer)
+  }, [searchTerm])
+
+  // Reset page when role changes
+  useEffect(() => {
+    setPage(1)
+  }, [roleFilter])
 
   useEffect(() => {
     if (adminUser?.accountType === "Admin") fetchUsers()
-  }, [adminUser])
+  }, [adminUser, page, debouncedSearch, roleFilter])
 
   const fetchUsers = async () => {
     try {
       setLoading(true)
-      const response = await apiConnector("GET", adminEndpoints.GET_ALL_USERS)
-      setUsers(response.data.data || [])
-    } catch {
+      const queryParams = new URLSearchParams({
+        page,
+        limit: 10,
+        search: debouncedSearch,
+        accountType: roleFilter,
+      }).toString()
+
+      const response = await apiConnector("GET", `${adminEndpoints.GET_ALL_USERS}?${queryParams}`)
+      const { users, totalUsers, totalPages, currentPage } = response.data.data
+
+      setUsers(users || [])
+      setTotalUsersCount(totalUsers || 0)
+      setTotalPages(totalPages || 1)
+      setPage(currentPage || 1)
+    } catch (error) {
       toast.error("Failed to load users")
     } finally {
       setLoading(false)
     }
   }
 
-  const handleStatusChange = async (userId, newStatus, name) => {
-    setActionLoading(userId)
-    try {
-      await apiConnector("PUT", adminEndpoints.UPDATE_USER_STATUS.replace(":id", userId), { status: newStatus })
-      toast.success(`${name} ${newStatus === "active" ? "activated" : "suspended"}`)
-      setUsers((prev) =>
-        prev.map((u) => (u._id === userId ? { ...u, status: newStatus } : u))
-      )
-    } catch (err) {
-      toast.error(err?.response?.data?.message || "Failed to update user status")
-    } finally {
-      setActionLoading(null)
-    }
-  }
+  // Sort the current page on the frontend
+  const sortedUsers = [...users].sort((a, b) => {
+      let av = sortBy === "gender" ? a.additionalDetails?.gender : a[sortBy]
+      let bv = sortBy === "gender" ? b.additionalDetails?.gender : b[sortBy]
 
-  const filtered = users
-    .filter((u) => {
-      const q = searchTerm.toLowerCase()
-      const matchesSearch =
-        (u.firstName || "").toLowerCase().includes(q) ||
-        (u.lastName || "").toLowerCase().includes(q) ||
-        (u.email || "").toLowerCase().includes(q)
-      const matchesRole = roleFilter === "all" || u.accountType === roleFilter
-      const matchesStatus = statusFilter === "all" || u.status === statusFilter
-      return matchesSearch && matchesRole && matchesStatus
-    })
-    .sort((a, b) => {
-      let av = a[sortBy], bv = b[sortBy]
-      if (sortBy === "createdAt" || sortBy === "lastLogin") {
-        return sortOrder === "asc"
-          ? new Date(av || 0) - new Date(bv || 0)
-          : new Date(bv || 0) - new Date(av || 0)
-      }
-      if (typeof av === "string") {
+      if (typeof av === "string" && typeof bv === "string") {
         return sortOrder === "asc" ? av.localeCompare(bv) : bv.localeCompare(av)
       }
-      return sortOrder === "asc" ? av - bv : bv - av
+      if (!av) return sortOrder === "asc" ? 1 : -1;
+      if (!bv) return sortOrder === "asc" ? -1 : 1;
+      return sortOrder === "asc" ? (av > bv ? 1 : -1) : (bv > av ? 1 : -1)
     })
-
-  const statCards = [
-    { label: "Total Users", value: users.length, icon: FaUsers, color: "blue" },
-    { label: "Students", value: users.filter((u) => u.accountType === "Student").length, icon: FaUserGraduate, color: "blue" },
-    { label: "Instructors", value: users.filter((u) => u.accountType === "Instructor").length, icon: FaUserTie, color: "purple" },
-    { label: "Admins", value: users.filter((u) => u.accountType === "Admin").length, icon: FaShieldAlt, color: "yellow" },
-    { label: "Active", value: users.filter((u) => u.status === "active").length, icon: FaCheckCircle, color: "green" },
-    { label: "Suspended", value: users.filter((u) => u.status === "suspended").length, icon: FaBan, color: "red" },
-  ]
-
-  const iconColorMap = {
-    blue: "text-blue-400 bg-blue-500/10",
-    purple: "text-purple-400 bg-purple-500/10",
-    yellow: "text-yellow-400 bg-yellow-500/10",
-    green: "text-green-400 bg-green-500/10",
-    red: "text-red-400 bg-red-500/10",
-  }
-  const valueColorMap = {
-    blue: "text-blue-400", purple: "text-purple-400", yellow: "text-yellow-400",
-    green: "text-green-400", red: "text-red-400",
-  }
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-[50vh]">
-        <div className="relative w-16 h-16">
-          <div className="absolute inset-0 border-4 border-richblack-600 rounded-full" />
-          <div className="absolute inset-0 border-4 border-t-yellow-400 rounded-full animate-spin" />
-        </div>
-      </div>
-    )
-  }
 
   return (
     <div className="space-y-6">
@@ -119,27 +90,9 @@ export default function UserManagement() {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h1 className="text-2xl font-bold text-richblack-5">User Management</h1>
-          <p className="text-sm text-richblack-400 mt-0.5">Manage all users — activate or suspend accounts</p>
+          <p className="text-sm text-richblack-400 mt-0.5">Manage all users across the platform</p>
         </div>
-        <button
-          onClick={fetchUsers}
-          className="flex items-center gap-2 bg-richblack-700 hover:bg-richblack-600 border border-richblack-600 text-richblack-100 px-4 py-2 rounded-lg text-sm font-medium transition-colors"
-        >
-          Refresh
-        </button>
-      </div>
-
-      {/* Stats */}
-      <div className="grid grid-cols-3 lg:grid-cols-6 gap-3">
-        {statCards.map((s) => (
-          <div key={s.label} className="bg-richblack-800 border border-richblack-700 rounded-xl p-3 text-center">
-            <div className={`w-8 h-8 rounded-lg ${iconColorMap[s.color]} flex items-center justify-center mx-auto mb-2`}>
-              <s.icon className="text-sm" />
-            </div>
-            <p className={`text-lg font-bold ${valueColorMap[s.color]}`}>{s.value}</p>
-            <p className="text-xs text-richblack-400 mt-0.5">{s.label}</p>
-          </div>
-        ))}
+        <RefreshButton onClick={fetchUsers} loading={loading} />
       </div>
 
       {/* Filters */}
@@ -173,25 +126,14 @@ export default function UserManagement() {
         </select>
 
         <select
-          value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value)}
-          className="px-3 py-2 bg-richblack-700 border border-richblack-600 rounded-lg text-sm text-richblack-200 focus:outline-none"
-        >
-          <option value="all">All Status</option>
-          <option value="active">Active</option>
-          <option value="suspended">Suspended</option>
-        </select>
-
-        <select
           value={sortBy}
           onChange={(e) => setSortBy(e.target.value)}
           className="px-3 py-2 bg-richblack-700 border border-richblack-600 rounded-lg text-sm text-richblack-200 focus:outline-none"
         >
-          <option value="createdAt">Joined Date</option>
           <option value="firstName">Name</option>
           <option value="email">Email</option>
           <option value="accountType">Role</option>
-          <option value="lastLogin">Last Login</option>
+          <option value="gender">Gender</option>
         </select>
 
         <button
@@ -209,7 +151,7 @@ export default function UserManagement() {
           <table className="w-full">
             <thead>
               <tr className="bg-richblack-700 border-b border-richblack-600">
-                {["User", "Role", "Status", "Email", "Joined", "Last Login", "Actions"].map((h) => (
+                {["User", "Role", "Email", "Gender"].map((h) => (
                   <th key={h} className="px-5 py-3 text-left text-xs font-semibold text-richblack-400 uppercase tracking-wide">
                     {h}
                   </th>
@@ -217,10 +159,20 @@ export default function UserManagement() {
               </tr>
             </thead>
             <tbody className="divide-y divide-richblack-700">
-              {filtered.map((u) => {
+              {loading ? (
+                <tr>
+                  <td colSpan={5} className="py-12">
+                    <div className="flex items-center justify-center">
+                      <div className="relative w-12 h-12">
+                        <div className="absolute inset-0 border-4 border-richblack-600 rounded-full" />
+                        <div className="absolute inset-0 border-4 border-t-yellow-400 rounded-full animate-spin" />
+                      </div>
+                    </div>
+                  </td>
+                </tr>
+              ) : sortedUsers.map((u) => {
                 const name = `${u.firstName} ${u.lastName}`
                 const img = decodeImg(u.image)
-                const isActing = actionLoading === u._id
                 return (
                   <tr key={u._id} className="hover:bg-richblack-700/50 transition-colors">
                     <td className="px-5 py-3.5">
@@ -245,37 +197,9 @@ export default function UserManagement() {
                         {u.accountType}
                       </span>
                     </td>
-                    <td className="px-5 py-3.5">
-                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${
-                        u.status === "active"
-                          ? "bg-green-500/15 text-green-300 border-green-500/20"
-                          : "bg-red-500/15 text-red-300 border-red-500/20"
-                      }`}>
-                        {u.status === "active" ? "Active" : "Suspended"}
-                      </span>
-                    </td>
                     <td className="px-5 py-3.5 text-sm text-richblack-400">{u.email}</td>
                     <td className="px-5 py-3.5 text-sm text-richblack-400">
-                      {u.createdAt ? format(new Date(u.createdAt), "MMM dd, yyyy") : "—"}
-                    </td>
-                    <td className="px-5 py-3.5 text-sm text-richblack-400">
-                      {u.lastLogin ? format(new Date(u.lastLogin), "MMM dd, h:mm a") : "Never"}
-                    </td>
-                    <td className="px-5 py-3.5">
-                      {u.accountType !== "Admin" && (
-                        <button
-                          onClick={() => handleStatusChange(u._id, u.status === "active" ? "suspended" : "active", name)}
-                          disabled={isActing}
-                          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors disabled:opacity-50 ${
-                            u.status === "active"
-                              ? "bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-red-400"
-                              : "bg-green-500/10 hover:bg-green-500/20 border border-green-500/20 text-green-400"
-                          }`}
-                        >
-                          {u.status === "active" ? <FaBan className="text-xs" /> : <FaCheckCircle className="text-xs" />}
-                          {isActing ? "…" : u.status === "active" ? "Suspend" : "Activate"}
-                        </button>
-                      )}
+                      {u.additionalDetails?.gender || "Not specified"}
                     </td>
                   </tr>
                 )
@@ -284,17 +208,31 @@ export default function UserManagement() {
           </table>
         </div>
 
-        {filtered.length === 0 && (
+        {!loading && sortedUsers.length === 0 && (
           <div className="text-center py-12 text-richblack-400 text-sm">
             No users found matching your criteria.
           </div>
         )}
       </div>
 
-      {/* Result count */}
-      <p className="text-xs text-richblack-500 text-right">
-        Showing {filtered.length} of {users.length} users
-      </p>
+      {/* Pagination & Result count */}
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-6">
+        <p className="text-xs text-richblack-500">
+          Showing {sortedUsers.length} of {totalUsersCount} users
+        </p>
+
+        {totalPages > 1 && (
+          <div className="flex items-center gap-2">
+            <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1 || loading} className="px-3 py-1.5 rounded bg-richblack-800 border border-richblack-700 text-white text-sm disabled:opacity-50 hover:bg-richblack-700 transition">Prev</button>
+            {Array.from({ length: totalPages }).map((_, idx) => (
+              <button key={idx} onClick={() => setPage(idx + 1)} disabled={loading} className={`w-8 h-8 flex items-center justify-center rounded text-sm transition-colors border border-richblack-700 ${page === idx + 1 ? 'bg-yellow-400 text-black font-bold border-yellow-400' : 'bg-richblack-800 text-white hover:bg-richblack-700'}`}>
+                {idx + 1}
+              </button>
+            ))}
+            <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages || loading} className="px-3 py-1.5 rounded bg-richblack-800 border border-richblack-700 text-white text-sm disabled:opacity-50 hover:bg-richblack-700 transition">Next</button>
+          </div>
+        )}
+      </div>
     </div>
   )
 }

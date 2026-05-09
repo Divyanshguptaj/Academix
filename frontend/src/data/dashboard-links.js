@@ -91,13 +91,6 @@ export const sidebarLinks = [
         allowedRoles: [ACCOUNT_TYPE.ADMIN],
     },
     {
-        id: 15,
-        name: "Reports & Analytics",
-        path: '/admin/analytics',
-        icon: 'VscGraphLine',
-        allowedRoles: [ACCOUNT_TYPE.ADMIN],
-    },
-    {
         id: 16,
         name: "System Settings",
         path: '/admin/settings',

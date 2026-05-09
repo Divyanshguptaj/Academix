@@ -1,8 +1,8 @@
 import express from 'express';
 const router = express.Router();
 import { createCategory, findAllCategory, categoryPageDetails } from '../controllers/Category.js'
-import { createCourse, showAllCourses, getCourseDetails, getCoursePublicDetails, editCourse, getInstructorCourses, deleteCourse, getCourseDetailsForPayment, enrollStudentInCourse, getCourseByIds, getEnrolledStudentsWithProgress, updateCourseProgress, getUserProgressForCourses } from '../controllers/Course.js'
-import { authorize } from '../../shared-utils/middlewares/auth.js'
+import { createCourse, showAllCourses, getCourseDetails, getCoursePublicDetails, editCourse, getInstructorCourses, deleteCourse, getCourseDetailsForPayment, enrollStudentInCourse, unenrollStudentFromCourse, getCourseByIds, getEnrolledStudentsWithProgress, updateCourseProgress, getUserProgressForCourses } from '../controllers/Course.js'
+import { authorize, authenticateInternal } from '../../shared-utils/middlewares/auth.js'
 import { createSection, updateSection, deleteSection } from '../controllers/Section.js'
 import { createSubSection, deleteSubSection, updateSubSection } from '../controllers/Subsection.js'
 import { createRating, getAverageRating, getAllReviews } from '../controllers/RatingAndReview.js';
@@ -42,12 +42,13 @@ router.post('/createRating', authorize('Student'), createRating)
 router.get('/getAverageRating', getAverageRating);
 router.get('/getReviews', getAllReviews);
 
-// Internal service-to-service endpoints (called by payment-service / user-service, no user auth)
-router.get('/details/:courseId', getCourseDetailsForPayment);
-router.post('/enroll', enrollStudentInCourse);
-router.get('/get-courses-by-ids', getCourseByIds);
-router.get('/getEnrolledStudents/:courseId', getEnrolledStudentsWithProgress);
-router.get('/user-progress', getUserProgressForCourses);
+// Internal service-to-service endpoints — protected by shared service secret, never called by frontend
+router.get('/details/:courseId', authenticateInternal, getCourseDetailsForPayment);
+router.post('/enroll', authenticateInternal, enrollStudentInCourse);
+router.post('/unenroll', authenticateInternal, unenrollStudentFromCourse);
+router.get('/get-courses-by-ids', authenticateInternal, getCourseByIds);
+router.get('/getEnrolledStudents/:courseId', authenticateInternal, getEnrolledStudentsWithProgress);
+router.get('/user-progress', authenticateInternal, getUserProgressForCourses);
 
 // Discussion Forum
 router.use('/discussion', discussionRouter);

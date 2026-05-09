@@ -978,3 +978,31 @@ export const getUserProgressForCourses = async (req, res) => {
     return res.status(500).json({ success: false, message: 'Internal server error' });
   }
 };
+
+// Unenroll student from courses (called by payment-service during refunds)
+export const unenrollStudentFromCourse = async (req, res) => {
+  try {
+    const { courses, userId } = req.body;
+
+    if (!courses || !userId) {
+      return res.status(400).json({ success: false, message: 'Courses and userId are required' });
+    }
+
+    for (const courseData of courses) {
+      const courseId = typeof courseData === 'object' ? courseData.courseId : courseData;
+      if (!mongoose.Types.ObjectId.isValid(courseId)) continue;
+
+      const course = await Course.findById(courseId);
+      if (!course) continue;
+
+      const uid = new mongoose.Types.ObjectId(userId);
+      course.studentsEnrolled = course.studentsEnrolled.filter(id => id.toString() !== uid.toString());
+      await course.save();
+    }
+
+    return res.status(200).json({ success: true, message: 'Student unenrolled from courses successfully' });
+  } catch (error) {
+    console.error('Error unenrolling student from course:', error);
+    return res.status(500).json({ success: false, message: 'Internal server error' });
+  }
+};

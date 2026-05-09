@@ -66,6 +66,16 @@ export const authorize = (...roles) => async (req, res, next) => {
   })
 }
 
+// Accepts either a valid admin JWT or the internal service secret.
+// Use on admin endpoints that are called both by the frontend (JWT) and by other services (secret).
+export const authorizeAdminOrInternal = async (req, res, next) => {
+  const expected = process.env.INTERNAL_SERVICE_SECRET;
+  if (expected && req.headers['x-service-secret'] === expected) {
+    return next();
+  }
+  return authorize('Admin')(req, res, next);
+};
+
 // Internal service-to-service authentication via a shared secret header.
 // Use this on endpoints that are ONLY called by other services (never by end users).
 // Every service client automatically injects the secret via the request interceptor
