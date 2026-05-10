@@ -32,6 +32,7 @@ export default function InstructorManagement() {
   const [page, setPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
   const [totalCount, setTotalCount] = useState(0)
+  const [statusFilter, setStatusFilter] = useState("pending")
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -46,16 +47,22 @@ export default function InstructorManagement() {
     setSearchTerm("")
     setDebouncedSearch("")
     setPage(1)
+    setStatusFilter("pending")
+  }
+
+  const handleStatusFilter = (s) => {
+    setStatusFilter(s)
+    setPage(1)
   }
 
   useEffect(() => {
     if (user?.accountType === "Admin") fetchInstructorData()
-  }, [user, activeTab, page, debouncedSearch])
+  }, [user, activeTab, page, debouncedSearch, statusFilter])
 
   const fetchInstructorData = async () => {
     try {
       setRefreshing(true)
-      const queryParams = new URLSearchParams({ page, limit: 10, search: debouncedSearch }).toString()
+      const queryParams = new URLSearchParams({ page, limit: 10, search: debouncedSearch, status: statusFilter }).toString()
 
       if (activeTab === "applications") {
         const res = await apiConnector("GET", `${adminEndpoints.GET_INSTRUCTOR_APPLICATIONS}?${queryParams}`)
@@ -207,13 +214,35 @@ export default function InstructorManagement() {
       {/* === APPLICATIONS TAB === */}
       {activeTab === "applications" && (
         <div className="space-y-4">
+          {/* Status filter pills */}
+          <div className="flex gap-2 flex-wrap">
+            {[
+              { key: "all",      label: "All",      color: "text-richblack-300 border-richblack-600",            active: "bg-richblack-700 text-richblack-5 border-richblack-500" },
+              { key: "pending",  label: "Pending",  color: "text-orange-400 border-orange-500/30",               active: "bg-orange-500/20 text-orange-300 border-orange-500/50" },
+              { key: "approved", label: "Approved", color: "text-green-400 border-green-500/30",                 active: "bg-green-500/20 text-green-300 border-green-500/50" },
+              { key: "rejected", label: "Rejected", color: "text-red-400 border-red-500/30",                     active: "bg-red-500/20 text-red-300 border-red-500/50" },
+            ].map(({ key, label, color, active }) => (
+              <button
+                key={key}
+                onClick={() => handleStatusFilter(key)}
+                className={`px-3.5 py-1.5 rounded-lg text-sm font-medium border transition-colors ${
+                  statusFilter === key ? active : `bg-richblack-800 ${color} hover:bg-richblack-700`
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+
           {applications.length === 0 ? (
             <div className="text-center py-16 bg-richblack-800 border border-richblack-700 rounded-xl">
               <div className="w-16 h-16 mx-auto bg-richblack-700 rounded-full flex items-center justify-center mb-4">
                 <FaClock className="text-2xl text-richblack-400" />
               </div>
               <p className="text-richblack-300 font-medium">
-                {searchTerm ? "No applications match your search" : "No pending applications"}
+                {searchTerm
+                  ? "No applications match your search"
+                  : `No ${statusFilter === "all" ? "" : statusFilter + " "}applications`}
               </p>
             </div>
           ) : (
@@ -242,7 +271,16 @@ export default function InstructorManagement() {
                         </div>
                       </div>
                       <div>
-                        <h3 className="font-semibold text-richblack-5">{name}</h3>
+                        <div className="flex items-center gap-2">
+                          <h3 className="font-semibold text-richblack-5">{name}</h3>
+                          <span className={`text-xs font-medium px-2 py-0.5 rounded-full border ${
+                            app.status === "pending"  ? "bg-orange-500/10 text-orange-300 border-orange-500/30" :
+                            app.status === "approved" ? "bg-green-500/10 text-green-300 border-green-500/30" :
+                                                        "bg-red-500/10 text-red-300 border-red-500/30"
+                          }`}>
+                            {app.status.charAt(0).toUpperCase() + app.status.slice(1)}
+                          </span>
+                        </div>
                         <div className="flex items-center gap-1.5 text-sm text-richblack-400 mt-0.5">
                           <FaEnvelope className="text-xs" />
                           <span>{email}</span>
@@ -256,24 +294,26 @@ export default function InstructorManagement() {
                         </div>
                       </div>
                     </div>
-                    <div className="flex gap-2 flex-wrap">
-                      <button
-                        onClick={() => handleApprove(app._id, name)}
-                        disabled={isActing}
-                        className="flex items-center gap-2 bg-green-500/10 hover:bg-green-500/20 border border-green-500/30 text-green-400 px-4 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
-                      >
-                        <FaCheckCircle />
-                        {isActing ? "Approving…" : "Approve"}
-                      </button>
-                      <button
-                        onClick={() => { setRejectModal({ id: app._id, name }); setRejectReason("") }}
-                        disabled={isActing}
-                        className="flex items-center gap-2 bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 text-red-400 px-4 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
-                      >
-                        <FaTimesCircle />
-                        Reject
-                      </button>
-                    </div>
+                    {app.status === "pending" && (
+                      <div className="flex gap-2 flex-wrap">
+                        <button
+                          onClick={() => handleApprove(app._id, name)}
+                          disabled={isActing}
+                          className="flex items-center gap-2 bg-green-500/10 hover:bg-green-500/20 border border-green-500/30 text-green-400 px-4 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
+                        >
+                          <FaCheckCircle />
+                          {isActing ? "Approving…" : "Approve"}
+                        </button>
+                        <button
+                          onClick={() => { setRejectModal({ id: app._id, name }); setRejectReason("") }}
+                          disabled={isActing}
+                          className="flex items-center gap-2 bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 text-red-400 px-4 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
+                        >
+                          <FaTimesCircle />
+                          Reject
+                        </button>
+                      </div>
+                    )}
                   </div>
 
                   {/* Application details */}

@@ -330,8 +330,11 @@ export const revokeInstructor = async (req, res) => {
 // Instructor Applications
 export const getInstructorApplications = async (req, res) => {
   try {
-    const { page = 1, limit = 10, search = "" } = req.query;
-    let query = { status: 'pending' };
+    const { page = 1, limit = 10, search = "", status = "pending" } = req.query;
+    let query = {};
+    if (status && status !== "all") {
+      query.status = status;
+    }
 
     if (search && search.trim().length > 0) {
       const safeSearch = search.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&');

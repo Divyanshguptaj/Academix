@@ -3,7 +3,7 @@ import { studentEndpoints } from "../apis";
 import { apiConnector } from "../apiconnector";
 import rzpLogo from "../../assets/Logo/rzp_logo.png";
 import { setPaymentLoading } from "../../slices/courseSlice";
-import { resetCart } from "../../slices/cartSlice";
+import { removeFromCart } from "../../slices/cartSlice";
 
 const {
   COURSE_PAYMENT_API,
@@ -142,7 +142,9 @@ async function verifyPayment(bodyData, token, navigate, dispatch) {
     console.log("✅ FRONTEND: Payment verified successfully");
     toast.success("Payment successful! You are enrolled in the course");
     navigate("/dashboard/enrolled-courses");
-    dispatch(resetCart());
+    for (const courseId of bodyData.courses) {
+      dispatch(removeFromCart(courseId));
+    }
   } catch (error) {
     console.error("❌ PAYMENT VERIFY ERROR:", error);
     toast.error(error.response?.data?.message || "Could not verify payment");

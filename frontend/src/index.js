@@ -19,7 +19,30 @@ root.render(
       <BrowserRouter>
         <SocketProvider>
           <App />
-          <Toaster/>
+          <Toaster
+            position="bottom-right"
+            toastOptions={{
+              duration: 3000,
+              style: {
+                background: '#1d1d1d',
+                color: '#CFCFCF',
+                border: '1px solid #262626',
+                borderRadius: '8px',
+                fontSize: '14px',
+                maxWidth: '360px',
+                padding: '12px 16px',
+              },
+              success: {
+                iconTheme: { primary: '#facc15', secondary: '#1d1d1d' },
+              },
+              error: {
+                iconTheme: { primary: '#ef4444', secondary: '#1d1d1d' },
+              },
+              loading: {
+                iconTheme: { primary: '#facc15', secondary: '#1d1d1d' },
+              },
+            }}
+          />
         </SocketProvider>
       </BrowserRouter>
     </Provider>

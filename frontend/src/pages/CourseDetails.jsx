@@ -44,7 +44,7 @@ function CourseDetails() {
       try { setResponse(await fetchCourseDetails(courseId)); }
       catch { console.log("Could not fetch Course Details"); }
     })();
-  }, [courseId, user._id]);
+  }, [courseId, user?._id]);
 
   useEffect(() => {
     setAvgReviewCount(

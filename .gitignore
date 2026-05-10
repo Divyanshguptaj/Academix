@@ -1,0 +1,12 @@
+# IDE & editor
+.vscode/
+
+# CI/CD & deployment
+.github/
+.vercel/
+
+# Tooling
+.claude/
+
+# Seed script (local dev only)
+seed/

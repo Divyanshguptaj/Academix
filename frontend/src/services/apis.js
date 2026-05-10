@@ -26,6 +26,8 @@ export const studentEndpoints = {
   COURSE_VERIFY_API: API_GATEWAY_URL + "/payment/verifyPayment",
   SEND_PAYMENT_SUCCESS_EMAIL_API: API_GATEWAY_URL + "/payment/sendPaymentSuccessEmail",
   REFUND_API: API_GATEWAY_URL + "/payment/refund",
+  REQUEST_REFUND_API: API_GATEWAY_URL + "/payment/request-refund",
+  MY_REFUNDS_API: API_GATEWAY_URL + "/payment/my-refunds",
 }
 
 // COURSE ENDPOINTS (Routed through API Gateway to Course Service)

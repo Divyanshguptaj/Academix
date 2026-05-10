@@ -3,7 +3,7 @@ import { useSelector } from "react-redux"
 import { apiConnector } from "../../../services/apiconnector"
 import { adminEndpoints } from "../../../services/apis"
 import { toast } from "react-hot-toast"
-import { FaRupeeSign, FaClock, FaCheckCircle, FaTimesCircle, FaSearch, FaTimes, FaCalendar } from "react-icons/fa"
+import { FaCheckCircle, FaTimesCircle, FaSearch, FaTimes, FaCalendar } from "react-icons/fa"
 import { format } from "date-fns"
 import RefreshButton from "../../common/RefreshButton"
 
@@ -26,6 +26,8 @@ export default function RefundManagement() {
   const [sortBy, setSortBy] = useState("createdAt")
   const [sortOrder, setSortOrder] = useState("desc")
   const [actionLoading, setActionLoading] = useState(null)
+  const [rejectModal, setRejectModal] = useState(null) // { id, studentName }
+  const [rejectReason, setRejectReason] = useState("")
 
   const [page, setPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
@@ -64,17 +66,32 @@ export default function RefundManagement() {
     }
   }
 
-  const handleRefundAction = async (refundId, action, studentName) => {
-    setActionLoading(`${refundId}-${action}`)
+  const handleApprove = async (refundId, studentName) => {
+    setActionLoading(`${refundId}-process`)
     try {
-      const endpoint = action === "process"
-        ? adminEndpoints.PROCESS_REFUND.replace(":id", refundId)
-        : adminEndpoints.REJECT_REFUND.replace(":id", refundId)
-      await apiConnector("PUT", endpoint, {})
-      toast.success(`Refund for ${studentName} ${action === "process" ? "approved" : "rejected"}`)
+      await apiConnector("PUT", adminEndpoints.PROCESS_REFUND.replace(":id", refundId), {})
+      toast.success(`Refund for ${studentName} approved — student unenrolled`)
       fetchRefunds()
     } catch (err) {
-      toast.error(err?.response?.data?.message || "Failed to process refund")
+      toast.error(err?.response?.data?.message || "Failed to approve refund")
+    } finally {
+      setActionLoading(null)
+    }
+  }
+
+  const handleRejectSubmit = async () => {
+    if (!rejectModal) return
+    setActionLoading(`${rejectModal.id}-reject`)
+    try {
+      await apiConnector("PUT", adminEndpoints.REJECT_REFUND.replace(":id", rejectModal.id), {
+        rejectionReason: rejectReason.trim() || undefined,
+      })
+      toast.success(`Refund for ${rejectModal.studentName} rejected`)
+      setRejectModal(null)
+      setRejectReason("")
+      fetchRefunds()
+    } catch (err) {
+      toast.error(err?.response?.data?.message || "Failed to reject refund")
     } finally {
       setActionLoading(null)
     }
@@ -99,16 +116,6 @@ export default function RefundManagement() {
       return sortOrder === "asc" ? (av || 0) - (bv || 0) : (bv || 0) - (av || 0)
     })
 
-  const totalAmount = refunds.reduce((s, r) => s + (r.amount || 0), 0)
-  const pendingAmount = refunds.filter((r) => r.status === "pending").reduce((s, r) => s + (r.amount || 0), 0)
-  const approvedAmount = refunds.filter((r) => r.status === "approved").reduce((s, r) => s + (r.amount || 0), 0)
-
-  const statCards = [
-    { label: "Total Requests", value: totalCount, color: "text-blue-400" },
-    { label: "Pending", value: refunds.filter((r) => r.status === "pending").length, color: "text-yellow-400" },
-    { label: "Approved", value: refunds.filter((r) => r.status === "approved").length, color: "text-green-400" },
-    { label: "Rejected", value: refunds.filter((r) => r.status === "rejected").length, color: "text-red-400" },
-  ]
 
   return (
     <div className="space-y-6">
@@ -121,36 +128,28 @@ export default function RefundManagement() {
         <RefreshButton onClick={fetchRefunds} loading={loading} />
       </div>
 
-      {/* Stats + Financial Summary */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        {statCards.map((s) => (
-          <div key={s.label} className="bg-richblack-800 border border-richblack-700 rounded-xl p-4 text-center">
-            <p className={`text-2xl font-bold ${s.color}`}>{s.value}</p>
-            <p className="text-xs text-richblack-400 mt-0.5">{s.label}</p>
-          </div>
-        ))}
-      </div>
 
-      {/* Financial summary */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+      {/* Status filter pills */}
+      <div className="flex gap-2 flex-wrap">
         {[
-          { label: "Total Requested", value: totalAmount, color: "text-blue-400", icon: FaRupeeSign },
-          { label: "Pending Amount", value: pendingAmount, color: "text-yellow-400", icon: FaClock },
-          { label: "Approved Amount", value: approvedAmount, color: "text-green-400", icon: FaCheckCircle },
-        ].map((item) => (
-          <div key={item.label} className="bg-richblack-800 border border-richblack-700 rounded-xl p-4 flex items-center gap-4">
-            <div className={`w-10 h-10 rounded-xl flex items-center justify-center bg-richblack-700`}>
-              <item.icon className={`${item.color} text-base`} />
-            </div>
-            <div>
-              <p className={`text-xl font-bold ${item.color}`}>₹{item.value.toLocaleString("en-IN")}</p>
-              <p className="text-xs text-richblack-400">{item.label}</p>
-            </div>
-          </div>
+          { key: "all",      label: "All",      color: "text-richblack-300 border-richblack-600",  active: "bg-richblack-700 text-richblack-5 border-richblack-500" },
+          { key: "pending",  label: "Pending",  color: "text-yellow-400 border-yellow-500/30",     active: "bg-yellow-500/20 text-yellow-300 border-yellow-500/50" },
+          { key: "approved", label: "Approved", color: "text-green-400 border-green-500/30",       active: "bg-green-500/20 text-green-300 border-green-500/50" },
+          { key: "rejected", label: "Rejected", color: "text-red-400 border-red-500/30",           active: "bg-red-500/20 text-red-300 border-red-500/50" },
+        ].map(({ key, label, color, active }) => (
+          <button
+            key={key}
+            onClick={() => setStatusFilter(key)}
+            className={`px-3.5 py-1.5 rounded-lg text-sm font-medium border transition-colors ${
+              statusFilter === key ? active : `bg-richblack-800 ${color} hover:bg-richblack-700`
+            }`}
+          >
+            {label}
+          </button>
         ))}
       </div>
 
-      {/* Filters */}
+      {/* Search + Sort */}
       <div className="bg-richblack-800 border border-richblack-700 rounded-xl p-4 flex flex-wrap gap-3">
         <div className="relative flex-1 min-w-[200px]">
           <FaSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-richblack-400 text-sm" />
@@ -167,17 +166,6 @@ export default function RefundManagement() {
             </button>
           )}
         </div>
-
-        <select
-          value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value)}
-          className="px-3 py-2 bg-richblack-700 border border-richblack-600 rounded-lg text-sm text-richblack-200 focus:outline-none"
-        >
-          <option value="all">All Status</option>
-          <option value="pending">Pending</option>
-          <option value="approved">Approved</option>
-          <option value="rejected">Rejected</option>
-        </select>
 
         <select
           value={sortBy}
@@ -276,7 +264,7 @@ export default function RefundManagement() {
                       {refund.status === "pending" && (
                         <div className="flex gap-2">
                           <button
-                            onClick={() => handleRefundAction(refund._id, "process", studentName)}
+                            onClick={() => handleApprove(refund._id, studentName)}
                             disabled={approveLoading || rejectLoading}
                             className="flex items-center gap-1.5 px-3 py-1.5 bg-green-500/10 hover:bg-green-500/20 border border-green-500/20 text-green-400 rounded-lg text-xs font-medium transition-colors disabled:opacity-50"
                           >
@@ -284,12 +272,12 @@ export default function RefundManagement() {
                             {approveLoading ? "…" : "Approve"}
                           </button>
                           <button
-                            onClick={() => handleRefundAction(refund._id, "reject", studentName)}
+                            onClick={() => { setRejectModal({ id: refund._id, studentName }); setRejectReason("") }}
                             disabled={approveLoading || rejectLoading}
                             className="flex items-center gap-1.5 px-3 py-1.5 bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-red-400 rounded-lg text-xs font-medium transition-colors disabled:opacity-50"
                           >
                             <FaTimesCircle className="text-xs" />
-                            {rejectLoading ? "…" : "Reject"}
+                            Reject
                           </button>
                         </div>
                       )}
@@ -326,6 +314,59 @@ export default function RefundManagement() {
           </div>
         )}
       </div>
+
+      {/* Reject reason modal */}
+      {rejectModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="bg-richblack-800 border border-richblack-700 rounded-2xl p-6 w-full max-w-md shadow-2xl">
+            <div className="flex items-start justify-between gap-3 mb-5">
+              <div>
+                <h3 className="font-semibold text-richblack-5 text-lg">Reject Refund Request</h3>
+                <p className="text-sm text-richblack-400 mt-0.5">{rejectModal.studentName}</p>
+              </div>
+              <button
+                onClick={() => { setRejectModal(null); setRejectReason("") }}
+                className="text-richblack-400 hover:text-richblack-200 mt-0.5 flex-shrink-0"
+              >
+                <FaTimes />
+              </button>
+            </div>
+
+            <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-3 mb-4 text-sm text-red-300">
+              This will reject the refund request. The student will keep access to the course.
+            </div>
+
+            <label className="block text-sm font-medium text-richblack-300 mb-2">
+              Rejection Reason <span className="text-richblack-500 font-normal">(optional)</span>
+            </label>
+            <textarea
+              value={rejectReason}
+              onChange={(e) => setRejectReason(e.target.value)}
+              maxLength={500}
+              rows={4}
+              placeholder="Explain why you are rejecting this refund request…"
+              className="w-full bg-richblack-700 border border-richblack-600 rounded-xl px-4 py-3 text-sm text-richblack-5 placeholder:text-richblack-500 focus:outline-none focus:border-red-400/50 resize-none"
+            />
+            <p className="text-xs text-richblack-500 mt-1 text-right">{rejectReason.length}/500</p>
+
+            <div className="flex gap-3 mt-4">
+              <button
+                onClick={() => { setRejectModal(null); setRejectReason("") }}
+                className="flex-1 py-2.5 rounded-xl bg-richblack-700 hover:bg-richblack-600 border border-richblack-600 text-richblack-200 text-sm font-medium transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleRejectSubmit}
+                disabled={actionLoading === `${rejectModal.id}-reject`}
+                className="flex-1 py-2.5 rounded-xl bg-red-500/20 hover:bg-red-500/30 border border-red-500/30 text-red-300 text-sm font-semibold transition-colors disabled:opacity-50"
+              >
+                {actionLoading === `${rejectModal.id}-reject` ? "Rejecting…" : "Confirm Reject"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

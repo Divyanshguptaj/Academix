@@ -17,7 +17,7 @@ import {
 } from '../../shared-utils/middlewares/inputSanitization.js'
 
 // Rate limiting for auth endpoints
-const authRateLimit = createRateLimit(5, 15 * 60 * 1000); // 5 attempts per 15 minutes
+const authRateLimit = createRateLimit(10, 15 * 60 * 1000); // 5 attempts per 15 minutes
 const applicationRateLimit = createRateLimit(10, 60 * 60 * 1000); // 10 attempts per hour
 
 router.post('/login', 

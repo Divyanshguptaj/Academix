@@ -1,8 +1,11 @@
 import RefundRequest from '../models/RefundRequest.js'
 import PaymentTransaction from '../models/PaymentTransaction.js'
-import { capturePayment, refundPayment } from './Payments.js'
+import { instance } from '../config/razorpay.js'
 import mongoose from 'mongoose'
 import { withRetry, courseService, userService } from '../utils/serviceClients.js'
+import { queueEmail } from '../../shared-utils/queue/email/emailQueue.js'
+import { refundApprovedEmail } from '../../shared-utils/mail/templates/refundApprovedEmail.js'
+import { refundRejectedEmail } from '../../shared-utils/mail/templates/refundRejectedEmail.js'
 
 // Refund Management
 export const getRefundRequests = async (req, res) => {
@@ -42,7 +45,7 @@ export const getRefundRequests = async (req, res) => {
     let instructorsMap = {};
     if (courseIds.length > 0) {
       try {
-        const courseRes = await withRetry(() => courseService.get(`/course/getCourseByIds?ids=${courseIds.join(',')}`));
+        const courseRes = await withRetry(() => courseService.get(`/course/get-courses-by-ids?ids=${courseIds.join(',')}`));
         const courses = courseRes.data?.data || [];
         
         const instructorIds = [...new Set(courses.map(c => typeof c.instructor === 'object' ? c.instructor._id : c.instructor).filter(Boolean))];
@@ -72,13 +75,13 @@ export const getRefundRequests = async (req, res) => {
         
         return {
           ...request.toObject(),
-          studentId: student ? {
+          student: student ? {
             _id: student._id,
             firstName: student.firstName,
             lastName: student.lastName,
             email: student.email,
             image: student.image
-          } : request.studentId,
+          } : null,
           course: course ? {
             ...course,
             instructor: instructor ? {
@@ -111,6 +114,14 @@ export const getRefundRequests = async (req, res) => {
 export const processRefund = async (req, res) => {
   const session = await mongoose.startSession()
   session.startTransaction()
+  let sessionEnded = false
+
+  const endSession = async (abort = false) => {
+    if (sessionEnded) return
+    sessionEnded = true
+    if (abort) await session.abortTransaction()
+    session.endSession()
+  }
 
   try {
     const { id } = req.params
@@ -118,26 +129,38 @@ export const processRefund = async (req, res) => {
 
     const refundRequest = await RefundRequest.findById(id).session(session)
     if (!refundRequest) {
-      await session.abortTransaction()
-      session.endSession()
-      return res.status(404).json({
-        success: false,
-        message: 'Refund request not found'
-      })
+      await endSession(true)
+      return res.status(404).json({ success: false, message: 'Refund request not found' })
     }
 
     if (refundRequest.status !== 'pending') {
-      await session.abortTransaction()
-      session.endSession()
-      return res.status(400).json({
-        success: false,
-        message: 'Refund request has already been processed'
-      })
+      await endSession(true)
+      return res.status(400).json({ success: false, message: 'Refund request has already been processed' })
     }
 
     try {
+      // Find the payment transaction to get the Razorpay payment ID
+      const paymentTxn = await PaymentTransaction.findOne({
+        $or: [
+          ...(mongoose.Types.ObjectId.isValid(refundRequest.transactionId)
+            ? [{ _id: refundRequest.transactionId }]
+            : []),
+          { razorpayOrderId: refundRequest.transactionId },
+        ]
+      }).session(session)
+
+      if (!paymentTxn?.razorpayPaymentId) {
+        await endSession(true)
+        return res.status(400).json({
+          success: false,
+          message: 'Payment record not found or payment was never captured'
+        })
+      }
+
       // Process refund through Razorpay
-      const refundResult = await refundPayment(refundRequest.transactionId, refundRequest.amount)
+      const refundResult = await instance.payments.refund(paymentTxn.razorpayPaymentId, {
+        notes: { reason: 'Admin approved refund' }
+      })
 
       // Update refund request status
       refundRequest.status = 'approved'
@@ -147,13 +170,41 @@ export const processRefund = async (req, res) => {
 
       // Update payment transaction status
       await PaymentTransaction.findOneAndUpdate(
-        { _id: refundRequest.transactionId },
+        { _id: paymentTxn._id },
         { status: 'refunded', refundId: refundResult.id },
         { session }
       )
 
       await session.commitTransaction()
-      session.endSession()
+      await endSession()
+
+      // Unenroll student from the course (fire-and-forget — must not fail the refund response)
+      const doUnenroll = async () => {
+        await withRetry(() => courseService.post('/course/unenroll', {
+          courses: [refundRequest.courseId.toString()],
+          userId: refundRequest.studentId.toString()
+        }))
+        await withRetry(() => userService.post('/profile/remove-course', {
+          userId: refundRequest.studentId.toString(),
+          courseId: refundRequest.courseId.toString()
+        }))
+      }
+      doUnenroll().catch(err => console.warn('Post-refund unenroll failed:', err.message))
+
+      // Email student (fire-and-forget)
+      const notifyApproval = async () => {
+        const userRes = await userService.get(`/auth/get-users-by-ids?ids=${refundRequest.studentId}`)
+        const student = userRes.data?.data?.[0]
+        if (!student?.email) return
+        const courseRes = await courseService.get(`/course/details/${refundRequest.courseId}`)
+        const courseName = courseRes.data?.course?.courseName || 'your course'
+        await queueEmail({
+          email: student.email,
+          title: 'Refund Approved — Academix',
+          body: refundApprovedEmail(student.firstName, refundRequest.amount, courseName)
+        })
+      }
+      notifyApproval().catch(err => console.warn('Refund approval email failed:', err.message))
 
       res.status(200).json({
         success: true,
@@ -166,16 +217,18 @@ export const processRefund = async (req, res) => {
       })
     } catch (refundError) {
       console.error('Refund processing error:', refundError)
-      
-      await session.abortTransaction()
-      session.endSession()
+      await endSession(true)
 
-      // Update refund request status to failed
-      refundRequest.status = 'failed'
-      refundRequest.processedBy = adminId
-      refundRequest.processedAt = new Date()
-      refundRequest.rejectionReason = 'Payment gateway error'
-      await refundRequest.save() // Saved outside of transaction so the failure state persists
+      // Record gateway failure so admin can see it without losing the request
+      try {
+        refundRequest.status = 'failed'
+        refundRequest.processedBy = adminId
+        refundRequest.processedAt = new Date()
+        refundRequest.rejectionReason = 'Payment gateway error'
+        await refundRequest.save()
+      } catch (saveErr) {
+        console.warn('Could not persist failed refund status:', saveErr.message)
+      }
 
       res.status(500).json({
         success: false,
@@ -184,12 +237,8 @@ export const processRefund = async (req, res) => {
     }
   } catch (error) {
     console.error('Process refund error:', error)
-    await session.abortTransaction()
-    session.endSession()
-    res.status(500).json({
-      success: false,
-      message: 'Failed to process refund'
-    })
+    await endSession(true)
+    res.status(500).json({ success: false, message: 'Failed to process refund' })
   }
 }
 
@@ -220,6 +269,21 @@ export const rejectRefund = async (req, res) => {
     refundRequest.processedAt = new Date()
     refundRequest.rejectionReason = rejectionReason || 'Not specified'
     await refundRequest.save()
+
+    // Email student (fire-and-forget)
+    const notifyRejection = async () => {
+      const userRes = await userService.get(`/auth/get-users-by-ids?ids=${refundRequest.studentId}`)
+      const student = userRes.data?.data?.[0]
+      if (!student?.email) return
+      const courseRes = await courseService.get(`/course/details/${refundRequest.courseId}`)
+      const courseName = courseRes.data?.course?.courseName || 'your course'
+      await queueEmail({
+        email: student.email,
+        title: 'Refund Request Update — Academix',
+        body: refundRejectedEmail(student.firstName, courseName, refundRequest.rejectionReason)
+      })
+    }
+    notifyRejection().catch(err => console.warn('Refund rejection email failed:', err.message))
 
     res.status(200).json({
       success: true,

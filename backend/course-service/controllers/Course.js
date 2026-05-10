@@ -1006,16 +1006,18 @@ export const unenrollStudentFromCourse = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Courses and userId are required' });
     }
 
+    const uid = new mongoose.Types.ObjectId(userId);
+
     for (const courseData of courses) {
       const courseId = typeof courseData === 'object' ? courseData.courseId : courseData;
       if (!mongoose.Types.ObjectId.isValid(courseId)) continue;
 
-      const course = await Course.findById(courseId);
-      if (!course) continue;
+      const cid = new mongoose.Types.ObjectId(courseId);
 
-      const uid = new mongoose.Types.ObjectId(userId);
-      course.studentsEnrolled = course.studentsEnrolled.filter(id => id.toString() !== uid.toString());
-      await course.save();
+      await Promise.all([
+        Course.findByIdAndUpdate(cid, { $pull: { studentsEnrolled: uid } }),
+        CourseProgress.deleteOne({ courseID: cid, userId: uid }),
+      ]);
     }
 
     return res.status(200).json({ success: true, message: 'Student unenrolled from courses successfully' });

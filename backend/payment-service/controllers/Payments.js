@@ -6,6 +6,7 @@ import { paymentSuccessEmail } from "../../shared-utils/mail/templates/paymentSu
 import { paymentFailureEmail } from "../../shared-utils/mail/templates/paymentFailureEmail.js";
 import { withRetry, courseService, userService } from "../utils/serviceClients.js";
 import PaymentTransaction from "../models/PaymentTransaction.js";
+import RefundRequest from "../models/RefundRequest.js";
 
 /**
  * Step 1: Create Razorpay order
@@ -510,5 +511,83 @@ const sendFailureEmail = async (paymentId, amount, orderId, email, refundId) => 
   } catch (error) {
     console.error("Error sending failure email:", error.message);
     // Don't throw - email failure shouldn't block refund flow
+  }
+};
+
+/**
+ * Student: submit a refund request for an enrolled course
+ */
+export const requestRefund = async (req, res) => {
+  try {
+    const { courseId, reason } = req.body;
+    const userId = req.user.id;
+
+    if (!courseId || !reason?.trim()) {
+      return res.status(400).json({ success: false, message: "Course ID and reason are required" });
+    }
+
+    if (reason.trim().length > 500) {
+      return res.status(400).json({ success: false, message: "Reason must be under 500 characters" });
+    }
+
+    // Find a completed payment that includes this course
+    const transaction = await PaymentTransaction.findOne({
+      userId,
+      courseIds: courseId,
+      status: "completed",
+    });
+
+    if (!transaction) {
+      return res.status(404).json({ success: false, message: "No completed payment found for this course" });
+    }
+
+    // Block duplicate requests
+    const existing = await RefundRequest.findOne({
+      studentId: userId,
+      courseId,
+      status: { $in: ["pending", "approved"] },
+    });
+
+    if (existing) {
+      const msg = existing.status === "approved"
+        ? "Refund has already been approved for this course"
+        : "A refund request is already pending for this course";
+      return res.status(400).json({ success: false, message: msg });
+    }
+
+    const refundRequest = await RefundRequest.create({
+      studentId: userId,
+      courseId,
+      transactionId: transaction.razorpayOrderId,
+      amount: transaction.amount,
+      reason: reason.trim(),
+      status: "pending",
+    });
+
+    return res.status(201).json({
+      success: true,
+      message: "Refund request submitted successfully",
+      data: refundRequest,
+    });
+  } catch (error) {
+    console.error("Request refund error:", error.message);
+    return res.status(500).json({ success: false, message: "Failed to submit refund request" });
+  }
+};
+
+/**
+ * Student: get their own refund requests (to show status per course)
+ */
+export const getMyRefunds = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const refunds = await RefundRequest.find({ studentId: userId })
+      .select("courseId status reason amount createdAt")
+      .sort({ createdAt: -1 });
+
+    return res.status(200).json({ success: true, data: refunds });
+  } catch (error) {
+    console.error("Get my refunds error:", error.message);
+    return res.status(500).json({ success: false, message: "Failed to fetch refund requests" });
   }
 };
