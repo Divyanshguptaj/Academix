@@ -13,10 +13,17 @@ const { GET_DISCUSSIONS } = discussionEndpoints;
 export default function DiscussionPage() {
     const { courseId } = useParams();
     const { token } = useSelector((state) => state.auth);
-    const { socket, isConnected, joinCourse, leaveCourse, onDiscussionCreated, offDiscussionCreated, onReplyAdded, offReplyAdded } = useSocket();
+    const { socket, isConnected, failed, connect, disconnect, joinCourse, leaveCourse, onDiscussionCreated, offDiscussionCreated, onReplyAdded, offReplyAdded } = useSocket();
 
     const [discussions, setDiscussions] = useState([]);
     const [loading, setLoading] = useState(false);
+
+    // Connect socket when entering Discussion page, disconnect on leave
+    useEffect(() => {
+        connect();
+        return () => disconnect();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
     // Join socket room for this course
     useEffect(() => {
@@ -128,6 +135,19 @@ export default function DiscussionPage() {
         <div className="space-y-6 pb-12">
             {/* Header */}
             <h2 className="text-2xl font-bold text-white">Discussion Forum</h2>
+
+            {/* Connection status banner */}
+            {failed && (
+                <div className="flex items-center justify-between gap-3 bg-yellow-500/10 border border-yellow-500/20 rounded-xl px-4 py-3 text-sm text-yellow-300">
+                    <span>Live updates unavailable — real-time connection could not be established. Posts still work normally.</span>
+                    <button
+                        onClick={() => { disconnect(); setTimeout(connect, 300); }}
+                        className="text-xs font-medium underline underline-offset-2 shrink-0 hover:text-yellow-200"
+                    >
+                        Retry
+                    </button>
+                </div>
+            )}
 
             {/* Post Form — always visible */}
             <DiscussionForm
